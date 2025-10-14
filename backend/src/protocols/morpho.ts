@@ -10,13 +10,11 @@ const MORPHO_ABI = [
   "function position(address user) external view returns (uint256 supply, uint256 borrow)"
 ];
 
-// Morpho Contract Addresses by Chain
-export const MORPHO_ADDRESSES = {
-  1: { // Ethereum Mainnet - Morpho Aave V2
-    morpho: '0x777777c9898D384F785Ee44Acfe945efDFf5f3E0',
-    rewardsManager: '0x78681D63E6DC6Ee052C256f4af36F57C6Fc116dC'
-  },
-  1: { // Ethereum Mainnet - Morpho Aave V3
+// Morpho Contract Addresses by Chain with proper number index signature and no duplicates
+export const MORPHO_ADDRESSES: {
+  [chainId: number]: { morpho: string; rewardsManager: string }
+} = {
+  1: { // Ethereum Mainnet - Morpho Aave V3 (choose one set, usually latest is preferred)
     morpho: '0x33333aea097c193e66081E930c33020272b33333',
     rewardsManager: '0x3B14E5C73e0A56D607A8688098326fD4b4292135'
   },
@@ -46,8 +44,9 @@ export class MorphoProtocol {
   private providers: { [chainId: number]: ethers.JsonRpcProvider } = {};
 
   constructor(rpcUrls: { [chainId: number]: string }) {
-    for (const [chainId, url] of Object.entries(rpcUrls)) {
-      this.providers[parseInt(chainId)] = new ethers.JsonRpcProvider(url);
+    for (const [chainIdStr, url] of Object.entries(rpcUrls)) {
+      const chainId = Number(chainIdStr);
+      this.providers[chainId] = new ethers.JsonRpcProvider(url);
     }
   }
 
@@ -65,14 +64,13 @@ export class MorphoProtocol {
           provider
         );
 
-        // Note: This is a simplified implementation
-        // In production, you would need to iterate through all pool tokens
+        // Simplified example: gets position object with supply and borrow
         const position = await morphoContract.position(address);
-        
+
         positions[chainId] = {
           supplied: ethers.formatEther(position.supply || 0),
           borrowed: ethers.formatEther(position.borrow || 0),
-          collateral: '0' // Would need additional logic to calculate collateral
+          collateral: '0' // Placeholder - requires custom logic if needed
         };
       } catch (error) {
         console.error(`Error fetching Morpho position for chain ${chainId}:`, error);
@@ -100,7 +98,7 @@ export class MorphoProtocol {
   private async getChainTransactions(address: string, chainId: number): Promise<MorphoTransaction[]> {
     const transactions: MorphoTransaction[] = [];
     const baseURL = this.getBlockscoutURL(chainId);
-    
+
     try {
       const response = await axios.get(
         `${baseURL}/api?module=account&action=txlist&address=${address}&sort=desc`
@@ -108,7 +106,7 @@ export class MorphoProtocol {
 
       if (response.data.status === '1') {
         const morphoAddress = MORPHO_ADDRESSES[chainId]?.morpho.toLowerCase();
-        
+
         for (const tx of response.data.result) {
           if (tx.to?.toLowerCase() === morphoAddress) {
             const transaction = await this.decodeMorphoTransaction(tx, chainId);
@@ -165,10 +163,10 @@ export class MorphoProtocol {
         type,
         poolToken,
         amount,
-        timestamp: parseInt(tx.timeStamp),
+        timestamp: parseInt(tx.timeStamp, 10),
         txHash: tx.hash,
         chainId,
-        blockNumber: parseInt(tx.blockNumber)
+        blockNumber: parseInt(tx.blockNumber, 10)
       };
     } catch (error) {
       console.error('Error decoding Morpho transaction:', error);

@@ -1,11 +1,32 @@
 import { ethers } from 'ethers';
 import { AaveSimulator } from '../../../sandbox/aave-simulator';
 import { MorphoSimulator } from '../../../sandbox/morpho-simulator';
-import { RealProtocolInteractor } from '../../../sandbox/real-protocol-interactor';
-import { ForkedNetworkRunner } from '../../../sandbox/forked-network-runner';
-import { BlockscoutMCPClient, CrossChainData, ProtocolInteraction, ChainData, TokenBalance, NFT, Transaction } from '../mcp/client';
+import { RealProtocolInteractor } from '../../../sandbox/forked-network-runner';
+import {
+  BlockscoutMCPClient,
+  CrossChainData,
+  ProtocolInteraction,
+  ChainData,
+  TokenBalance,
+  Transaction
+} from '../mcp/client';
 import { AaveTransaction } from '../protocols/aave';
 import { MorphoTransaction } from '../protocols/morpho';
+
+function morphoTxTypeToProtocolType(type: string): 'deposit' | 'withdraw' | 'borrow' | 'repay' {
+  switch (type) {
+    case 'supply':
+      return 'deposit';
+    case 'withdraw':
+      return 'withdraw';
+    case 'borrow':
+      return 'borrow';
+    case 'repay':
+      return 'repay';
+    default:
+      throw new Error(`Invalid morpho transaction type: ${type}`);
+  }
+}
 
 export interface SimulationType {
   id: string;
@@ -19,7 +40,7 @@ export interface SimulationType {
 export interface EnhancedCreditData extends CrossChainData {
   simulationType: string;
   isSimulated: boolean;
-  usesRealProtocols: boolean;
+  useRealProtocols: boolean;
   metadata: {
     simulationTimestamp: string;
     simulationDuration: number;
@@ -31,19 +52,21 @@ export class SandboxService {
   private aaveSimulator: AaveSimulator;
   private morphoSimulator: MorphoSimulator;
   private realInteractor: RealProtocolInteractor;
-  private networkRunner: ForkedNetworkRunner;
+  private networkRunner: RealProtocolInteractor;
   private mcpClient: BlockscoutMCPClient;
   private simulationTypes: SimulationType[];
 
   constructor(rpcUrl: string) {
-    const privateKey = process.env.TEST_WALLET_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-    
+    const privateKey =
+      process.env.TEST_WALLET_PRIVATE_KEY ||
+      '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+
     this.aaveSimulator = new AaveSimulator(rpcUrl, privateKey);
     this.morphoSimulator = new MorphoSimulator(rpcUrl, privateKey);
     this.realInteractor = new RealProtocolInteractor(rpcUrl, privateKey);
-    this.networkRunner = new ForkedNetworkRunner();
+    this.networkRunner = new RealProtocolInteractor(rpcUrl, privateKey);
     this.mcpClient = new BlockscoutMCPClient({ 11155111: rpcUrl });
-    
+
     this.simulationTypes = this.initializeSimulationTypes();
   }
 
@@ -110,68 +133,99 @@ export class SandboxService {
   }
 
   async generateSimulatedCreditData(
-    realAddress: string, 
+    realAddress: string,
     simulationType: 'ideal' | 'growing' | 'risky' = 'ideal',
     useRealProtocols: boolean = false
   ): Promise<EnhancedCreditData> {
-    
     const startTime = Date.now();
-    
+
     try {
-      // Get real data first as base
       const realData = await this.mcpClient.getCrossChainData(realAddress);
-      
+
       let simulatedAaveTxs: AaveTransaction[] = [];
       let simulatedMorphoTxs: MorphoTransaction[] = [];
 
       if (useRealProtocols) {
-        // USE REAL PROTOCOL INTERACTIONS ON SEPOLIA
         console.log('🔄 Using real protocol interactions on Sepolia...');
-        
         try {
-          // Execute real transactions on Sepolia testnet
           const realResults = await this.networkRunner.runCompleteProtocolSimulation();
-          
-          // Map real transactions to our format
           simulatedAaveTxs = await this.mapRealToAaveTransactions(realResults.aaveTransactions, realAddress);
           simulatedMorphoTxs = await this.mapRealToMorphoTransactions(realResults.morphoTransactions, realAddress);
-          
+
           console.log(`✅ Real protocol interactions completed: ${simulatedAaveTxs.length} Aave + ${simulatedMorphoTxs.length} Morpho transactions`);
-        } catch (error) {
-          console.error('❌ Real interactions failed, falling back to simulation:', error);
-          // Fallback to simulation
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            console.error('❌ Real interactions failed, falling back to simulation:', error.message);
+          } else {
+            console.error('❌ Real interactions failed, falling back to simulation: Unknown error');
+          }
           simulatedAaveTxs = await this.aaveSimulator.simulateUserActivity(realAddress);
           simulatedMorphoTxs = await this.morphoSimulator.simulateUserActivity(realAddress);
         }
       } else {
-        // USE SIMULATED DATA (original behavior)
         console.log('🎭 Using simulated protocol data...');
         simulatedAaveTxs = await this.aaveSimulator.simulateUserActivity(realAddress);
         simulatedMorphoTxs = await this.morphoSimulator.simulateUserActivity(realAddress);
       }
 
-      // Enhance with simulation based on type
-      const enhancedData = this.enhanceWithSimulation(realData, simulatedAaveTxs, simulatedMorphoTxs, simulationType);
-      
+      const simulatedInteractions: ProtocolInteraction[] = [
+        ...simulatedAaveTxs.map(tx => ({
+          protocol: 'aave' as const,
+          type: tx.type,
+          amount: tx.amount,
+          timestamp: tx.timestamp,
+          chainId: tx.chainId,
+          txHash: tx.txHash,
+          asset: tx.asset
+        })),
+        ...simulatedMorphoTxs.map(tx => ({
+          protocol: 'morpho' as const,
+          type: morphoTxTypeToProtocolType(tx.type),
+          amount: tx.amount,
+          timestamp: tx.timestamp,
+          chainId: tx.chainId,
+          txHash: tx.txHash,
+          asset: tx.poolToken
+        }))
+      ];
+
+      const combinedInteractions: ProtocolInteraction[] = [
+        ...(realData.protocolInteractions ?? []),
+        ...simulatedInteractions
+      ].sort((a, b) => b.timestamp - a.timestamp);
+
+      let enhancedData: CrossChainData = {
+        ...realData,
+        protocolInteractions: combinedInteractions
+      };
+
+      const config = this.simulationTypes.find(st => st.id === simulationType);
+      if (config) {
+        enhancedData = this.applySimulationEnhancement(enhancedData, config);
+      }
+
       const simulationDuration = Date.now() - startTime;
-      
       return {
         ...enhancedData,
         simulationType,
         isSimulated: true,
-        usesRealProtocols,
+        useRealProtocols,
         metadata: {
           simulationTimestamp: new Date().toISOString(),
           simulationDuration,
-          dataSources: useRealProtocols 
+          dataSources: useRealProtocols
             ? ['Blockscout MCP', 'Real Sepolia Transactions', 'Simulation Engine']
             : ['Blockscout MCP', 'Simulation Engine']
         }
       };
-      
-    } catch (error) {
-      console.error('Error generating simulated credit data:', error);
-      throw new Error(`Failed to generate simulated credit data: ${error.message}`);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error('Error generating simulated credit data:', error.message);
+        throw new Error(`Failed to generate simulated credit data: ${error.message}`);
+      } else {
+        console.error('Error generating simulated credit data: Unknown error');
+        throw new Error('Failed to generate simulated credit data: Unknown error');
+      }
     }
   }
 
@@ -180,9 +234,9 @@ export class SandboxService {
       type: this.determineAaveTransactionType(tx, index),
       asset: this.getAaveAssetFromTransaction(tx, index),
       amount: this.getAaveAmountFromTransaction(tx, index),
-      timestamp: tx.timestamp || Math.floor(Date.now() / 1000) - (realTxs.length - index) * 86400, // Spread over days
+      timestamp: tx.timestamp || Math.floor(Date.now() / 1000) - (realTxs.length - index) * 86400,
       txHash: tx.hash || `0x${Math.random().toString(16).substr(2, 64)}`,
-      chainId: 11155111, // Sepolia
+      chainId: 11155111,
       blockNumber: tx.blockNumber || 4000000 + index * 1000
     }));
   }
@@ -194,18 +248,18 @@ export class SandboxService {
       amount: this.getMorphoAmountFromTransaction(tx, index),
       timestamp: tx.timestamp || Math.floor(Date.now() / 1000) - (realTxs.length - index) * 86400,
       txHash: tx.hash || `0x${Math.random().toString(16).substr(2, 64)}`,
-      chainId: 11155111, // Sepolia
+      chainId: 11155111,
       blockNumber: tx.blockNumber || 4000000 + index * 1000
     }));
   }
 
   private determineAaveTransactionType(tx: any, index: number): 'deposit' | 'withdraw' | 'borrow' | 'repay' {
-    const types: ('deposit' | 'withdraw' | 'borrow' | 'repay')[] = ['deposit', 'borrow', 'repay', 'withdraw'];
+    const types: Array<'deposit' | 'withdraw' | 'borrow' | 'repay'> = ['deposit', 'borrow', 'repay', 'withdraw'];
     return types[index % types.length];
   }
 
   private determineMorphoTransactionType(tx: any, index: number): 'supply' | 'withdraw' | 'borrow' | 'repay' {
-    const types: ('supply' | 'withdraw' | 'borrow' | 'repay')[] = ['supply', 'borrow', 'repay', 'withdraw'];
+    const types: Array<'supply' | 'withdraw' | 'borrow' | 'repay'> = ['supply', 'withdraw', 'borrow', 'repay'];
     return types[index % types.length];
   }
 
@@ -229,106 +283,28 @@ export class SandboxService {
     return amounts[index % amounts.length];
   }
 
-  private enhanceWithSimulation(
-    realData: CrossChainData,
-    aaveTxs: AaveTransaction[],
-    morphoTxs: MorphoTransaction[],
-    simulationType: string
-  ): CrossChainData {
-    let enhancedData = { ...realData };
-    
-    // Combine real and simulated protocol interactions
-    const simulatedInteractions: ProtocolInteraction[] = [
-      ...aaveTxs.map(tx => ({
-        protocol: 'aave' as const,
-        type: tx.type,
-        amount: tx.amount,
-        timestamp: tx.timestamp,
-        chainId: tx.chainId,
-        txHash: tx.txHash,
-        asset: tx.asset
-      })),
-      ...morphoTxs.map(tx => ({
-        protocol: 'morpho' as const,
-        type: tx.type === 'supply' ? 'deposit' : tx.type,
-        amount: tx.amount,
-        timestamp: tx.timestamp,
-        chainId: tx.chainId,
-        txHash: tx.txHash,
-        asset: tx.poolToken
-      }))
-    ];
-
-    enhancedData.protocolInteractions = [
-      ...(enhancedData.protocolInteractions || []),
-      ...simulatedInteractions
-    ].sort((a, b) => b.timestamp - a.timestamp);
-
-    // Enhance based on simulation type
-    const simulationConfig = this.simulationTypes.find(st => st.id === simulationType);
-    
-    if (simulationConfig) {
-      enhancedData = this.applySimulationEnhancement(enhancedData, simulationConfig);
-    }
-
-    return enhancedData;
-  }
-
   private applySimulationEnhancement(data: CrossChainData, config: SimulationType): CrossChainData {
     const enhancedData = { ...data };
-    
+
     switch (config.id) {
       case 'ideal':
-        // Ideal borrower: high score, low risk, diverse portfolio
         enhancedData.creditScore = this.calculateScoreInRange(config.creditScoreRange);
-        enhancedData.riskFactors = enhancedData.riskFactors.filter(f => 
-          !f.includes('High') && !f.includes('concentration') && !f.includes('gas')
-        );
-        enhancedData.recommendations = [
-          ...config.recommendations,
-          'Maintain excellent cross-chain presence',
-          'Continue diverse asset allocation'
-        ];
-        
-        // Enhance portfolio for ideal borrower
+        enhancedData.riskFactors = enhancedData.riskFactors.filter(f => !f.includes('High') && !f.includes('concentration') && !f.includes('gas'));
+        enhancedData.recommendations = [...config.recommendations, 'Maintain excellent cross-chain presence', 'Continue diverse asset allocation'];
         enhancedData.chains = this.enhanceChainsForIdealBorrower(enhancedData.chains);
         break;
-      
       case 'growing':
-        // Growing borrower: medium score, some risks, building history
         enhancedData.creditScore = this.calculateScoreInRange(config.creditScoreRange);
-        enhancedData.riskFactors = [
-          ...config.riskFactors,
-          ...enhancedData.riskFactors.filter(f => !f.includes('High'))
-        ];
-        enhancedData.recommendations = [
-          ...config.recommendations,
-          'Focus on consistent repayment patterns',
-          'Gradually expand protocol usage'
-        ];
+        enhancedData.riskFactors = [...config.riskFactors, ...enhancedData.riskFactors.filter(f => !f.includes('High'))];
+        enhancedData.recommendations = [...config.recommendations, 'Focus on consistent repayment patterns', 'Gradually expand protocol usage'];
         break;
-      
       case 'risky':
-        // Risky borrower: low score, multiple risks, needs improvement
         enhancedData.creditScore = this.calculateScoreInRange(config.creditScoreRange);
-        enhancedData.riskFactors = [
-          ...config.riskFactors,
-          'Simulated: High concentration in single asset',
-          'Simulated: Inconsistent repayment history',
-          'Simulated: Limited cross-chain diversification'
-        ];
-        enhancedData.recommendations = [
-          ...config.recommendations,
-          'Start with over-collateralized positions',
-          'Build consistent on-chain history'
-        ];
-        
-        // Simulate risky portfolio patterns
+        enhancedData.riskFactors = [...config.riskFactors, 'Simulated: High concentration in single asset', 'Simulated: Inconsistent repayment history', 'Simulated: Limited cross-chain diversification'];
+        enhancedData.recommendations = [...config.recommendations, 'Start with over-collateralized positions', 'Build consistent on-chain history'];
         enhancedData.chains = this.enhanceChainsForRiskyBorrower(enhancedData.chains);
         break;
-      
       default:
-        // Real data - no changes
         break;
     }
 
@@ -343,7 +319,7 @@ export class SandboxService {
   private enhanceChainsForIdealBorrower(chains: ChainData[]): ChainData[] {
     return chains.map(chain => ({
       ...chain,
-      balance: (parseFloat(chain.balance) + 2.5).toString(), // Add some ETH
+      balance: (parseFloat(chain.balance) + 2.5).toString(),
       tokens: this.enhanceTokensForIdealBorrower(chain.tokens),
       transactions: [...chain.transactions, ...this.generateAdditionalTransactions(5)]
     }));
@@ -351,135 +327,60 @@ export class SandboxService {
 
   private enhanceChainsForRiskyBorrower(chains: ChainData[]): ChainData[] {
     if (chains.length === 0) return chains;
-    
-    // Risky borrower typically has limited chain presence
-    const limitedChains = chains.slice(0, 1); // Only keep first chain
-    
+
+    const limitedChains = chains.slice(0, 1);
     return limitedChains.map(chain => ({
       ...chain,
-      balance: (parseFloat(chain.balance) * 0.3).toString(), // Lower balance
+      balance: (parseFloat(chain.balance) * 0.3).toString(),
       tokens: this.enhanceTokensForRiskyBorrower(chain.tokens),
-      transactions: chain.transactions.slice(0, 10) // Fewer transactions
+      transactions: chain.transactions.slice(0, 10)
     }));
   }
 
   private enhanceTokensForIdealBorrower(tokens: TokenBalance[]): TokenBalance[] {
     const additionalTokens: TokenBalance[] = [
       {
-        contractAddress: '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984', // UNI
+        contractAddress: '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984',
         name: 'Uniswap',
         symbol: 'UNI',
         balance: '50.00',
         valueUSD: 500
       },
       {
-        contractAddress: '0x514910771af9ca656af840dff83e8264ecf986ca', // LINK
+        contractAddress: '0x514910771af9ca656af840dff83e8264ecf986ca',
         name: 'Chainlink',
         symbol: 'LINK',
         balance: '25.00',
         valueUSD: 375
       }
     ];
-    
+
     return [...tokens, ...additionalTokens];
   }
 
   private enhanceTokensForRiskyBorrower(tokens: TokenBalance[]): TokenBalance[] {
     if (tokens.length === 0) return tokens;
-    
-    // Risky borrower has concentrated holdings
     return tokens.map((token, index) => ({
       ...token,
-      valueUSD: index === 0 ? token.valueUSD * 3 : token.valueUSD * 0.5 // Concentrate in first token
+      valueUSD: index === 0 ? token.valueUSD * 3 : token.valueUSD * 0.5
     }));
   }
 
   private generateAdditionalTransactions(count: number): Transaction[] {
     const transactions: Transaction[] = [];
-    
+
     for (let i = 0; i < count; i++) {
       transactions.push({
         hash: `0x${Math.random().toString(16).substr(2, 64)}`,
-        timestamp: Math.floor(Date.now() / 1000) - i * 86400, // Spread over days
+        timestamp: Math.floor(Date.now() / 1000) - i * 86400,
         value: (Math.random() * 0.1).toFixed(4),
         to: `0x${Math.random().toString(16).substr(2, 40)}`,
         from: `0x${Math.random().toString(16).substr(2, 40)}`,
         gasUsed: (Math.random() * 50000).toFixed(0),
-        status: Math.random() > 0.1 // 90% success rate
+        status: Math.random() > 0.1
       });
     }
-    
+
     return transactions;
-  }
-
-  async getSimulationStatistics(): Promise<{
-    totalSimulations: number;
-    simulationTypes: { [key: string]: number };
-    averageScore: number;
-    mostCommonRiskFactors: string[];
-  }> {
-    // This would typically come from a database
-    // For now, return mock statistics
-    return {
-      totalSimulations: 1247,
-      simulationTypes: {
-        ideal: 456,
-        growing: 543,
-        risky: 248
-      },
-      averageScore: 672,
-      mostCommonRiskFactors: [
-        'Limited cross-chain activity',
-        'Asset concentration',
-        'Inconsistent repayment history'
-      ]
-    };
-  }
-
-  async validateSimulationData(address: string, simulationType: string): Promise<{
-    isValid: boolean;
-    issues: string[];
-    suggestions: string[];
-  }> {
-    const issues: string[] = [];
-    const suggestions: string[] = [];
-
-    try {
-      const realData = await this.mcpClient.getCrossChainData(address);
-      
-      // Check if simulation makes sense for this address
-      if (simulationType === 'ideal' && realData.creditScore < 400) {
-        issues.push('Current credit score is very low for ideal borrower simulation');
-        suggestions.push('Consider using "growing" or "risky" simulation for more realistic results');
-      }
-      
-      if (simulationType === 'risky' && realData.creditScore > 700) {
-        issues.push('Current credit score is high for risky borrower simulation');
-        suggestions.push('Consider using "ideal" or "growing" simulation for more realistic results');
-      }
-      
-      // Check chain activity
-      const activeChains = realData.chains.filter(chain => 
-        parseFloat(chain.balance) > 0 || chain.tokens.length > 0
-      ).length;
-      
-      if (activeChains < 2 && simulationType === 'ideal') {
-        issues.push('Limited cross-chain activity for ideal borrower simulation');
-        suggestions.push('Ideal borrowers typically have activity across multiple chains');
-      }
-
-      return {
-        isValid: issues.length === 0,
-        issues,
-        suggestions
-      };
-      
-    } catch (error) {
-      return {
-        isValid: false,
-        issues: ['Failed to validate simulation data'],
-        suggestions: ['Check if address has sufficient on-chain activity']
-      };
-    }
   }
 }

@@ -82,7 +82,7 @@ export class IPFSService {
   async uploadFileToIPFS(file: Buffer, filename: string): Promise<string> {
     try {
       const formData = new FormData();
-      const blob = new Blob([file], { type: 'application/octet-stream' });
+      const blob = new Blob([new Uint8Array(file)], { type: 'application/octet-stream' });
       formData.append('file', blob, filename);
 
       const response = await axios.post(
