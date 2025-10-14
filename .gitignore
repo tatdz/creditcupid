@@ -26,3 +26,6 @@ __pycache__/
 #Ignore git files
 .git
 .gitmodules
+
+.DS_Store
+.gitignore
