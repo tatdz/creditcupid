@@ -5,8 +5,6 @@ import { BlockscoutMCPClient } from './mcp/client';
 import { SandboxService } from './services/sandboxService';
 import { EnhancedProtocolService } from './services/enhancedProtocolService';
 import { IPFSService } from './services/ipfsService';
-// Corrected import according to actual export in '../../sandbox/forked-network-runner'
-import { RealProtocolInteractor } from '../../sandbox/forked-network-runner';
 
 const app = express();
 const port = process.env.PORT || 3001;
@@ -23,6 +21,7 @@ const rpcUrls: Record<number, string> = {
   11155111: process.env.SEPOLIA_RPC_URL || 'https://sepolia.blockscout.com',
 };
 
+// Initialize services
 const mcpClient = new BlockscoutMCPClient(rpcUrls);
 const sandboxService = new SandboxService(rpcUrls[11155111]);
 const ipfsService = new IPFSService();
@@ -32,11 +31,20 @@ const protocolService = new EnhancedProtocolService(
   process.env.TEST_WALLET_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
 );
 
-// Instantiate RealProtocolInteractor instead of ForkedNetworkRunner
-const networkRunner = new RealProtocolInteractor(
-  rpcUrls[11155111],
-  process.env.TEST_WALLET_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
-);
+// Make RealProtocolInteractor optional to avoid startup errors
+let networkRunner: any = null;
+try {
+  // Dynamic import to avoid startup failures if the module doesn't exist
+  const { RealProtocolInteractor } = require('../../sandbox/forked-network-runner');
+  networkRunner = new RealProtocolInteractor(
+    rpcUrls[11155111],
+    process.env.TEST_WALLET_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'
+  );
+  console.log('✅ RealProtocolInteractor initialized successfully');
+} catch (error) {
+  console.warn('⚠️ RealProtocolInteractor not available, real protocol actions will be disabled');
+  console.warn('💡 To enable real protocol interactions, ensure the forked-network-runner module exists');
+}
 
 app.get('/health', (_req, res) => {
   res.json({
@@ -48,6 +56,7 @@ app.get('/health', (_req, res) => {
       sandbox: 'active',
       ipfs: 'active',
       protocol: 'active',
+      realProtocols: networkRunner ? 'active' : 'disabled',
     },
   });
 });
@@ -214,6 +223,13 @@ app.post('/api/execute-real-protocol-actions', async (req, res) => {
     return res.status(400).json({ error: 'Invalid Ethereum address' });
   }
 
+  if (!networkRunner) {
+    return res.status(503).json({
+      error: 'Real protocol interactions are not available',
+      details: 'The RealProtocolInteractor module is not configured. Check server logs for details.',
+    });
+  }
+
   try {
     console.log('🚀 Executing real protocol actions for:', address);
     const results = await networkRunner.runCompleteProtocolSimulation();
@@ -361,7 +377,7 @@ app.listen(port, () => {
   console.log(`📊 Credit data: http://localhost:${port}/api/credit-data/:address`);
   console.log(`🎮 Sandbox: http://localhost:${port}/api/sandbox/credit-data/:address`);
   console.log(`🔗 Enhanced protocols: http://localhost:${port}/api/enhanced-protocol-data/:address`);
-  console.log(`⚡ Real transactions: http://localhost:${port}/api/execute-real-protocol-actions`);
+  console.log(`⚡ Real transactions: ${networkRunner ? 'http://localhost:' + port + '/api/execute-real-protocol-actions' : 'DISABLED'}`);
   console.log('\n📋 Available Chains:');
   for (const [chainId, url] of Object.entries(rpcUrls)) {
     console.log(`  • Chain ${chainId}: ${url}`);
