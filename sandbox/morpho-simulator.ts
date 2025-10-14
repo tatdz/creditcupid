@@ -53,13 +53,14 @@ export class MorphoSimulator {
   }
 
   private determineMorphoTransactionType(tx: any, index: number): 'supply' | 'withdraw' | 'borrow' | 'repay' {
-    const patterns = [
+    const patterns: Array<Array<'supply' | 'withdraw' | 'borrow' | 'repay'>> = [
       ['supply', 'borrow', 'repay', 'supply', 'withdraw'],
       ['supply', 'borrow', 'repay', 'borrow', 'repay'],
       ['supply', 'withdraw', 'supply', 'borrow', 'repay']
     ];
     const pattern = patterns[index % patterns.length];
-    return pattern[index % pattern.length];
+    const transactionType = pattern[index % pattern.length];
+    return transactionType;
   }
 
   private getMorphoPoolTokenFromTransaction(tx: any, index: number): string {
