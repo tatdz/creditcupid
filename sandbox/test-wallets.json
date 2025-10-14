@@ -1,0 +1,73 @@
+{
+  "wallets": [
+    {
+      "address": "0x742E6fB6c6E4e5c7c8B9C12C5c0D9F8A7B6C5D4E",
+      "private_key": "0x...",
+      "description": "High credit score test wallet",
+      "simulated_data": {
+        "credit_score": 780,
+        "total_value": 12500,
+        "chains_active": 3,
+        "aave_interactions": 8,
+        "morpho_interactions": 5,
+        "repayment_ratio": 0.92
+      }
+    },
+    {
+      "address": "0x8C3a5F4c5B6D2E7f8C9A0B1C2D3E4F5A6B7C8D9E",
+      "private_key": "0x...", 
+      "description": "Medium credit score test wallet",
+      "simulated_data": {
+        "credit_score": 650,
+        "total_value": 3500,
+        "chains_active": 2,
+        "aave_interactions": 4,
+        "morpho_interactions": 2,
+        "repayment_ratio": 0.75
+      }
+    },
+    {
+      "address": "0x1A2B3C4D5E6F7A8B9C0D1E2F3A4B5C6D7E8F9A0B",
+      "private_key": "0x...",
+      "description": "Low credit score test wallet", 
+      "simulated_data": {
+        "credit_score": 480,
+        "total_value": 800,
+        "chains_active": 1,
+        "aave_interactions": 1,
+        "morpho_interactions": 0,
+        "repayment_ratio": 0.40
+      }
+    }
+  ],
+  "test_scenarios": [
+    {
+      "name": "ideal_borrower",
+      "description": "User with excellent credit history",
+      "characteristics": [
+        "Multi-chain activity",
+        "Consistent repayments", 
+        "Diverse portfolio",
+        "Long history"
+      ]
+    },
+    {
+      "name": "growing_borrower", 
+      "description": "User building credit history",
+      "characteristics": [
+        "Single chain focus",
+        "Recent protocol adoption",
+        "Small but consistent activity"
+      ]
+    },
+    {
+      "name": "risky_borrower",
+      "description": "User with concerning patterns",
+      "characteristics": [
+        "High gas spending",
+        "Concentrated holdings",
+        "Inconsistent repayments"
+      ]
+    }
+  ]
+}

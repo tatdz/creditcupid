@@ -1,0 +1,519 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.23;
+
+import "./DarmaCreditOracle.sol";
+import "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+
+/**
+ * @title DarmaP2PLending
+ * @dev Peer-to-peer undercollateralized lending platform with IPFS for loan metadata
+ */
+contract DarmaP2PLending is ReentrancyGuard {
+    DarmaCreditOracle public creditOracle;
+    address public owner;
+    
+    enum LoanStatus { Active, Repaid, Defaulted, Liquidated }
+    
+    struct Loan {
+        address borrower;
+        address lender;
+        address token;
+        uint256 principal;
+        uint256 collateral;
+        uint256 interestRate;
+        uint256 duration;
+        uint256 startTime;
+        uint256 dueTime;
+        LoanStatus status;
+        bytes32 collateralFeedId;
+        uint256 creditScoreAtCreation;
+        string ipfsMetadata; // IPFS hash for loan metadata
+    }
+    
+    struct LoanOffer {
+        address lender;
+        address token;
+        uint256 maxAmount;
+        uint256 minScore;
+        uint256 maxLTV;
+        uint256 interestRate;
+        uint256 maxDuration;
+        bool active;
+        string ipfsTerms; // IPFS hash for loan terms
+    }
+    
+    mapping(uint256 => Loan) public loans;
+    mapping(uint256 => LoanOffer) public loanOffers;
+    mapping(address => uint256[]) public borrowerLoans;
+    mapping(address => uint256[]) public lenderLoans;
+    mapping(address => uint256[]) public lenderOffers;
+    mapping(address => bool) public supportedTokens;
+    mapping(address => uint256) public lenderFunds;
+    
+    uint256 public loanCounter;
+    uint256 public offerCounter;
+    uint256 public protocolFee = 25; // 0.25% in basis points
+    uint256 public constant BASIS_POINTS = 10000;
+    
+    event LoanCreated(uint256 indexed loanId, address borrower, address lender, uint256 principal, string ipfsMetadata);
+    event LoanFunded(uint256 indexed loanId, address lender, uint256 amount);
+    event LoanRepaid(uint256 indexed loanId, uint256 amount);
+    event LoanLiquidated(uint256 indexed loanId, address liquidator);
+    event LoanOfferCreated(uint256 indexed offerId, address lender, uint256 maxAmount, string ipfsTerms);
+    event LoanOfferCancelled(uint256 indexed offerId);
+    event ProtocolFeeUpdated(uint256 newFee);
+    event SupportedTokenAdded(address token);
+    event SupportedTokenRemoved(address token);
+    
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
+    }
+    
+    modifier onlyBorrower(uint256 loanId) {
+        require(loans[loanId].borrower == msg.sender, "Only borrower can call this function");
+        _;
+    }
+    
+    modifier onlyLender(uint256 loanId) {
+        require(loans[loanId].lender == msg.sender, "Only lender can call this function");
+        _;
+    }
+    
+    modifier validLoanId(uint256 loanId) {
+        require(loanId < loanCounter, "Invalid loan ID");
+        _;
+    }
+    
+    modifier validOfferId(uint256 offerId) {
+        require(offerId < offerCounter, "Invalid offer ID");
+        _;
+    }
+    
+    constructor(address _creditOracle) {
+        owner = msg.sender;
+        creditOracle = DarmaCreditOracle(_creditOracle);
+    }
+    
+    /**
+     * @dev Create a loan request with IPFS metadata
+     */
+    function createLoanRequest(
+        address _token,
+        uint256 _principal,
+        uint256 _collateral,
+        uint256 _duration,
+        bytes32 _collateralFeedId,
+        string calldata _ipfsMetadata,
+        bytes[] calldata _priceUpdateData
+    ) external payable nonReentrant returns (uint256) {
+        require(supportedTokens[_token], "Token not supported");
+        require(_principal > 0, "Principal must be positive");
+        require(_collateral > 0, "Collateral must be positive");
+        require(_duration >= 30 days, "Duration too short");
+        require(_duration <= 365 days, "Duration too long");
+        require(bytes(_ipfsMetadata).length > 0, "IPFS metadata required");
+        
+        // Update prices and get credit score
+        uint256 fee = creditOracle.pyth().getUpdateFee(_priceUpdateData);
+        require(msg.value >= fee, "Insufficient fee for price update");
+        creditOracle.pyth().updatePriceFeeds{value: fee}(_priceUpdateData);
+        
+        // Refund excess ETH
+        if (msg.value > fee) {
+            payable(msg.sender).transfer(msg.value - fee);
+        }
+        
+        DarmaCreditOracle.CreditScore memory score = creditOracle.getCreditScore(msg.sender);
+        require(score.score >= 550, "Insufficient credit score");
+        
+        // Calculate max borrowing limit
+        uint256 maxBorrowing = creditOracle.calculateBorrowingLimit(
+            msg.sender,
+            _collateralFeedId,
+            _collateral
+        );
+        
+        require(_principal <= maxBorrowing, "Principal exceeds borrowing limit");
+        
+        // Transfer collateral from borrower
+        IERC20(_token).transferFrom(msg.sender, address(this), _collateral);
+        
+        uint256 loanId = loanCounter++;
+        
+        loans[loanId] = Loan({
+            borrower: msg.sender,
+            lender: address(0),
+            token: _token,
+            principal: _principal,
+            collateral: _collateral,
+            interestRate: calculateDynamicInterestRate(score.score, _collateral, _principal),
+            duration: _duration,
+            startTime: 0,
+            dueTime: 0,
+            status: LoanStatus.Active,
+            collateralFeedId: _collateralFeedId,
+            creditScoreAtCreation: score.score,
+            ipfsMetadata: _ipfsMetadata
+        });
+        
+        borrowerLoans[msg.sender].push(loanId);
+        emit LoanCreated(loanId, msg.sender, address(0), _principal, _ipfsMetadata);
+        
+        return loanId;
+    }
+    
+    /**
+     * @dev Create a loan offer as a lender
+     */
+    function createLoanOffer(
+        address _token,
+        uint256 _maxAmount,
+        uint256 _minScore,
+        uint256 _maxLTV,
+        uint256 _interestRate,
+        uint256 _maxDuration,
+        string calldata _ipfsTerms
+    ) external returns (uint256) {
+        require(supportedTokens[_token], "Token not supported");
+        require(_maxAmount > 0, "Max amount must be positive");
+        require(_minScore >= 500, "Min score too low");
+        require(_minScore <= 850, "Min score too high");
+        require(_maxLTV > 0 && _maxLTV <= 80, "Max LTV must be between 1-80");
+        require(_interestRate > 0 && _interestRate <= 5000, "Interest rate must be between 0.01%-50%");
+        require(_maxDuration >= 30 days && _maxDuration <= 365 days, "Invalid max duration");
+        require(bytes(_ipfsTerms).length > 0, "IPFS terms required");
+        
+        uint256 offerId = offerCounter++;
+        
+        loanOffers[offerId] = LoanOffer({
+            lender: msg.sender,
+            token: _token,
+            maxAmount: _maxAmount,
+            minScore: _minScore,
+            maxLTV: _maxLTV,
+            interestRate: _interestRate,
+            maxDuration: _maxDuration,
+            active: true,
+            ipfsTerms: _ipfsTerms
+        });
+        
+        lenderOffers[msg.sender].push(offerId);
+        emit LoanOfferCreated(offerId, msg.sender, _maxAmount, _ipfsTerms);
+        
+        return offerId;
+    }
+    
+    /**
+     * @dev Fund a loan request from available offers
+     */
+    function fundLoan(uint256 _loanId, uint256 _offerId) external nonReentrant validLoanId(_loanId) validOfferId(_offerId) {
+        Loan storage loan = loans[_loanId];
+        LoanOffer storage offer = loanOffers[_offerId];
+        
+        require(loan.status == LoanStatus.Active, "Loan not active");
+        require(loan.lender == address(0), "Loan already funded");
+        require(offer.active, "Offer not active");
+        require(offer.lender == msg.sender, "Not offer lender");
+        require(loan.token == offer.token, "Token mismatch");
+        require(loan.principal <= offer.maxAmount, "Principal exceeds offer limit");
+        require(loan.creditScoreAtCreation >= offer.minScore, "Credit score too low");
+        
+        // Check LTV
+        uint256 ltv = (loan.principal * 100) / loan.collateral;
+        require(ltv <= offer.maxLTV, "LTV too high");
+        
+        require(loan.duration <= offer.maxDuration, "Duration too long");
+        
+        // Transfer funds from lender
+        IERC20(loan.token).transferFrom(msg.sender, address(this), loan.principal);
+        
+        loan.lender = msg.sender;
+        loan.startTime = block.timestamp;
+        loan.dueTime = block.timestamp + loan.duration;
+        loan.interestRate = offer.interestRate;
+        
+        // Transfer principal to borrower (minus protocol fee)
+        uint256 protocolFeeAmount = (loan.principal * protocolFee) / BASIS_POINTS;
+        uint256 borrowerAmount = loan.principal - protocolFeeAmount;
+        
+        IERC20(loan.token).transfer(loan.borrower, borrowerAmount);
+        IERC20(loan.token).transfer(owner, protocolFeeAmount);
+        
+        lenderLoans[msg.sender].push(_loanId);
+        emit LoanFunded(_loanId, msg.sender, loan.principal);
+    }
+    
+    /**
+     * @dev Repay a loan
+     */
+    function repayLoan(uint256 _loanId) external nonReentrant validLoanId(_loanId) onlyBorrower(_loanId) {
+        Loan storage loan = loans[_loanId];
+        require(loan.status == LoanStatus.Active, "Loan not active");
+        require(block.timestamp <= loan.dueTime, "Loan overdue");
+        require(loan.lender != address(0), "Loan not funded");
+        
+        uint256 repaymentAmount = calculateRepaymentAmount(loan.principal, loan.interestRate);
+        
+        // Transfer repayment from borrower
+        IERC20(loan.token).transferFrom(msg.sender, address(this), repaymentAmount);
+        
+        // Return collateral to borrower
+        IERC20(loan.token).transfer(loan.borrower, loan.collateral);
+        
+        // Pay lender principal + interest
+        IERC20(loan.token).transfer(loan.lender, repaymentAmount);
+        
+        loan.status = LoanStatus.Repaid;
+        emit LoanRepaid(_loanId, repaymentAmount);
+    }
+    
+    /**
+     * @dev Liquidate an overdue loan
+     */
+    function liquidateLoan(uint256 _loanId) external nonReentrant validLoanId(_loanId) {
+        Loan storage loan = loans[_loanId];
+        require(loan.status == LoanStatus.Active, "Loan not active");
+        require(block.timestamp > loan.dueTime, "Loan not overdue");
+        require(loan.lender != address(0), "Loan not funded");
+        
+        // Transfer collateral to lender
+        IERC20(loan.token).transfer(loan.lender, loan.collateral);
+        
+        loan.status = LoanStatus.Liquidated;
+        emit LoanLiquidated(_loanId, msg.sender);
+    }
+    
+    /**
+     * @dev Cancel a loan offer
+     */
+    function cancelLoanOffer(uint256 _offerId) external validOfferId(_offerId) {
+        LoanOffer storage offer = loanOffers[_offerId];
+        require(offer.lender == msg.sender, "Not offer lender");
+        require(offer.active, "Offer already cancelled");
+        
+        offer.active = false;
+        emit LoanOfferCancelled(_offerId);
+    }
+    
+    /**
+     * @dev Calculate dynamic interest rate based on credit score and collateralization
+     */
+    function calculateDynamicInterestRate(
+        uint256 _creditScore,
+        uint256 _collateral,
+        uint256 _principal
+    ) public pure returns (uint256) {
+        uint256 baseRate;
+        
+        // Base rate from credit score
+        if (_creditScore >= 800) baseRate = 400;      // 4%
+        else if (_creditScore >= 700) baseRate = 600; // 6%
+        else if (_creditScore >= 600) baseRate = 800; // 8%
+        else baseRate = 1200;                         // 12%
+        
+        // Adjust based on collateralization
+        uint256 collateralRatio = (_collateral * 100) / _principal;
+        if (collateralRatio >= 200) {
+            baseRate = baseRate * 80 / 100; // 20% discount for high collateral
+        } else if (collateralRatio <= 120) {
+            baseRate = baseRate * 120 / 100; // 20% premium for low collateral
+        }
+        
+        return baseRate;
+    }
+    
+    /**
+     * @dev Calculate total repayment amount
+     */
+    function calculateRepaymentAmount(uint256 _principal, uint256 _interestRate) 
+        public pure returns (uint256) {
+        return _principal + (_principal * _interestRate) / BASIS_POINTS;
+    }
+    
+    /**
+     * @dev Get available loan offers for a borrower
+     */
+    function getAvailableOffers(address _borrower, address _token) 
+        external view returns (uint256[] memory suitableOffers) {
+        DarmaCreditOracle.CreditScore memory score = creditOracle.getCreditScore(_borrower);
+        
+        uint256 suitableCount = 0;
+        
+        // First pass: count suitable offers
+        for (uint256 i = 0; i < offerCounter; i++) {
+            LoanOffer memory offer = loanOffers[i];
+            if (offer.active && 
+                offer.token == _token && 
+                score.score >= offer.minScore) {
+                suitableCount++;
+            }
+        }
+        
+        // Second pass: collect suitable offers
+        suitableOffers = new uint256[](suitableCount);
+        uint256 currentIndex = 0;
+        
+        for (uint256 i = 0; i < offerCounter; i++) {
+            LoanOffer memory offer = loanOffers[i];
+            if (offer.active && 
+                offer.token == _token && 
+                score.score >= offer.minScore) {
+                suitableOffers[currentIndex] = i;
+                currentIndex++;
+            }
+        }
+    }
+    
+    /**
+     * @dev Add supported token
+     */
+    function addSupportedToken(address _token) external onlyOwner {
+        require(_token != address(0), "Invalid token address");
+        require(!supportedTokens[_token], "Token already supported");
+        
+        supportedTokens[_token] = true;
+        emit SupportedTokenAdded(_token);
+    }
+    
+    /**
+     * @dev Remove supported token
+     */
+    function removeSupportedToken(address _token) external onlyOwner {
+        require(supportedTokens[_token], "Token not supported");
+        
+        supportedTokens[_token] = false;
+        emit SupportedTokenRemoved(_token);
+    }
+    
+    /**
+     * @dev Update protocol fee
+     */
+    function setProtocolFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 100, "Fee too high"); // Max 1%
+        protocolFee = _fee;
+        emit ProtocolFeeUpdated(_fee);
+    }
+    
+    /**
+     * @dev Get borrower's active loans
+     */
+    function getBorrowerLoans(address _borrower) external view returns (uint256[] memory) {
+        return borrowerLoans[_borrower];
+    }
+    
+    /**
+     * @dev Get lender's active loans
+     */
+    function getLenderLoans(address _lender) external view returns (uint256[] memory) {
+        return lenderLoans[_lender];
+    }
+    
+    /**
+     * @dev Get lender's active offers
+     */
+    function getLenderOffers(address _lender) external view returns (uint256[] memory) {
+        return lenderOffers[_lender];
+    }
+    
+    /**
+     * @dev Get loan details
+     */
+    function getLoan(uint256 _loanId) external view validLoanId(_loanId) returns (Loan memory) {
+        return loans[_loanId];
+    }
+    
+    /**
+     * @dev Get loan offer details
+     */
+    function getLoanOffer(uint256 _offerId) external view validOfferId(_offerId) returns (LoanOffer memory) {
+        return loanOffers[_offerId];
+    }
+    
+    /**
+     * @dev Get loan metadata from IPFS
+     */
+    function getLoanMetadata(uint256 _loanId) external view validLoanId(_loanId) returns (string memory) {
+        return loans[_loanId].ipfsMetadata;
+    }
+    
+    /**
+     * @dev Get offer terms from IPFS
+     */
+    function getOfferTerms(uint256 _offerId) external view validOfferId(_offerId) returns (string memory) {
+        return loanOffers[_offerId].ipfsTerms;
+    }
+    
+    /**
+     * @dev Get total number of loans
+     */
+    function getTotalLoans() external view returns (uint256) {
+        return loanCounter;
+    }
+    
+    /**
+     * @dev Get total number of offers
+     */
+    function getTotalOffers() external view returns (uint256) {
+        return offerCounter;
+    }
+    
+    /**
+     * @dev Check if token is supported
+     */
+    function isTokenSupported(address _token) external view returns (bool) {
+        return supportedTokens[_token];
+    }
+    
+    /**
+     * @dev Get loan status as string
+     */
+    function getLoanStatus(uint256 _loanId) external view validLoanId(_loanId) returns (string memory) {
+        LoanStatus status = loans[_loanId].status;
+        if (status == LoanStatus.Active) return "Active";
+        if (status == LoanStatus.Repaid) return "Repaid";
+        if (status == LoanStatus.Defaulted) return "Defaulted";
+        if (status == LoanStatus.Liquidated) return "Liquidated";
+        return "Unknown";
+    }
+    
+    /**
+     * @dev Calculate time remaining for loan
+     */
+    function getTimeRemaining(uint256 _loanId) external view validLoanId(_loanId) returns (uint256) {
+        Loan memory loan = loans[_loanId];
+        if (loan.status != LoanStatus.Active || loan.dueTime == 0) {
+            return 0;
+        }
+        if (block.timestamp >= loan.dueTime) {
+            return 0;
+        }
+        return loan.dueTime - block.timestamp;
+    }
+    
+    /**
+     * @dev Emergency withdrawal of tokens (owner only)
+     */
+    function emergencyWithdraw(address _token, uint256 _amount) external onlyOwner {
+        IERC20(_token).transfer(owner, _amount);
+    }
+    
+    /**
+     * @dev Transfer ownership
+     */
+    function transferOwnership(address _newOwner) external onlyOwner {
+        require(_newOwner != address(0), "Invalid owner address");
+        owner = _newOwner;
+    }
+    
+    /**
+     * @dev Receive function to accept ETH
+     */
+    receive() external payable {}
+    
+    /**
+     * @dev Fallback function
+     */
+    fallback() external payable {}
+}

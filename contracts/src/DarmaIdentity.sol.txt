@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.23;
+
+import "openzeppelin-contracts/contracts/access/Ownable.sol";
+
+/**
+ * @title DarmaIdentity
+ * @dev zkTLS identity verification with IPFS/Filecoin storage
+ */
+contract DarmaIdentity is Ownable {
+    struct IdentityAttestation {
+        address user;
+        string ipfsHash; // IPFS hash of encrypted personal data
+        string filecoinCid; // Filecoin CID for long-term storage
+        bytes32 zkProofHash; // Hash of zk-proof for verification
+        uint256 attestationTime;
+        bool verified;
+        bool revoked;
+    }
+    
+    struct VerifiedAttribute {
+        string attributeType; // "income", "employment", "credit_score"
+        uint256 value;
+        uint256 confidence;
+        uint256 verificationTime;
+        string proofHash;
+    }
+    
+    mapping(address => IdentityAttestation) public identityAttestations;
+    mapping(address => mapping(string => VerifiedAttribute)) public verifiedAttributes;
+    mapping(address => bool) public identityProviders;
+    mapping(bytes32 => bool) public usedProofs;
+    
+    event IdentityAttested(address indexed user, string ipfsHash, string filecoinCid, bytes32 zkProofHash);
+    attributeVerified(address indexed user, string attributeType, uint256 value, uint256 confidence);
+    event IdentityRevoked(address indexed user);
+    event IdentityProviderAdded(address indexed provider);
+    event IdentityProviderRemoved(address indexed provider);
+    
+    modifier onlyIdentityProvider() {
+        require(identityProviders[msg.sender], "Only authorized identity providers");
+        _;
+    }
+    
+    constructor() Ownable(msg.sender) {}
+    
+    /**
+     * @dev Attest user identity with zkTLS proof
+     */
+    function attestIdentity(
+        address _user,
+        string calldata _ipfsHash,
+        string calldata _filecoinCid,
+        bytes32 _zkProofHash
+    ) external onlyIdentityProvider {
+        require(bytes(_ipfsHash).length > 0, "IPFS hash required");
+        require(bytes(_filecoinCid).length > 0, "Filecoin CID required");
+        require(_zkProofHash != bytes32(0), "ZK proof hash required");
+        require(!usedProofs[_zkProofHash], "Proof already used");
+        
+        identityAttestations[_user] = IdentityAttestation({
+            user: _user,
+            ipfsHash: _ipfsHash,
+            filecoinCid: _filecoinCid,
+            zkProofHash: _zkProofHash,
+            attestationTime: block.timestamp,
+            verified: true,
+            revoked: false
+        });
+        
+        usedProofs[_zkProofHash] = true;
+        
+        emit IdentityAttested(_user, _ipfsHash, _filecoinCid, _zkProofHash);
+    }
+    
+    /**
+     * @dev Verify specific attribute with zk-proof
+     */
+    function verifyAttribute(
+        address _user,
+        string calldata _attributeType,
+        uint256 _value,
+        uint256 _confidence,
+        bytes32 _proofHash
+    ) external onlyIdentityProvider {
+        require(identityAttestations[_user].verified, "User identity not verified");
+        require(!identityAttestations[_user].revoked, "Identity revoked");
+        require(!usedProofs[_proofHash], "Proof already used");
+        
+        verifiedAttributes[_user][_attributeType] = VerifiedAttribute({
+            attributeType: _attributeType,
+            value: _value,
+            confidence: _confidence,
+            verificationTime: block.timestamp,
+            proofHash: string(abi.encodePacked(_proofHash))
+        });
+        
+        usedProofs[_proofHash] = true;
+        
+        emit attributeVerified(_user, _attributeType, _value, _confidence);
+    }
+    
+    /**
+     * @dev Get user's verified attribute
+     */
+    function getVerifiedAttribute(address _user, string calldata _attributeType) 
+        external view returns (VerifiedAttribute memory) {
+        return verifiedAttributes[_user][_attributeType];
+    }
+    
+    /**
+     * @dev Check if user has verified identity
+     */
+    function hasVerifiedIdentity(address _user) external view returns (bool) {
+        return identityAttestations[_user].verified && !identityAttestations[_user].revoked;
+    }
+    
+    /**
+     * @dev Revoke user identity (only in case of fraud)
+     */
+    function revokeIdentity(address _user) external onlyIdentityProvider {
+        require(identityAttestations[_user].verified, "Identity not verified");
+        identityAttestations[_user].rev

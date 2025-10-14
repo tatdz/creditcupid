@@ -1,0 +1,12 @@
+uagents==0.4.0
+asyncio==3.4.3
+requests==2.31.0
+python-dotenv==1.0.0
+web3==6.11.0
+aiohttp==3.9.1
+nest-asyncio==1.5.8
+metta-language==0.1.0
+fetchai-net==1.2.0
+asi-protocol==0.3.0
+grpcio==1.60.0
+protobuf==4.25.1
