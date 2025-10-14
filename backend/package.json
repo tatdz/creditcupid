@@ -1,0 +1,135 @@
+{
+  "name": "darma-backend",
+  "version": "1.0.0",
+  "description": "Darma Backend - Cross-chain credit oracle with AI agents and real protocol integration",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:prod": "NODE_ENV=production node dist/server.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "build:watch": "tsc --watch",
+    "deploy:sepolia": "cd ../contracts && forge script script/Deploy.s.sol:DeployScript --rpc-url sepolia --broadcast --verify -vvvv",
+    "deploy:p2p": "cd ../contracts && forge script script/DeployP2P.s.sol:DeployP2PScript --rpc-url sepolia --broadcast --verify -vvvv",
+    "generate:types": "typechain --target=ethers-v6 --out-dir src/types '../contracts/out/**/*.json'",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:studio": "npx prisma studio",
+    "seed": "ts-node scripts/seed.ts"
+  },
+  "keywords": [
+    "defi",
+    "credit-scoring",
+    "blockchain",
+    "lending",
+    "aave",
+    "morpho",
+    "pyth",
+    "cross-chain",
+    "ai-agents",
+    "metta",
+    "asi"
+  ],
+  "author": "Darma Team",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "ethers": "^6.8.0",
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "web3": "^4.2.0",
+    "ws": "^8.14.2",
+    "helmet": "^7.1.0",
+    "compression": "^1.7.4",
+    "rate-limiter-flexible": "^4.0.1",
+    "express-rate-limit": "^7.1.5",
+    "morgan": "^1.10.0",
+    "winston": "^3.11.0",
+    "joi": "^17.11.0",
+    "uuid": "^9.0.1",
+    "node-cron": "^3.0.3",
+    "redis": "^4.6.10",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "@prisma/client": "^5.7.0",
+    "pinata-sdk": "^1.1.27",
+    "form-data": "^4.0.0",
+    "graphql": "^16.8.1",
+    "@apollo/client": "^3.8.8",
+    "@graphprotocol/client-cli": "^1.1.2",
+    "aiohttp": "^3.9.1",
+    "uagents": "^0.4.0",
+    "metta-language": "^0.1.0",
+    "asi-protocol": "^0.3.0",
+    "fetchai-net": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/node": "^20.10.0",
+    "@types/ws": "^8.5.9",
+    "@types/multer": "^1.4.9",
+    "@types/compression": "^1.7.5",
+    "@types/morgan": "^1.9.9",
+    "@types/uuid": "^9.0.7",
+    "@types/node-cron": "^3.0.11",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.0",
+    "nodemon": "^3.0.1",
+    "eslint": "^8.54.0",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.8",
+    "ts-jest": "^29.1.1",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^6.0.2",
+    "prisma": "^5.7.0",
+    "typechain": "^8.3.1",
+    "@typechain/ethers-v6": "^0.5.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/darma-protocol/backend.git"
+  },
+  "bugs": {
+    "url": "https://github.com/darma-protocol/backend/issues"
+  },
+  "homepage": "https://darma.io",
+  "prisma": {
+    "schema": "prisma/schema.prisma"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.ts",
+      "**/?(*.)+(spec|test).ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": "ts-jest"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts",
+      "!src/server.ts"
+    ]
+  }
+}
