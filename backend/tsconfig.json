@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2021",
+    "module": "commonjs",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "baseUrl": "src",
+    "paths": {
+      "@sandbox/*": ["../../sandbox/*"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "../sandbox/**/*"   // Add to include the sandbox TS files for IDEs and ts-node awareness
+  ],
+  "exclude": ["node_modules", "dist"]
+}
