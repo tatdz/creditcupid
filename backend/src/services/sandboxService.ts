@@ -1,7 +1,6 @@
 import { ethers } from 'ethers';
 import { AaveSimulator } from '../../../sandbox/aave-simulator';
 import { MorphoSimulator } from '../../../sandbox/morpho-simulator';
-import { RealProtocolInteractor } from '../../../sandbox/forked-network-runner';
 import {
   BlockscoutMCPClient,
   CrossChainData,
@@ -51,8 +50,8 @@ export interface EnhancedCreditData extends CrossChainData {
 export class SandboxService {
   private aaveSimulator: AaveSimulator;
   private morphoSimulator: MorphoSimulator;
-  private realInteractor: RealProtocolInteractor;
-  private networkRunner: RealProtocolInteractor;
+  private realInteractor: any;
+  private networkRunner: any;
   private mcpClient: BlockscoutMCPClient;
   private simulationTypes: SimulationType[];
 
@@ -63,8 +62,19 @@ export class SandboxService {
 
     this.aaveSimulator = new AaveSimulator(rpcUrl, privateKey);
     this.morphoSimulator = new MorphoSimulator(rpcUrl, privateKey);
-    this.realInteractor = new RealProtocolInteractor(rpcUrl, privateKey);
-    this.networkRunner = new RealProtocolInteractor(rpcUrl, privateKey);
+    
+    // Make RealProtocolInteractor optional
+    try {
+      const { RealProtocolInteractor } = require('../../../sandbox/forked-network-runner');
+      this.realInteractor = new RealProtocolInteractor(rpcUrl, privateKey);
+      this.networkRunner = new RealProtocolInteractor(rpcUrl, privateKey);
+      console.log('✅ RealProtocolInteractor initialized in SandboxService');
+    } catch (error) {
+      console.warn('⚠️ RealProtocolInteractor not available in SandboxService, using simulation only');
+      this.realInteractor = null;
+      this.networkRunner = null;
+    }
+    
     this.mcpClient = new BlockscoutMCPClient({ 11155111: rpcUrl });
 
     this.simulationTypes = this.initializeSimulationTypes();
@@ -145,7 +155,7 @@ export class SandboxService {
       let simulatedAaveTxs: AaveTransaction[] = [];
       let simulatedMorphoTxs: MorphoTransaction[] = [];
 
-      if (useRealProtocols) {
+      if (useRealProtocols && this.networkRunner) {
         console.log('🔄 Using real protocol interactions on Sepolia...');
         try {
           const realResults = await this.networkRunner.runCompleteProtocolSimulation();
@@ -163,6 +173,9 @@ export class SandboxService {
           simulatedMorphoTxs = await this.morphoSimulator.simulateUserActivity(realAddress);
         }
       } else {
+        if (useRealProtocols && !this.networkRunner) {
+          console.log('⚠️ Real protocols requested but not available, using simulation');
+        }
         console.log('🎭 Using simulated protocol data...');
         simulatedAaveTxs = await this.aaveSimulator.simulateUserActivity(realAddress);
         simulatedMorphoTxs = await this.morphoSimulator.simulateUserActivity(realAddress);
@@ -213,7 +226,7 @@ export class SandboxService {
         metadata: {
           simulationTimestamp: new Date().toISOString(),
           simulationDuration,
-          dataSources: useRealProtocols
+          dataSources: useRealProtocols && this.networkRunner
             ? ['Blockscout MCP', 'Real Sepolia Transactions', 'Simulation Engine']
             : ['Blockscout MCP', 'Simulation Engine']
         }
