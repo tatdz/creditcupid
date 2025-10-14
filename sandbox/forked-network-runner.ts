@@ -1,155 +1,240 @@
 import { ethers } from 'ethers';
-import { RealProtocolInteractor } from './real-protocol-interactor';
+import { JsonRpcProvider, Wallet, Contract, TransactionResponse } from 'ethers';
 
-export class ForkedNetworkRunner {
-  private interactor: RealProtocolInteractor;
+// Aave V3 Protocol ABIs
+const AAVE_POOL_ABI = [
+  "function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external",
+  "function withdraw(address asset, uint256 amount, address to) external returns (uint256)",
+  "function borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf) external",
+  "function repay(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) external returns (uint256)",
+  "function getUserAccountData(address user) external view returns (uint256 totalCollateralBase, uint256 totalDebtBase, uint256 availableBorrowsBase, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)"
+];
 
-  constructor() {
-    // Using Sepolia testnet for real transactions
-    const RPC_URL = process.env.SEPOLIA_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/demo';
-    const PRIVATE_KEY = process.env.TEST_WALLET_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'; // Hardhat default #0
-    
-    this.interactor = new RealProtocolInteractor(RPC_URL, PRIVATE_KEY);
+// Morpho V2 ABIs
+const MORPHO_ABI = [
+  "function supply(address poolToken, address onBehalf, uint256 amount) external",
+  "function withdraw(address poolToken, uint256 amount) external",
+  "function borrow(address poolToken, uint256 amount) external",
+  "function repay(address poolToken, address onBehalf, uint256 amount) external",
+  "function claimRewards(address[] calldata assets, address onBehalf) external"
+];
+
+// Test token ABIs
+const ERC20_ABI = [
+  "function approve(address spender, uint256 amount) external returns (bool)",
+  "function balanceOf(address account) external view returns (uint256)",
+  "function transfer(address to, uint256 amount) external returns (bool)",
+  "function mint(address to, uint256 amount) external"
+];
+
+export class RealProtocolInteractor {
+  private provider: JsonRpcProvider;
+  private wallet: Wallet;
+
+  private readonly AAVE_POOL_SEPOLIA = '0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951';
+  private readonly MORPHO_AAVE_V3_SEPOLIA = '0x33333aea097c193e66081E930c33020272b33333';
+
+  private readonly USDC_SEPOLIA = '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238';
+  private readonly DAI_SEPOLIA = '0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357';
+  private readonly WETH_SEPOLIA = '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14';
+
+  constructor(rpcUrl: string, privateKey: string) {
+    this.provider = new JsonRpcProvider(rpcUrl);
+    this.wallet = new Wallet(privateKey, this.provider);
   }
 
-  async runCompleteProtocolSimulation(): Promise<{
-    aaveTransactions: any[];
-    morphoTransactions: any[];
-    userPositions: any;
-  }> {
-    console.log('🏃 Starting complete protocol simulation on Sepolia...');
-    
+  /**
+   * Allows subscribing to block events without exposing the private 'provider'.
+   */
+  public onNewBlock(callback: (blockNumber: number) => void): void {
+    this.provider.on('block', callback);
+  }
+
+  async simulateRealAaveActivity(): Promise<TransactionResponse[]> {
+    const transactions: TransactionResponse[] = [];
+
     try {
-      // Run Aave interactions
-      const aaveTxs = await this.interactor.simulateRealAaveActivity();
-      
-      // Wait between protocol interactions
-      await this.delay(5000);
-      
-      // Run Morpho interactions
-      const morphoTxs = await this.interactor.simulateRealMorphoActivity();
-      
-      // Get final positions
-      const aavePosition = await this.interactor.getUserAavePosition();
-      
+      console.log('🚀 Starting real Aave protocol interactions...');
+
+      const usdc = new Contract(this.USDC_SEPOLIA, ERC20_ABI, this.wallet);
+      const dai = new Contract(this.DAI_SEPOLIA, ERC20_ABI, this.wallet);
+
+      try {
+        console.log('Minting test tokens...');
+        const mintUsdcTx = await usdc.mint(this.wallet.address, ethers.parseUnits('10000', 6));
+        await mintUsdcTx.wait();
+        console.log('✅ Minted USDC');
+
+        const mintDaiTx = await dai.mint(this.wallet.address, ethers.parseUnits('10000', 18));
+        await mintDaiTx.wait();
+        console.log('✅ Minted DAI');
+      } catch {
+        console.log('Minting not available, using existing balances...');
+      }
+
+      const aavePool = new Contract(this.AAVE_POOL_SEPOLIA, AAVE_POOL_ABI, this.wallet);
+
+      console.log('Approving tokens for Aave...');
+      const approveUsdcTx = await usdc.approve(this.AAVE_POOL_SEPOLIA, ethers.parseUnits('5000', 6));
+      await approveUsdcTx.wait();
+      transactions.push(approveUsdcTx);
+
+      const approveDaiTx = await dai.approve(this.AAVE_POOL_SEPOLIA, ethers.parseUnits('5000', 18));
+      await approveDaiTx.wait();
+      transactions.push(approveDaiTx);
+
+      console.log('Supplying to Aave...');
+      const supplyTx = await aavePool.supply(
+        this.USDC_SEPOLIA,
+        ethers.parseUnits('1000', 6),
+        this.wallet.address,
+        0
+      );
+      await supplyTx.wait();
+      transactions.push(supplyTx);
+      console.log('✅ Supplied 1000 USDC to Aave');
+
+      console.log('Borrowing from Aave...');
+      const borrowTx = await aavePool.borrow(
+        this.DAI_SEPOLIA,
+        ethers.parseUnits('500', 18),
+        2, // variable rate
+        0,
+        this.wallet.address
+      );
+      await borrowTx.wait();
+      transactions.push(borrowTx);
+      console.log('✅ Borrowed 500 DAI from Aave');
+
+      console.log('Repaying loan...');
+      const repayTx = await aavePool.repay(
+        this.DAI_SEPOLIA,
+        ethers.parseUnits('200', 18),
+        2,
+        this.wallet.address
+      );
+      await repayTx.wait();
+      transactions.push(repayTx);
+      console.log('✅ Repaid 200 DAI to Aave');
+
+      console.log('Withdrawing from Aave...');
+      const withdrawTx = await aavePool.withdraw(
+        this.USDC_SEPOLIA,
+        ethers.parseUnits('200', 6),
+        this.wallet.address
+      );
+      await withdrawTx.wait();
+      transactions.push(withdrawTx);
+      console.log('✅ Withdrew 200 USDC from Aave');
+
+      console.log('🎉 Aave simulation completed successfully!');
+    } catch (error) {
+      console.error('❌ Error in Aave simulation:', error);
+    }
+
+    return transactions;
+  }
+
+  async simulateRealMorphoActivity(): Promise<TransactionResponse[]> {
+    const transactions: TransactionResponse[] = [];
+
+    try {
+      console.log('🚀 Starting real Morpho protocol interactions...');
+
+      const usdc = new Contract(this.USDC_SEPOLIA, ERC20_ABI, this.wallet);
+      const weth = new Contract(this.WETH_SEPOLIA, ERC20_ABI, this.wallet);
+
+      try {
+        console.log('Minting WETH for Morpho...');
+        const mintTx = await weth.mint(this.wallet.address, ethers.parseEther('10'));
+        await mintTx.wait();
+        console.log('✅ Minted WETH');
+      } catch {
+        console.log('Minting not available for WETH...');
+      }
+
+      const morpho = new Contract(this.MORPHO_AAVE_V3_SEPOLIA, MORPHO_ABI, this.wallet);
+
+      console.log('Approving tokens for Morpho...');
+      const approveUsdcTx = await usdc.approve(this.MORPHO_AAVE_V3_SEPOLIA, ethers.parseUnits('5000', 6));
+      await approveUsdcTx.wait();
+      transactions.push(approveUsdcTx);
+
+      const approveWethTx = await weth.approve(this.MORPHO_AAVE_V3_SEPOLIA, ethers.parseEther('5'));
+      await approveWethTx.wait();
+      transactions.push(approveWethTx);
+
+      console.log('Supplying to Morpho...');
+      const supplyTx = await morpho.supply(this.WETH_SEPOLIA, this.wallet.address, ethers.parseEther('1'));
+      await supplyTx.wait();
+      transactions.push(supplyTx);
+      console.log('✅ Supplied 1 WETH to Morpho');
+
+      console.log('Borrowing from Morpho...');
+      const borrowTx = await morpho.borrow(this.USDC_SEPOLIA, ethers.parseUnits('300', 6));
+      await borrowTx.wait();
+      transactions.push(borrowTx);
+      console.log('✅ Borrowed 300 USDC from Morpho');
+
+      console.log('Repaying Morpho loan...');
+      const repayTx = await morpho.repay(this.USDC_SEPOLIA, this.wallet.address, ethers.parseUnits('100', 6));
+      await repayTx.wait();
+      transactions.push(repayTx);
+      console.log('✅ Repaid 100 USDC to Morpho');
+
+      console.log('🎉 Morpho simulation completed successfully!');
+    } catch (error) {
+      console.error('❌ Error in Morpho simulation:', error);
+    }
+
+    return transactions;
+  }
+  async runCompleteProtocolSimulation() {
+  const aaveTransactions = await this.simulateRealAaveActivity();
+  const morphoTransactions = await this.simulateRealMorphoActivity();
+  const userPositions = {
+    aave: await this.getUserAavePosition(),
+    // Add morpho position if relevant or any other relevant user data here
+  };
+  return {
+    aaveTransactions,
+    morphoTransactions,
+    userPositions,
+  };
+}
+
+  async getUserAavePosition(): Promise<any> {
+    try {
+      const aavePool = new Contract(this.AAVE_POOL_SEPOLIA, AAVE_POOL_ABI, this.provider);
+
+      const userData = await aavePool.getUserAccountData(this.wallet.address);
+
       return {
-        aaveTransactions: aaveTxs.map(tx => ({
-          hash: tx.hash,
-          blockNumber: tx.blockNumber,
-          timestamp: Date.now()
-        })),
-        morphoTransactions: morphoTxs.map(tx => ({
-          hash: tx.hash,
-          blockNumber: tx.blockNumber, 
-          timestamp: Date.now()
-        })),
-        userPositions: {
-          aave: aavePosition
-        }
+        totalCollateralETH: ethers.formatUnits(userData.totalCollateralBase, 8),
+        totalDebtETH: ethers.formatUnits(userData.totalDebtBase, 8),
+        availableBorrowsETH: ethers.formatUnits(userData.availableBorrowsBase, 8),
+        currentLiquidationThreshold: ethers.formatUnits(userData.currentLiquidationThreshold, 2),
+        ltv: ethers.formatUnits(userData.ltv, 2),
+        healthFactor: ethers.formatUnits(userData.healthFactor, 18),
       };
-      
     } catch (error) {
-      console.error('❌ Protocol simulation failed:', error);
-      throw error;
+      console.error('Error fetching Aave position:', error);
+      return null;
     }
   }
 
-  async generateTestUserProfiles(): Promise<any[]> {
-    // Generate multiple test wallets with different activity patterns
-    const testProfiles = [
-      {
-        name: 'Ideal Borrower',
-        description: 'Perfect repayment history, diverse portfolio',
-        activities: this.generateIdealBorrowerActivities()
-      },
-      {
-        name: 'Growing Borrower', 
-        description: 'Building credit with moderate activity',
-        activities: this.generateGrowingBorrowerActivities()
-      },
-      {
-        name: 'Risky Borrower',
-        description: 'Inconsistent repayments, high concentration',
-        activities: this.generateRiskyBorrowerActivities()
-      }
-    ];
-
-    return testProfiles;
-  }
-
-  private generateIdealBorrowerActivities(): any[] {
-    return [
-      { protocol: 'aave', action: 'supply', amount: '2000', asset: 'USDC' },
-      { protocol: 'aave', action: 'borrow', amount: '800', asset: 'DAI' },
-      { protocol: 'aave', action: 'repay', amount: '800', asset: 'DAI' },
-      { protocol: 'morpho', action: 'supply', amount: '2', asset: 'WETH' },
-      { protocol: 'morpho', action: 'borrow', amount: '1000', asset: 'USDC' },
-      { protocol: 'morpho', action: 'repay', amount: '1000', asset: 'USDC' }
-    ];
-  }
-
-  private generateGrowingBorrowerActivities(): any[] {
-    return [
-      { protocol: 'aave', action: 'supply', amount: '500', asset: 'USDC' },
-      { protocol: 'aave', action: 'borrow', amount: '200', asset: 'DAI' },
-      { protocol: 'aave', action: 'repay', amount: '150', asset: 'DAI' },
-      { protocol: 'aave', action: 'repay', amount: '50', asset: 'DAI' }
-    ];
-  }
-
-  private generateRiskyBorrowerActivities(): any[] {
-    return [
-      { protocol: 'aave', action: 'supply', amount: '1000', asset: 'USDC' },
-      { protocol: 'aave', action: 'borrow', amount: '800', asset: 'DAI' },
-      { protocol: 'aave', action: 'borrow', amount: '400', asset: 'USDC' },
-      // Missing repayments intentionally
-    ];
-  }
-
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  async monitorRealTimeActivity(walletAddress: string): Promise<void> {
-    console.log(`👀 Monitoring real-time activity for ${walletAddress}...`);
-    
-    // Set up event listeners for real-time monitoring
-    this.interactor.provider.on('block', async (blockNumber) => {
-      console.log(`New block: ${blockNumber}`);
-      
-      // Check for new transactions involving this address
-      const newTxs = await this.interactor.getTransactionHistory(walletAddress, blockNumber - 10);
-      
-      if (newTxs.length > 0) {
-        console.log(`📈 New activity detected: ${newTxs.length} transactions`);
-        
-        // Update credit score in real-time
-        await this.updateRealTimeCreditScore(walletAddress);
-      }
-    });
-  }
-
-  private async updateRealTimeCreditScore(walletAddress: string): Promise<void> {
-    // Call backend to recalculate credit score with new data
+  async getTransactionHistory(address: string, fromBlock: number = 0): Promise<any[]> {
     try {
-      const response = await fetch(`http://localhost:3001/api/credit-data/${walletAddress}`, {
-        method: 'GET'
+      const currentBlock = await this.provider.getBlockNumber();
+      const logs = await this.provider.getLogs({
+        address,
+        fromBlock: fromBlock || currentBlock - 10000,
+        toBlock: currentBlock,
       });
-      
-      if (response.ok) {
-        const creditData = await response.json();
-        console.log(`🔄 Real-time credit score update: ${creditData.creditScore}`);
-        
-        // Emit real-time update event
-        this.emitCreditScoreUpdate(walletAddress, creditData.creditScore);
-      }
+      return logs;
     } catch (error) {
-      console.error('Error updating real-time credit score:', error);
+      console.error('Error fetching transaction history:', error);
+      return [];
     }
-  }
-
-  private emitCreditScoreUpdate(walletAddress: string, score: number): void {
-    // In a real implementation, this would emit to WebSocket clients
-    console.log(`📊 Credit score update for ${walletAddress}: ${score}`);
   }
 }

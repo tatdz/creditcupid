@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
 
-// Aave V3 Pool ABIs
+// Aave V3 Pool ABI
 const AAVE_POOL_ABI = [
   "function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external",
   "function withdraw(address asset, uint256 amount, address to) external returns (uint256)",
@@ -10,8 +10,10 @@ const AAVE_POOL_ABI = [
   "function getUserAccountData(address user) external view returns (uint256 totalCollateralBase, uint256 totalDebtBase, uint256 availableBorrowsBase, uint256 currentLiquidationThreshold, uint256 ltv, uint256 healthFactor)"
 ];
 
-// Aave V3 Contract Addresses by Chain
-export const AAVE_ADDRESSES = {
+// Strongly typed AAVE_ADDRESSES with number index signature
+export const AAVE_ADDRESSES: {
+  [chainId: number]: { pool: string; dataProvider: string }
+} = {
   1: { // Ethereum Mainnet
     pool: '0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2',
     dataProvider: '0x7B4EB56E7CD4b454BA8ff71E4518426369a138a3'
@@ -61,8 +63,9 @@ export class AaveProtocol {
   private providers: { [chainId: number]: ethers.JsonRpcProvider } = {};
 
   constructor(rpcUrls: { [chainId: number]: string }) {
-    for (const [chainId, url] of Object.entries(rpcUrls)) {
-      this.providers[parseInt(chainId)] = new ethers.JsonRpcProvider(url);
+    for (const [chainIdStr, url] of Object.entries(rpcUrls)) {
+      const chainId = Number(chainIdStr);
+      this.providers[chainId] = new ethers.JsonRpcProvider(url);
     }
   }
 
@@ -81,14 +84,14 @@ export class AaveProtocol {
         );
 
         const userData = await poolContract.getUserAccountData(address);
-        
+
         positions[chainId] = {
-          totalCollateralETH: ethers.formatUnits(userData[0], 8),
-          totalDebtETH: ethers.formatUnits(userData[1], 8),
-          availableBorrowsETH: ethers.formatUnits(userData[2], 8),
-          currentLiquidationThreshold: ethers.formatUnits(userData[3], 2),
-          ltv: ethers.formatUnits(userData[4], 2),
-          healthFactor: ethers.formatUnits(userData[5], 18)
+          totalCollateralETH: ethers.formatUnits(userData.totalCollateralBase ?? userData[0], 8),
+          totalDebtETH: ethers.formatUnits(userData.totalDebtBase ?? userData[1], 8),
+          availableBorrowsETH: ethers.formatUnits(userData.availableBorrowsBase ?? userData[2], 8),
+          currentLiquidationThreshold: ethers.formatUnits(userData.currentLiquidationThreshold ?? userData[3], 2),
+          ltv: ethers.formatUnits(userData.ltv ?? userData[4], 2),
+          healthFactor: ethers.formatUnits(userData.healthFactor ?? userData[5], 18)
         };
       } catch (error) {
         console.error(`Error fetching Aave position for chain ${chainId}:`, error);
@@ -116,16 +119,13 @@ export class AaveProtocol {
   private async getChainTransactions(address: string, chainId: number): Promise<AaveTransaction[]> {
     const transactions: AaveTransaction[] = [];
     const baseURL = this.getBlockscoutURL(chainId);
-    
+
     try {
-      // Get transactions from Blockscout
-      const response = await axios.get(
-        `${baseURL}/api?module=account&action=txlist&address=${address}&sort=desc`
-      );
+      const response = await axios.get(`${baseURL}/api?module=account&action=txlist&address=${address}&sort=desc`);
 
       if (response.data.status === '1') {
         const aavePool = AAVE_ADDRESSES[chainId]?.pool.toLowerCase();
-        
+
         for (const tx of response.data.result) {
           if (tx.to?.toLowerCase() === aavePool) {
             const transaction = await this.decodeAaveTransaction(tx, chainId);
@@ -153,6 +153,7 @@ export class AaveProtocol {
       let asset: string;
       let amount: string;
 
+      // ethers.js parseTransaction args are tuple-like, so access by index
       switch (decoded.name) {
         case 'supply':
           type = 'deposit';
@@ -182,10 +183,10 @@ export class AaveProtocol {
         type,
         asset,
         amount,
-        timestamp: parseInt(tx.timeStamp),
+        timestamp: parseInt(tx.timeStamp, 10),
         txHash: tx.hash,
         chainId,
-        blockNumber: parseInt(tx.blockNumber)
+        blockNumber: parseInt(tx.blockNumber, 10)
       };
     } catch (error) {
       console.error('Error decoding Aave transaction:', error);
@@ -202,13 +203,13 @@ export class AaveProtocol {
         provider
       );
       return await tokenContract.decimals();
-    } catch (error) {
-      return 18; // Default to 18 decimals
+    } catch {
+      return 18; // Default fallback decimals
     }
   }
 
   private getBlockscoutURL(chainId: number): string {
-    const urls: { [key: number]: string } = {
+    const urls: { [chainId: number]: string } = {
       1: 'https://eth.blockscout.com',
       137: 'https://polygon.blockscout.com',
       42161: 'https://arbitrum.blockscout.com',
