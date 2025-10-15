@@ -70,6 +70,17 @@ Darma is built with a modular, full-stack approach:
 - Node.js (v18+)
 - Foundry
 - Python 3.9+
-- A wallet with Sepolia testnet ETH
+- A wallet with Sepolia testnet ETH and other relevant tokens you hold/used (USDC,etc)
 
 ### Installation & Local Development
+- clone the repo 
+- open one terminal tab:
+- cd backend
+- npm install
+- add credentials in the .env files following the .env.example.txt
+- npm run dev
+
+- open in another terminal tab:
+- cd frontend
+- npm install
+- npm run dev
