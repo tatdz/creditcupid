@@ -67,7 +67,7 @@ Darma is built with a modular, full-stack approach:
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v18+)
+- Node.js (v20+) 
 - Foundry
 - Python 3.9+
 - A wallet with Sepolia testnet ETH and other relevant tokens you hold/used (USDC,etc)

@@ -103,6 +103,7 @@ export const useCreditData = () => {
     }
   };
 
+
   useEffect(() => {
     if (isConnected && address) {
       fetchCreditData(address);
