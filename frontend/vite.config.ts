@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -18,4 +17,7 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.ts',
   },
+  optimizeDeps: {
+    exclude: ['@base-org/account'] 
+  }
 })
