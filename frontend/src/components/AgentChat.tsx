@@ -15,7 +15,15 @@ export const AgentChat: React.FC<AgentChatProps> = ({ address, agentType }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Add null check and try-catch for test environment
+    if (messagesEndRef.current && typeof messagesEndRef.current.scrollIntoView === 'function') {
+      try {
+        messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+      } catch (error) {
+        // Fallback for test environments where smooth scrolling might not be supported
+        messagesEndRef.current.scrollIntoView();
+      }
+    }
   };
 
   useEffect(() => {
@@ -56,6 +64,30 @@ export const AgentChat: React.FC<AgentChatProps> = ({ address, agentType }) => {
     }
   };
 
+  // Message component to simplify the JSX
+  const MessageItem = ({ message }: { message: ChatMessage }) => {
+    const isUser = message.role === 'user';
+    const messageClass = isUser ? 'flex-row-reverse' : 'flex-row';
+    const avatarClass = isUser ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700';
+    const bubbleClass = isUser ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-900';
+    const timeClass = isUser ? 'text-blue-200' : 'text-gray-500';
+    const Icon = isUser ? User : Bot;
+
+    return (
+      <div key={message.id} className={`flex gap-3 ${messageClass}`}>
+        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${avatarClass}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className={`max-w-[80%] rounded-lg px-4 py-2 ${bubbleClass}`}>
+          <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+          <div className={`text-xs mt-1 ${timeClass}`}>
+            {message.timestamp.toLocaleTimeString()}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="pb-3">
@@ -79,7 +111,6 @@ export const AgentChat: React.FC<AgentChatProps> = ({ address, agentType }) => {
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col p-0">
-        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
@@ -87,7 +118,6 @@ export const AgentChat: React.FC<AgentChatProps> = ({ address, agentType }) => {
               <p className="font-medium">No messages yet</p>
               <p className="text-sm mt-1">Ask me about your credit score or use the quick questions below</p>
               
-              {/* Quick Questions */}
               <div className="mt-6 space-y-2">
                 {getQuickQuestions().map((question, index) => (
                   <Button
@@ -103,41 +133,9 @@ export const AgentChat: React.FC<AgentChatProps> = ({ address, agentType }) => {
               </div>
             </div>
           ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex gap-3 ${
-                  message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                }`}
-              >
-                <div
-                  className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    message.role === 'user' 
-                      ? 'bg-blue-600 text-white' 
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {message.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                </div>
-                <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-900'
-                  }`}
-                >
-                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-                  <div
-                    className={`text-xs mt-1 ${
-                      message.role === 'user' ? 'text-blue-200' : 'text-gray-500'
-                    }`}
-                  >
-                    {message.timestamp.toLocaleTimeString()}
-                  </div>
-                </div>
-              </div>
-            ))
+            messages.map((message) => <MessageItem key={message.id} message={message} />)
           )}
+          
           {loading && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
@@ -155,7 +153,6 @@ export const AgentChat: React.FC<AgentChatProps> = ({ address, agentType }) => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <form onSubmit={handleSubmit} className="p-4 border-t">
           <div className="flex gap-2">
             <input
