@@ -42,6 +42,7 @@
     "@apollo/client": "^3.8.8",
     "@blockscout/app-sdk": "^0.1.2",
     "@graphprotocol/client-cli": "^3.0.7",
+    "@lighthouse-web3/sdk": "^0.4.3",
     "@prisma/client": "^5.7.0",
     "@pythnetwork/pyth-sdk-js": "^1.2.0",
     "axios": "^1.6.0",

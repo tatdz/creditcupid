@@ -1,14 +1,14 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/Card';
 import { Building, CheckCircle, Lock } from 'lucide-react';
-import { PlaidData, ZKProofs } from '../../../types/credit';
+import { PlaidData, StoredZKProofs, ZKProofs } from '../../../types/credit';
 import { PlaidIntegration } from './PlaidIntegration';
 import { RealZKVerification } from './RealZKVerification';
 import { formatUSD } from '../utils/formatters';
 
 interface FinancialHealthPanelProps {
   plaidData: PlaidData | null;
-  zkProofs: ZKProofs | null;
+  zkProofs: StoredZKProofs | null; //
   onConnectBank: () => Promise<void>;
   loading: boolean;
   error: string | null;
@@ -112,9 +112,45 @@ export const FinancialHealthPanel: React.FC<FinancialHealthPanelProps> = ({
               </div>
             </div>
 
-            {zkProofs && (
-              <RealZKVerification proofs={zkProofs} />
-            )}
+{zkProofs && (
+  <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+    <div className="flex items-center justify-between mb-3">
+      <h4 className="font-semibold text-green-900">Proof Verification Status</h4>
+      <div className="flex gap-2 text-sm">
+        <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+          {Object.values({
+            income: zkProofs.incomeVerified,
+            balance: zkProofs.accountBalanceVerified,
+            transaction: zkProofs.transactionHistoryVerified,
+            identity: zkProofs.identityVerified
+          }).filter(Boolean).length}/4 Verified
+        </span>
+      </div>
+    </div>
+    <div className="grid grid-cols-2 gap-2 text-sm">
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${zkProofs.incomeVerified ? 'bg-green-500' : 'bg-red-500'}`} />
+        Income: {zkProofs.incomeVerified ? '✅' : '❌'}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${zkProofs.accountBalanceVerified ? 'bg-green-500' : 'bg-red-500'}`} />
+        Balance: {zkProofs.accountBalanceVerified ? '✅' : '❌'}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${zkProofs.transactionHistoryVerified ? 'bg-green-500' : 'bg-red-500'}`} />
+        Transactions: {zkProofs.transactionHistoryVerified ? '✅' : '❌'}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`w-2 h-2 rounded-full ${zkProofs.identityVerified ? 'bg-green-500' : 'bg-red-500'}`} />
+        Identity: {zkProofs.identityVerified ? '✅' : '❌'}
+      </div>
+    </div>
+  </div>
+)}
+
+{zkProofs && (
+  <RealZKVerification proofs={zkProofs} />
+)}
 
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h4 className="font-semibold text-blue-900 mb-2">Financial Insights</h4>

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@lighthouse-web3/sdk": "^0.4.3",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0"
   },
