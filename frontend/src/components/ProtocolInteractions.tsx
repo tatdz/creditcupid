@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProtocolInteraction } from '../hooks/useCreditData';
+import { ProtocolInteraction } from '../types/credit';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
 import { ArrowUpCircle, ArrowDownCircle, DollarSign, TrendingUp } from 'lucide-react';
 
