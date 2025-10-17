@@ -12,12 +12,23 @@
     "moduleResolution": "node",
     "baseUrl": "src",
     "paths": {
-      "@sandbox/*": ["../../sandbox/*"]
-    }
+      "@services/*": ["./services/*"],
+      "@protocols/*": ["./protocols/*"],
+      "@oracles/*": ["./oracles/*"],
+      "@mcp/*": ["./mcp/*"]
+    },
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
   },
   "include": [
-    "src/**/*",
-    "../sandbox/**/*"   // Add to include the sandbox TS files for IDEs and ts-node awareness
+    "src/**/*"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "../sandbox/**/*"  // Remove sandbox from include to fix the error
+  ]
 }
