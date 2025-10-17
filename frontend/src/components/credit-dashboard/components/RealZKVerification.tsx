@@ -1,149 +1,146 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/Card';
-import { Button } from '../../ui/Button';
-import { CheckCircle, ExternalLink, Lock, Loader2, Shield, FileText, Download } from 'lucide-react';
-import { ZKProofs } from '../../../types/credit';
-import { realZKProofGenerator } from '../utils/realZKProofs';
+import { CheckCircle, ExternalLink, Shield, FileText, Download, AlertCircle } from 'lucide-react';
+import { StoredZKProofs } from '../../../types/credit';
 
 interface RealZKVerificationProps {
-  proofs: ZKProofs;
+  proofs: StoredZKProofs;
 }
 
+const ProofItem: React.FC<{
+  title: string;
+  verified: boolean;
+  proof: string;
+  cid?: string;
+  pinataURL?: string;
+  isRealCID?: boolean;
+}> = ({ title, verified, proof, cid, pinataURL, isRealCID }) => {
+  const hasRealIPFS = isRealCID && pinataURL && !pinataURL.startsWith('#');
+  
+  const openPinataLink = (url?: string) => {
+    if (url && !url.startsWith('#') && hasRealIPFS) {
+      console.log('Opening Pinata link:', url);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
+      <div className="flex items-center gap-3 flex-1">
+        <div className={`p-2 rounded-full ${
+          verified ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
+        }`}>
+          {verified ? (
+            <CheckCircle className="h-5 w-5" />
+          ) : (
+            <AlertCircle className="h-5 w-5" />
+          )}
+        </div>
+        <div className="flex-1">
+          <div className="font-medium">{title}</div>
+          <div className={`text-sm ${verified ? 'text-green-700' : 'text-red-700'}`}>
+            {verified ? 'Automatically Verified' : 'Not Verified'}
+          </div>
+          
+          {cid && (
+            <div className={`text-xs font-mono mt-1 ${
+              hasRealIPFS ? 'text-blue-600' : 'text-gray-600'
+            }`}>
+              {hasRealIPFS ? '✅ Real IPFS CID:' : 'Example CID:'} {cid}
+            </div>
+          )}
+          
+          {hasRealIPFS && (
+            <div className="text-xs text-green-600 mt-1">
+              🔗 <a 
+                href={pinataURL} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="underline hover:text-green-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Click to view on IPFS
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Removed the blue "View on IPFS" button */}
+    </div>
+  );
+};
+
 export const RealZKVerification: React.FC<RealZKVerificationProps> = ({ proofs }) => {
-  const [verifying, setVerifying] = useState<string | null>(null);
-  const [verificationResults, setVerificationResults] = useState<{[key: string]: any}>({});
-  const [report, setReport] = useState<any>(null);
-
-  const verifyProof = async (proofType: string, proofData: string) => {
-    setVerifying(proofType);
-    
-    try {
-      const result = await realZKProofGenerator.verifyProofLocally(proofType, proofData);
-      
-      setVerificationResults(prev => ({
-        ...prev,
-        [proofType]: result
-      }));
-      
-      console.log(`🔍 ${proofType} verification:`, result);
-    } catch (error) {
-      console.error(`Error verifying ${proofType}:`, error);
-      setVerificationResults(prev => ({
-        ...prev,
-        [proofType]: {
-          valid: false,
-          message: 'Verification failed',
-          proofHash: 'error'
+  const downloadAllProofs = () => {
+    const proofsData = {
+      generatedBy: 'Darma Credit Protocol',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      proofs: {
+        income: {
+          verified: proofs.incomeVerified,
+          proof: proofs.proofs.incomeProof,
+          ipfsCID: proofs.ipfsData.incomeProofCID,
+          pinataURL: proofs.pinataURLs.incomeProof,
+          isRealCID: proofs._metadata?.usingRealIPFS
+        },
+        balance: {
+          verified: proofs.accountBalanceVerified,
+          proof: proofs.proofs.balanceProof,
+          ipfsCID: proofs.ipfsData.balanceProofCID,
+          pinataURL: proofs.pinataURLs.balanceProof,
+          isRealCID: proofs._metadata?.usingRealIPFS
+        },
+        transaction: {
+          verified: proofs.transactionHistoryVerified,
+          proof: proofs.proofs.transactionProof,
+          ipfsCID: proofs.ipfsData.transactionProofCID,
+          pinataURL: proofs.pinataURLs.transactionProof,
+          isRealCID: proofs._metadata?.usingRealIPFS
+        },
+        identity: {
+          verified: proofs.identityVerified,
+          proof: proofs.proofs.identityProof,
+          ipfsCID: proofs.ipfsData.identityProofCID,
+          pinataURL: proofs.pinataURLs.identityProof,
+          isRealCID: proofs._metadata?.usingRealIPFS
         }
-      }));
-    } finally {
-      setVerifying(null);
-    }
-  };
+      },
+      ipfsLinks: proofs.pinataURLs,
+      metadata: proofs._metadata
+    };
 
-  const generateVerificationReport = async () => {
-    setVerifying('report');
-    try {
-      const newReport = await realZKProofGenerator.generateVerificationReport(proofs);
-      setReport(newReport);
-      console.log('📊 Verification Report:', newReport);
-    } catch (error) {
-      console.error('Error generating report:', error);
-    } finally {
-      setVerifying(null);
-    }
-  };
-
-  const downloadReport = () => {
-    if (!report) return;
-    
-    const reportContent = realZKProofGenerator.generateDownloadableReport(report);
-    const blob = new Blob([reportContent], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(proofsData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `darma-verification-report-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `darma-zk-proofs-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const ProofItem: React.FC<{
-    type: string;
-    title: string;
-    description: string;
-    proof: string;
-    isVerified: boolean;
-  }> = ({ type, title, description, proof, isVerified }) => {
-    const verification = verificationResults[type];
-    const isVerifying = verifying === type;
-    
-    return (
-      <div className="flex items-center justify-between p-4 bg-green-50 rounded-lg border border-green-200">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-full ${
-            verification?.valid ? 'bg-green-100 text-green-600' :
-            isVerifying ? 'bg-blue-100 text-blue-600' :
-            verification ? 'bg-red-100 text-red-600' :
-            'bg-gray-100 text-gray-600'
-          }`}>
-            {verification?.valid ? (
-              <CheckCircle className="h-5 w-5" />
-            ) : isVerifying ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : verification ? (
-              <Shield className="h-5 w-5" />
-            ) : (
-              <Lock className="h-5 w-5" />
-            )}
-          </div>
-          <div>
-            <div className="font-medium">{title}</div>
-            <div className="text-sm text-green-700">{description}</div>
-            <div className="text-xs text-green-600 mt-1 font-mono">
-              Proof: {proof}
-            </div>
-            {verification && (
-              <div className={`text-xs mt-1 ${
-                verification.valid ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {verification.message}
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className={`text-sm font-semibold ${
-            verification?.valid ? 'text-green-700' :
-            isVerifying ? 'text-blue-700' :
-            verification ? 'text-red-700' :
-            'text-gray-700'
-          }`}>
-            {verification?.valid ? 'Verified' :
-             isVerifying ? 'Verifying...' :
-             verification ? 'Failed' :
-             isVerified ? 'Ready to Verify' : 'Not Verified'}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => verifyProof(type, proof)}
-            disabled={isVerifying}
-            className="h-8 text-xs"
-          >
-            {isVerifying ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <ExternalLink className="h-3 w-3 mr-1" />
-            )}
-            Verify
-          </Button>
-        </div>
-      </div>
-    );
+  const openPinataLink = (url?: string) => {
+    const hasRealIPFS = proofs._metadata?.usingRealIPFS;
+    if (url && !url.startsWith('#') && hasRealIPFS) {
+      console.log('Opening Pinata link:', url);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
+
+  const isRealIPFSLink = (url?: string): boolean => {
+    return !!(url && !url.startsWith('#') && url.includes('pinata.cloud'));
+  };
+
+  const hasRealIPFS = proofs._metadata?.usingRealIPFS;
+  const verifiedCount = [
+    proofs.incomeVerified,
+    proofs.accountBalanceVerified, 
+    proofs.transactionHistoryVerified,
+    proofs.identityVerified
+  ].filter(Boolean).length;
 
   return (
     <Card>
@@ -151,100 +148,133 @@ export const RealZKVerification: React.FC<RealZKVerificationProps> = ({ proofs }
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
           Zero-Knowledge Proof Verification
+          <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded font-semibold">
+            {verifiedCount}/4 Verified
+          </span>
         </CardTitle>
         <CardDescription>
-          Cryptographic proofs verified locally with secure hashing
+          {hasRealIPFS 
+            ? 'All proofs automatically verified and stored on real IPFS via Pinata'
+            : 'Proofs automatically verified with example CIDs'
+          }
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-3">
-          <ProofItem
-            type="income"
-            title="Income Verification"
-            description="Stable income stream verified"
-            proof={proofs.proofs.incomeProof}
-            isVerified={proofs.incomeVerified}
-          />
-          
-          <ProofItem
-            type="balance"
-            title="Account Balance"
-            description="Minimum balance requirement met"
-            proof={proofs.proofs.balanceProof}
-            isVerified={proofs.accountBalanceVerified}
-          />
-          
-          <ProofItem
-            type="transaction"
-            title="Transaction History"
-            description="Active account history verified"
-            proof={proofs.proofs.transactionProof}
-            isVerified={proofs.transactionHistoryVerified}
-          />
-          
-          <ProofItem
-            type="identity"
-            title="Identity Verification"
-            description="Identity information confirmed"
-            proof={proofs.proofs.identityProof}
-            isVerified={proofs.identityVerified}
-          />
-        </div>
-        
-        <div className="flex justify-between items-center pt-4 border-t">
-          <Button
-            variant="outline"
-            onClick={generateVerificationReport}
-            disabled={verifying === 'report'}
-            className="flex items-center gap-2"
-          >
-            {verifying === 'report' ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <FileText className="h-4 w-4" />
-            )}
-            Generate Verification Report
-          </Button>
-          
-          {report && (
-            <Button
-              onClick={downloadReport}
-              variant="default"
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Report
-            </Button>
-          )}
-        </div>
-
-        {report && (
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-2">Verification Report</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm text-blue-800">
+        {/* Storage Status Banner */}
+        {!hasRealIPFS && (
+          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-yellow-600" />
               <div>
-                <strong>Overall Score:</strong> {report.overallScore}/100
-              </div>
-              <div>
-                <strong>Verification Level:</strong> {report.details.verificationLevel}
-              </div>
-              <div>
-                <strong>Valid Proofs:</strong> {report.details.validProofs}/{report.details.totalProofs}
-              </div>
-              <div>
-                <strong>Summary:</strong> {report.summary}
+                <h4 className="font-semibold text-yellow-900">Using Example CIDs</h4>
+                <p className="text-sm text-yellow-800">
+                  The system is showing example IPFS CIDs. Check your Pinata credentials and console logs to see why real CIDs aren't being generated.
+                </p>
               </div>
             </div>
           </div>
         )}
 
+        <div className="space-y-3">
+          <ProofItem
+            title="Income Verification"
+            verified={proofs.incomeVerified}
+            proof={proofs.proofs.incomeProof}
+            cid={proofs.ipfsData.incomeProofCID}
+            pinataURL={proofs.pinataURLs.incomeProof}
+            isRealCID={proofs._metadata?.usingRealIPFS}
+          />
+          
+          <ProofItem
+            title="Account Balance"
+            verified={proofs.accountBalanceVerified}
+            proof={proofs.proofs.balanceProof}
+            cid={proofs.ipfsData.balanceProofCID}
+            pinataURL={proofs.pinataURLs.balanceProof}
+            isRealCID={proofs._metadata?.usingRealIPFS}
+          />
+          
+          <ProofItem
+            title="Transaction History"
+            verified={proofs.transactionHistoryVerified}
+            proof={proofs.proofs.transactionProof}
+            cid={proofs.ipfsData.transactionProofCID}
+            pinataURL={proofs.pinataURLs.transactionProof}
+            isRealCID={proofs._metadata?.usingRealIPFS}
+          />
+          
+          <ProofItem
+            title="Identity Verification"
+            verified={proofs.identityVerified}
+            proof={proofs.proofs.identityProof}
+            cid={proofs.ipfsData.identityProofCID}
+            pinataURL={proofs.pinataURLs.identityProof}
+            isRealCID={proofs._metadata?.usingRealIPFS}
+          />
+        </div>
+
+        {/* Full Proofs Set - Removed the blue button here too */}
+        {proofs.pinataURLs.fullProofs && (
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-blue-900">Complete Proofs Set</h4>
+                <p className="text-sm text-blue-700">
+                  {hasRealIPFS 
+                    ? 'All proofs combined in a single IPFS file'
+                    : 'All proofs combined (ready for IPFS)'
+                  }
+                </p>
+                {proofs.ipfsData.fullProofsCID && (
+                  <div className="text-xs font-mono mt-1 text-blue-600">
+                    Real IPFS CID: {proofs.ipfsData.fullProofsCID}
+                  </div>
+                )}
+                {hasRealIPFS && proofs.pinataURLs.fullProofs && (
+                  <div className="text-xs text-blue-600 mt-1">
+                    🔗 <a 
+                      href={proofs.pinataURLs.fullProofs} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline hover:text-blue-800"
+                    >
+                      Click to view complete proofs on IPFS
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center pt-4 border-t">
+          <div className="text-sm text-gray-600">
+            {hasRealIPFS 
+              ? 'All proofs stored permanently on IPFS and automatically verified'
+              : 'Proofs automatically verified. Add Pinata credentials for IPFS storage.'
+            }
+          </div>
+          
+          <button
+            onClick={downloadAllProofs}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download Proofs
+          </button>
+        </div>
+
+        {/* Info Panel */}
         <div className="p-3 bg-green-50 rounded-lg border border-green-200">
           <div className="flex items-center gap-2 text-sm text-green-800">
             <Shield className="h-4 w-4" />
             <div>
-              <strong>Local ZK Proofs:</strong> Each proof generates a unique cryptographic hash 
-              that can be independently verified. Click "Verify" to check proof validity locally.
-              No external services required.
+              <strong>Automatic Verification:</strong> All zero-knowledge proofs are generated and verified automatically when you connect your bank account. 
+              {!hasRealIPFS && (
+                <span className="block mt-1">
+                  <strong>To enable IPFS storage:</strong> Add valid Pinata credentials to your .env file for permanent proof storage.
+                </span>
+              )}
             </div>
           </div>
         </div>
