@@ -98,6 +98,40 @@ export interface ZKProofs {
   identityVerified: boolean;
 }
 
+// Enhanced interface for Pinata-stored proofs with public gateway support
+export interface StoredZKProofs extends ZKProofs {
+  ipfsData: {
+    incomeProofCID?: string;
+    balanceProofCID?: string;
+    transactionProofCID?: string;
+    identityProofCID?: string;
+    fullProofsCID?: string;
+    verificationReportCID?: string;
+  };
+  pinataURLs: {
+    incomeProof?: string;
+    balanceProof?: string;
+    transactionProof?: string;
+    identityProof?: string;
+    fullProofs?: string;
+    verificationReport?: string;
+  };
+  _metadata: {
+    generatedAt: string;
+    usingRealIPFS: boolean;
+    storageType: 'ipfs' | 'local';
+    totalScore: number;
+    pinataGateway?: string;
+    publicGateways?: string[];
+    verificationStatus: {
+      income: boolean;
+      balance: boolean;
+      transactions: boolean;
+      identity: boolean;
+    };
+  };
+}
+
 // Plaid Data Types
 export interface PlaidAccountBalances {
   available?: number;
@@ -178,6 +212,7 @@ export interface CreditData {
   oracleData: OracleData;
   protocolInteractions: ProtocolInteraction[];
   transactionAnalysis: TransactionAnalysis;
+  zkProofs?: StoredZKProofs;
 }
 
 // Credit Score Specific Types
@@ -201,4 +236,22 @@ export interface CreditScoreWeights {
   PROTOCOL_USAGE: number;
   FINANCIAL_HEALTH: number;
   REPAYMENT_HISTORY: number;
+}
+
+// IPFS Verification Types
+export interface IPFSVerificationResult {
+  verified: boolean;
+  cid: string;
+  gateway: string;
+  timestamp: string;
+  data?: any;
+  error?: string;
+}
+
+export interface PinataStatus {
+  available: boolean;
+  hasJWT: boolean;
+  hasApiKey: boolean;
+  hasApiSecret: boolean;
+  publicGateways: string[];
 }
