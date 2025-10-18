@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { 
   CreditData, 
   PlaidData, 
-  ZKProofs, 
+  PrivacyProofs, 
   TransactionAnalysis, 
   WalletData,
   CreditScoreResult,
@@ -229,7 +229,7 @@ const calculateProtocolUsageScore = (transactionAnalysis: TransactionAnalysis | 
   }
 };
 
-const calculateFinancialHealthScore = (plaidData: PlaidData | null, zkProofs: ZKProofs | null): number => {
+const calculateFinancialHealthScore = (plaidData: PlaidData | null, zkProofs: PrivacyProofs | null): number => {
   console.log('🔍 Calculating Financial Health Score:', { hasPlaidData: !!plaidData, hasZKProofs: !!zkProofs });
   
   if (!plaidData || !plaidData.accounts || !zkProofs) {
@@ -336,7 +336,7 @@ const calculateRepaymentHistoryScore = (protocolInteractions: any[] = []): numbe
 export const useCreditScore = (
   creditData: CreditData | null, 
   plaidData: PlaidData | null = null, 
-  zkProofs: ZKProofs | null = null
+  zkProofs: PrivacyProofs | null = null
 ): CreditScoreResult => {
   return useMemo(() => {
     console.log('🚀 useCreditScore Hook Executing:', { 
