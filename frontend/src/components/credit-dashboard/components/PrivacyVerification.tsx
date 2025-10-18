@@ -42,13 +42,7 @@ const ProofItem: React.FC<{
             {verified ? 'Automatically Verified' : 'Not Verified'}
           </div>
           
-          {cid && (
-            <div className={`text-xs font-mono mt-1 ${
-              hasRealIPFS ? 'text-blue-600' : 'text-gray-600'
-            }`}>
-              {hasRealIPFS ? '✅ Real IPFS CID:' : 'Example CID:'} {cid}
-            </div>
-          )}
+          {/* REMOVED THE CID LINE COMPLETELY */}
           
           {hasRealIPFS && (
             <div className="text-xs text-green-600 mt-1">
@@ -154,7 +148,7 @@ export const PrivacyVerification: React.FC<PrivacyVerificationProps> = ({ proofs
         </CardTitle>
         <CardDescription>
           {hasRealIPFS 
-            ? 'All proofs automatically verified and stored on real IPFS via Pinata'
+            ? 'All proofs automatically verified and stored on IPFS via Pinata'
             : 'Proofs automatically verified with example CIDs'
           }
         </CardDescription>
@@ -213,7 +207,7 @@ export const PrivacyVerification: React.FC<PrivacyVerificationProps> = ({ proofs
           />
         </div>
 
-        {/* Full Proofs Set - Removed the blue button here too */}
+        {/* Full Proofs Set*/}
         {proofs.pinataURLs.fullProofs && (
           <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
             <div className="flex items-center justify-between">
@@ -225,11 +219,6 @@ export const PrivacyVerification: React.FC<PrivacyVerificationProps> = ({ proofs
                     : 'All proofs combined (ready for IPFS)'
                   }
                 </p>
-                {proofs.ipfsData.fullProofsCID && (
-                  <div className="text-xs font-mono mt-1 text-blue-600">
-                    Real IPFS CID: {proofs.ipfsData.fullProofsCID}
-                  </div>
-                )}
                 {hasRealIPFS && proofs.pinataURLs.fullProofs && (
                   <div className="text-xs text-blue-600 mt-1">
                     🔗 <a 
