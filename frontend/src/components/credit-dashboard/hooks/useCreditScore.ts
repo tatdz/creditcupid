@@ -1,3 +1,4 @@
+// components/credit-dashboard/hooks/useCreditScore.ts
 import { useMemo } from 'react';
 import { 
   CreditData, 
@@ -38,299 +39,235 @@ const CREDIT_FACTORS: { [key: string]: { weight: number; description: string; ma
   }
 };
 
-// Safe number utility functions
-const safeNumber = (value: any, defaultValue: number = 0): number => {
-  const num = Number(value);
-  return isNaN(num) ? defaultValue : num;
-};
-
-const safeMinMax = (value: number, min: number, max: number): number => {
-  return Math.min(max, Math.max(min, safeNumber(value, min)));
-};
-
-const safeReduce = (array: any[], reducer: (sum: number, item: any) => number, initialValue: number = 0): number => {
-  if (!Array.isArray(array)) return initialValue;
-  try {
-    return array.reduce(reducer, initialValue);
-  } catch (error) {
-    console.error('Error in safeReduce:', error);
-    return initialValue;
-  }
-};
-
-// Individual scoring functions with comprehensive NaN protection
+// Individual scoring functions - ZERO TOLERANCE for no activity
 const calculateOnChainHistoryScore = (transactionAnalysis: TransactionAnalysis | undefined): number => {
-  console.log('🔍 Calculating On-Chain History Score:', transactionAnalysis);
+  if (!transactionAnalysis) return 0;
+
+  const totalTransactions = Number(transactionAnalysis.totalTransactions) || 0;
+  const activeMonths = Number(transactionAnalysis.activeMonths) || 0;
+  const transactionVolume = Number(transactionAnalysis.transactionVolume) || 0;
+
+  console.log('🔍 REAL On-Chain Data:', {
+    totalTransactions,
+    activeMonths, 
+    transactionVolume
+  });
+
+  // EXTREMELY STRICT: Need significant activity to get any points
+  if (totalTransactions === 0) return 0;
+  if (totalTransactions === 1) return 2; // Only 2 points for 1 transaction
+  if (totalTransactions <= 5) return 5;  // 5 points for 2-5 transactions
   
-  if (!transactionAnalysis) return 25;
+  // Gradual scaling only after minimum threshold
+  let score = 0;
+  
+  // Transaction count (max 40 points)
+  if (totalTransactions >= 100) score += 40;
+  else if (totalTransactions >= 50) score += 30;
+  else if (totalTransactions >= 25) score += 20;
+  else if (totalTransactions >= 10) score += 10;
+  else if (totalTransactions >= 5) score += 5;
 
-  try {
-    const totalTransactions = safeNumber(transactionAnalysis.totalTransactions, 0);
-    const activeMonths = safeNumber(transactionAnalysis.activeMonths, 0);
-    const transactionVolume = safeNumber(transactionAnalysis.transactionVolume, 0);
+  // Activity duration (max 30 points)
+  if (activeMonths >= 12) score += 30;
+  else if (activeMonths >= 6) score += 15;
+  else if (activeMonths >= 3) score += 5;
 
-    // Transaction count score (max 40 points)
-    const txCountScore = safeMinMax(totalTransactions / 4, 0, 40);
-    
-    // Activity duration score (max 30 points)
-    const activityScore = safeMinMax(activeMonths * 2.5, 0, 30);
-    
-    // Transaction volume score (max 30 points)
-    const volumeScore = safeMinMax(transactionVolume * 0.66, 0, 30);
-    
-    const totalScore = txCountScore + activityScore + volumeScore;
-    const finalScore = safeMinMax(totalScore, 0, 100);
-    
-    console.log('📊 On-Chain History Score Breakdown:', {
-      totalTransactions,
-      activeMonths,
-      transactionVolume,
-      txCountScore,
-      activityScore,
-      volumeScore,
-      totalScore,
-      finalScore
-    });
-    
-    return finalScore;
-  } catch (error) {
-    console.error('❌ Error calculating on-chain history score:', error);
-    return 25;
-  }
+  // Volume (max 30 points)
+  if (transactionVolume >= 10) score += 30;
+  else if (transactionVolume >= 5) score += 15;
+  else if (transactionVolume >= 1) score += 5;
+
+  return Math.min(score, 100);
 };
 
 const calculateCollateralDiversityScore = (walletData: WalletData | undefined): number => {
-  console.log('🔍 Calculating Collateral Diversity Score:', walletData);
-  
   if (!walletData?.tokenBalances || walletData.tokenBalances.length === 0) {
-    console.log('❌ No token balances found');
-    return 10;
+    console.log('💰 REAL Collateral: NO tokens found');
+    return 0;
   }
   
-  try {
-    const tokenBalances = walletData.tokenBalances;
-    
-    // Log token values for debugging
-    console.log('💰 Token Balances:', tokenBalances.map(t => ({
+  const totalValue = Number(walletData.totalValueUSD) || 0;
+  const tokenBalances = walletData.tokenBalances;
+
+  console.log('💰 REAL Collateral Data:', {
+    tokenCount: tokenBalances.length,
+    totalValueUSD: totalValue,
+    tokens: tokenBalances.map(t => ({
       symbol: t.symbol,
-      valueUSD: t.valueUSD,
       balance: t.balance,
-      isValid: !isNaN(t.valueUSD)
-    })));
+      valueUSD: t.valueUSD
+    }))
+  });
 
-    // Asset count score (max 40 points)
-    const assetCountScore = safeMinMax(tokenBalances.length * 10, 0, 40);
-    
-    // Calculate total portfolio value with safe reduction
-    const totalValue = safeReduce(tokenBalances, (sum, token) => {
-      const tokenValue = safeNumber(token.valueUSD, 0);
-      console.log(`   ${token.symbol}: ${token.valueUSD} -> ${tokenValue}`);
-      return sum + tokenValue;
-    }, 0);
-    
-    console.log('💵 Total Portfolio Value:', totalValue);
-    
-    if (totalValue <= 0) {
-      console.log('⚠️ Total value is 0 or negative, returning asset count only');
-      return assetCountScore;
-    }
-    
-    // Concentration risk score (max 30 points)
-    const concentrations = tokenBalances.map(token => {
-      const tokenValue = safeNumber(token.valueUSD, 0);
-      return tokenValue / totalValue;
-    });
-    
-    const maxConcentration = Math.max(...concentrations.filter(c => !isNaN(c)));
-    const concentrationScore = safeMinMax((1 - maxConcentration) * 30, 0, 30);
-    
-    console.log('📊 Concentration Analysis:', {
-      concentrations,
-      maxConcentration,
-      concentrationScore
-    });
-    
-    // Blue-chip asset score (max 30 points)
-    const blueChipAssets = ['ETH', 'WBTC', 'USDC', 'USDT', 'DAI'];
-    const blueChipValue = safeReduce(
-      tokenBalances.filter(token => blueChipAssets.includes(token.symbol)),
-      (sum, token) => sum + safeNumber(token.valueUSD, 0),
-      0
-    );
-    
-    const blueChipRatio = blueChipValue / totalValue;
-    const blueChipScore = safeMinMax(blueChipRatio * 30, 0, 30);
-    
-    console.log('🏦 Blue-chip Analysis:', {
-      blueChipValue,
-      blueChipRatio,
-      blueChipScore
-    });
-    
-    const totalScore = assetCountScore + concentrationScore + blueChipScore;
-    const finalScore = safeMinMax(totalScore, 0, 100);
-    
-    console.log('🎯 Final Collateral Diversity Score:', {
-      assetCountScore,
-      concentrationScore,
-      blueChipScore,
-      totalScore,
-      finalScore
-    });
-    
-    return finalScore;
-  } catch (error) {
-    console.error('❌ Error calculating collateral diversity score:', error);
-    return 20;
-  }
-};
-
-const calculateProtocolUsageScore = (transactionAnalysis: TransactionAnalysis | undefined, protocolInteractions: any[] = []): number => {
-  console.log('🔍 Calculating Protocol Usage Score:', { transactionAnalysis, protocolInteractions });
-  
-  try {
-    const interactionCount = safeNumber(transactionAnalysis?.protocolInteractions, 0);
-    
-    // Interaction frequency score (max 50 points)
-    const interactionScore = safeMinMax(interactionCount * 2, 0, 50);
-    
-    // Protocol diversity score (max 30 points)
-    const uniqueProtocols = new Set(
-      protocolInteractions
-        .filter(p => p && p.protocol)
-        .map(p => p.protocol)
-    ).size;
-    const diversityScore = safeMinMax(uniqueProtocols * 6, 0, 30);
-    
-    // Complexity score (max 20 points)
-    const complexInteractions = protocolInteractions.filter(p => 
-      p && ['borrow', 'supply', 'liquidity_add', 'liquidity_remove'].includes(p.type)
-    ).length;
-    const complexityScore = safeMinMax(complexInteractions * 2, 0, 20);
-    
-    const totalScore = interactionScore + diversityScore + complexityScore;
-    const finalScore = safeMinMax(totalScore, 0, 100);
-    
-    console.log('📊 Protocol Usage Score Breakdown:', {
-      interactionCount,
-      interactionScore,
-      uniqueProtocols,
-      diversityScore,
-      complexInteractions,
-      complexityScore,
-      totalScore,
-      finalScore
-    });
-    
-    return finalScore;
-  } catch (error) {
-    console.error('❌ Error calculating protocol usage score:', error);
-    return 15;
-  }
-};
-
-const calculateFinancialHealthScore = (plaidData: PlaidData | null, zkProofs: PrivacyProofs | null): number => {
-  console.log('🔍 Calculating Financial Health Score:', { hasPlaidData: !!plaidData, hasZKProofs: !!zkProofs });
-  
-  if (!plaidData || !plaidData.accounts || !zkProofs) {
+  // ZERO TOLERANCE: No value = no score
+  if (totalValue <= 0) {
+    console.log('💰 Collateral: ZERO value - returning 0');
     return 0;
   }
+
+  // VERY STRICT: Minimal value gets minimal points
+  if (totalValue < 100) return 2; // Only 2 points for <$100
+
+  let score = 0;
   
-  try {
-    let score = 0;
-    
-    // Income verification (max 25 points)
-    if (zkProofs.incomeVerified) {
-      score += 25;
-    }
-    
-    // Account balance strength (max 25 points)
-    if (zkProofs.accountBalanceVerified && plaidData.accounts) {
-      const totalBalance = safeReduce(
-        plaidData.accounts,
-        (sum, account) => sum + safeNumber(account.balances?.current, 0),
-        0
-      );
-      
-      if (totalBalance > 10000) score += 25;
-      else if (totalBalance > 5000) score += 20;
-      else if (totalBalance > 1000) score += 15;
-      else score += 10;
-    }
-    
-    // Transaction history depth (max 25 points)
-    if (zkProofs.transactionHistoryVerified && plaidData.transactions) {
-      const transactionCount = plaidData.transactions.length;
-      if (transactionCount > 50) {
-        score += 25;
-      } else if (transactionCount > 20) {
-        score += 15;
-      } else {
-        score += 10;
-      }
-    }
-    
-    // Identity verification (max 25 points)
-    if (zkProofs.identityVerified) {
-      score += 25;
-    }
-    
-    const finalScore = safeMinMax(score, 0, 100);
-    console.log('💰 Financial Health Score:', finalScore);
-    
-    return finalScore;
-  } catch (error) {
-    console.error('❌ Error calculating financial health score:', error);
+  // Asset count (max 25 points)
+  const assetCount = tokenBalances.length;
+  if (assetCount >= 5) score += 25;
+  else if (assetCount >= 3) score += 15;
+  else if (assetCount >= 2) score += 8;
+  else if (assetCount >= 1) score += 3; // Only 3 points for 1 asset
+
+  // Value-based (max 50 points)
+  if (totalValue > 50000) score += 50;
+  else if (totalValue > 25000) score += 40;
+  else if (totalValue > 10000) score += 30;
+  else if (totalValue > 5000) score += 20;
+  else if (totalValue > 1000) score += 15;
+  else if (totalValue > 500) score += 10;
+  else if (totalValue > 100) score += 5;
+
+  // Blue-chip assets (max 25 points)
+  const blueChipAssets = ['ETH', 'WBTC', 'USDC', 'USDT', 'DAI'];
+  const hasBlueChip = tokenBalances.some(token => blueChipAssets.includes(token.symbol));
+  if (hasBlueChip) score += 5; // Only 5 points for having blue-chip
+
+  return Math.min(score, 100);
+};
+
+const calculateProtocolUsageScore = (protocolInteractions: any[] = []): number => {
+  console.log('🔄 REAL Protocol Interactions:', protocolInteractions);
+
+  // ZERO TOLERANCE: No interactions = no score
+  if (!protocolInteractions || protocolInteractions.length === 0) {
+    console.log('🔄 Protocol Usage: NO interactions - returning 0');
     return 0;
   }
+
+  const actualInteractions = protocolInteractions.filter(p => p && p.protocol);
+  
+  if (actualInteractions.length === 0) {
+    console.log('🔄 Protocol Usage: NO valid interactions - returning 0');
+    return 0;
+  }
+
+  // Count only REAL lending protocol interactions
+  const lendingProtocols = ['aave', 'morpho', 'compound', 'maker', 'morpho-blue'];
+  const lendingInteractions = actualInteractions.filter(p => 
+    lendingProtocols.includes(p.protocol?.toLowerCase())
+  );
+
+  console.log('🔄 REAL Lending Interactions:', lendingInteractions);
+
+  // ZERO TOLERANCE: No lending protocol interactions = no score
+  if (lendingInteractions.length === 0) {
+    console.log('🔄 Protocol Usage: NO lending protocol interactions - returning 0');
+    return 0;
+  }
+
+  // VERY STRICT: Minimal interactions get minimal points
+  if (lendingInteractions.length === 1) return 5; // Only 5 points for 1 interaction
+
+  let score = 0;
+  
+  // Interaction frequency (max 50 points)
+  if (lendingInteractions.length >= 20) score += 50;
+  else if (lendingInteractions.length >= 10) score += 30;
+  else if (lendingInteractions.length >= 5) score += 15;
+  else if (lendingInteractions.length >= 2) score += 8;
+
+  // Protocol diversity (max 30 points)
+  const uniqueProtocols = new Set(lendingInteractions.map(p => p.protocol)).size;
+  if (uniqueProtocols >= 3) score += 30;
+  else if (uniqueProtocols >= 2) score += 15;
+  else if (uniqueProtocols >= 1) score += 5;
+
+  // Action complexity (max 20 points)
+  const complexActions = lendingInteractions.filter(p => 
+    ['supply', 'borrow', 'repay', 'withdraw'].includes(p.type)
+  ).length;
+  
+  if (complexActions >= 10) score += 20;
+  else if (complexActions >= 5) score += 10;
+  else if (complexActions >= 2) score += 5;
+
+  return Math.min(score, 100);
 };
 
 const calculateRepaymentHistoryScore = (protocolInteractions: any[] = []): number => {
-  console.log('🔍 Calculating Repayment History Score:', protocolInteractions);
-  
-  try {
-    const loanInteractions = protocolInteractions.filter(p => 
-      p && (p.type === 'borrow' || p.type === 'repay')
-    );
-    
-    const totalLoans = new Set(
-      loanInteractions
-        .filter(p => p.type === 'borrow')
-        .map(p => p.txHash)
-        .filter(Boolean)
-    ).size;
-    
-    const repayments = loanInteractions.filter(p => p.type === 'repay').length;
-    
-    // Completion rate score (max 40 points)
-    const completionScore = totalLoans > 0 
-      ? safeMinMax((repayments / totalLoans) * 40, 0, 40)
-      : 20;
-    
-    // Timeliness score (max 40 points)
-    const timelinessScore = totalLoans > 0 ? 35 : 20;
-    
-    // Default avoidance score (max 20 points)
-    const defaultScore = totalLoans > 0 ? 20 : 10;
-    
-    const totalScore = completionScore + timelinessScore + defaultScore;
-    const finalScore = safeMinMax(totalScore, 0, 100);
-    
-    console.log('📊 Repayment History Score Breakdown:', {
-      totalLoans,
-      repayments,
-      completionScore,
-      timelinessScore,
-      defaultScore,
-      totalScore,
-      finalScore
-    });
-    
-    return finalScore;
-  } catch (error) {
-    console.error('❌ Error calculating repayment history score:', error);
-    return 25;
+  console.log('💳 REAL Repayment Data:', protocolInteractions);
+
+  // ZERO TOLERANCE: No interactions = no score
+  if (!protocolInteractions || protocolInteractions.length === 0) {
+    console.log('💳 Repayment History: NO interactions - returning 0');
+    return 0;
   }
+
+  // Find REAL repayment transactions
+  const repayInteractions = protocolInteractions.filter(p => 
+    p && p.type === 'repay'
+  );
+
+  const loanInteractions = protocolInteractions.filter(p => 
+    p && p.type === 'borrow'
+  );
+
+  console.log('💳 REAL Loan/Repayment Data:', {
+    loans: loanInteractions.length,
+    repayments: repayInteractions.length
+  });
+
+  // ZERO TOLERANCE: No loans = no repayment history score
+  if (loanInteractions.length === 0) {
+    console.log('💳 Repayment History: NO loans - returning 0');
+    return 0;
+  }
+
+  // If loans exist but no repayments, very negative score
+  if (repayInteractions.length === 0) {
+    console.log('💳 Repayment History: Loans but NO repayments - returning 5');
+    return 5; // Very low score for having loans but no repayments
+  }
+
+  // Calculate completion rate
+  const completionRate = repayInteractions.length / loanInteractions.length;
+  
+  let score = 0;
+  
+  // Completion rate (max 60 points)
+  if (completionRate >= 1.0) score += 60; // All loans repaid
+  else if (completionRate >= 0.8) score += 45;
+  else if (completionRate >= 0.6) score += 30;
+  else if (completionRate >= 0.4) score += 20;
+  else if (completionRate >= 0.2) score += 10;
+  else score += 5;
+
+  // Repayment frequency (max 40 points)
+  if (repayInteractions.length >= 10) score += 40;
+  else if (repayInteractions.length >= 5) score += 25;
+  else if (repayInteractions.length >= 2) score += 15;
+  else if (repayInteractions.length >= 1) score += 8; // Only 8 points for 1 repayment
+
+  return Math.min(score, 100);
+};
+
+const calculateFinancialHealthScore = (plaidData: PlaidData | null, zkProofs: PrivacyProofs | null): number => {
+  // ZERO TOLERANCE: No Plaid data = no score
+  if (!plaidData || !zkProofs) {
+    console.log('🏦 Financial Health: NO Plaid data - returning 0');
+    return 0;
+  }
+
+  let score = 0;
+  
+  // Only count if we have REAL verified data
+  if (zkProofs.incomeVerified) score += 25;
+  if (zkProofs.accountBalanceVerified) score += 25;
+  if (zkProofs.transactionHistoryVerified) score += 25;
+  if (zkProofs.identityVerified) score += 25;
+
+  console.log('🏦 Financial Health Score:', score);
+  return score;
 };
 
 export const useCreditScore = (
@@ -339,17 +276,13 @@ export const useCreditScore = (
   zkProofs: PrivacyProofs | null = null
 ): CreditScoreResult => {
   return useMemo(() => {
-    console.log('🚀 useCreditScore Hook Executing:', { 
-      hasCreditData: !!creditData,
-      hasPlaidData: !!plaidData,
-      hasZKProofs: !!zkProofs
-    });
+    console.log('🚀 useCreditScore: Starting calculation with REAL data only');
 
-    // Safe default when no credit data
+    // If no credit data, return minimum score
     if (!creditData) {
-      console.log('❌ No credit data available');
+      console.log('❌ useCreditScore: NO credit data - returning minimum 300');
       return {
-        creditScore: 0,
+        creditScore: 300,
         factors: []
       };
     }
@@ -360,120 +293,117 @@ export const useCreditScore = (
       protocolInteractions = []
     } = creditData;
 
-    try {
-      console.log('📊 Starting Credit Score Calculation');
-      
-      // Calculate individual factor scores with NaN protection
-      const onChainHistoryScore = safeNumber(calculateOnChainHistoryScore(transactionAnalysis), 25);
-      const collateralDiversityScore = safeNumber(calculateCollateralDiversityScore(walletData), 20);
-      const protocolUsageScore = safeNumber(calculateProtocolUsageScore(transactionAnalysis, protocolInteractions), 15);
-      const financialHealthScore = safeNumber(calculateFinancialHealthScore(plaidData, zkProofs), 0);
-      const repaymentHistoryScore = safeNumber(calculateRepaymentHistoryScore(protocolInteractions), 25);
+    // LOG ALL INPUT DATA FOR DEBUGGING
+    console.log('📊 useCreditScore: RAW INPUT DATA', {
+      hasWalletData: !!walletData,
+      walletValue: walletData?.totalValueUSD,
+      walletTokens: walletData?.tokenBalances?.length,
+      hasTransactionAnalysis: !!transactionAnalysis,
+      totalTransactions: transactionAnalysis?.totalTransactions,
+      hasProtocolInteractions: protocolInteractions.length > 0,
+      protocolInteractions
+    });
 
-      console.log('🎯 Raw Factor Scores:', {
-        onChainHistoryScore,
-        collateralDiversityScore,
-        protocolUsageScore,
-        financialHealthScore,
-        repaymentHistoryScore
-      });
+    // Calculate scores with ZERO TOLERANCE
+    const onChainHistoryScore = calculateOnChainHistoryScore(transactionAnalysis);
+    const collateralDiversityScore = calculateCollateralDiversityScore(walletData);
+    const protocolUsageScore = calculateProtocolUsageScore(protocolInteractions);
+    const financialHealthScore = calculateFinancialHealthScore(plaidData, zkProofs);
+    const repaymentHistoryScore = calculateRepaymentHistoryScore(protocolInteractions);
 
-      // Create factors array with safe scores
-      const factors: CreditFactor[] = [
-        {
-          key: 'ON_CHAIN_HISTORY',
-          factor: 'On-Chain History',
-          score: Math.round(onChainHistoryScore),
-          impact: 'high',
-          description: CREDIT_FACTORS.ON_CHAIN_HISTORY.description,
-          metrics: [
-            `${safeNumber(transactionAnalysis?.totalTransactions, 0)} transactions`,
-            `${safeNumber(transactionAnalysis?.activeMonths, 0)} months active`,
-            `${safeNumber(transactionAnalysis?.transactionVolume, 0).toFixed(1)} ETH volume`
-          ]
-        },
-        {
-          key: 'COLLATERAL_DIVERSITY',
-          factor: 'Collateral Diversity',
-          score: Math.round(collateralDiversityScore),
-          impact: 'medium',
-          description: CREDIT_FACTORS.COLLATERAL_DIVERSITY.description,
-          metrics: [
-            `${walletData?.tokenBalances?.length || 0} asset types`,
-            `$${safeNumber(walletData?.totalValueUSD, 0).toLocaleString()} total value`,
-            collateralDiversityScore >= 60 ? 'Good distribution' : 
-            collateralDiversityScore >= 30 ? 'Average distribution' : 'Limited diversity'
-          ]
-        },
-        {
-          key: 'PROTOCOL_USAGE',
-          factor: 'Protocol Usage',
-          score: Math.round(protocolUsageScore),
-          impact: 'medium',
-          description: CREDIT_FACTORS.PROTOCOL_USAGE.description,
-          metrics: [
-            `${safeNumber(transactionAnalysis?.protocolInteractions, 0)} interactions`,
-            `${new Set(protocolInteractions.map((p: any) => p.protocol)).size} protocols`,
-            protocolInteractions.length > 5 ? 'Regular activity' : 'Limited activity'
-          ]
-        },
-        {
-          key: 'FINANCIAL_HEALTH',
-          factor: 'Financial Health',
-          score: Math.round(financialHealthScore),
-          impact: 'high',
-          description: CREDIT_FACTORS.FINANCIAL_HEALTH.description,
-          metrics: plaidData && zkProofs ? [
-            `${plaidData.accounts?.length || 0} bank accounts`,
-            `$${safeReduce(plaidData.accounts || [], (sum, acc) => sum + safeNumber(acc.balances?.current, 0), 0).toLocaleString()} balance`,
-            `${zkProofs.incomeVerified ? 'Income Verified' : 'Income Unverified'}`
-          ] : [
-            'Connect bank account',
-            'To unlock this factor',
-            '+100 potential points'
-          ]
-        },
-        {
-          key: 'REPAYMENT_HISTORY',
-          factor: 'Repayment History',
-          score: Math.round(repaymentHistoryScore),
-          impact: 'high',
-          description: CREDIT_FACTORS.REPAYMENT_HISTORY.description,
-          metrics: [
-            'On-time repayments',
-            'No defaults recorded',
-            'Good standing'
-          ]
-        }
-      ];
+    console.log('🎯 useCreditScore: FINAL FACTOR SCORES', {
+      onChainHistoryScore,
+      collateralDiversityScore, 
+      protocolUsageScore,
+      financialHealthScore,
+      repaymentHistoryScore
+    });
 
-      // Calculate weighted average score with NaN protection
-      const weightedAverage = safeReduce(factors, (total, factor) => {
-        const weight = CREDIT_FACTORS[factor.key]?.weight || 0;
-        const factorScore = safeNumber(factor.score, 0);
-        return total + (factorScore * weight);
-      }, 0);
+    const factors: CreditFactor[] = [
+      {
+        key: 'ON_CHAIN_HISTORY',
+        factor: 'On-Chain History',
+        score: onChainHistoryScore,
+        impact: 'high',
+        description: 'Regular on-chain activity and transaction volume',
+        metrics: [
+          `${transactionAnalysis?.totalTransactions || 0} transactions`,
+          `${transactionAnalysis?.activeMonths || 0} months active`,
+          `${transactionAnalysis?.transactionVolume || 0} ETH volume`
+        ]
+      },
+      {
+        key: 'COLLATERAL_DIVERSITY',
+        factor: 'Collateral Diversity',
+        score: collateralDiversityScore,
+        impact: 'medium',
+        description: 'Variety and quality of collateral assets',
+        metrics: [
+          `${walletData?.tokenBalances?.length || 0} assets`,
+          `$${walletData?.totalValueUSD || 0} total value`,
+          collateralDiversityScore > 0 ? 'Assets found' : 'No significant assets'
+        ]
+      },
+      {
+        key: 'PROTOCOL_USAGE',
+        factor: 'Lending Protocol Usage',
+        score: protocolUsageScore,
+        impact: 'medium',
+        description: 'Active participation in DeFi lending protocols',
+        metrics: [
+          `${protocolInteractions.length} interactions`,
+          `${new Set(protocolInteractions.map(p => p.protocol)).size} protocols`,
+          protocolUsageScore > 0 ? 'Lending activity found' : 'No lending activity'
+        ]
+      },
+      {
+        key: 'FINANCIAL_HEALTH',
+        factor: 'Financial Health',
+        score: financialHealthScore,
+        impact: 'high',
+        description: 'Traditional financial health from bank data',
+        metrics: plaidData ? [
+          'Bank data connected',
+          `${financialHealthScore > 0 ? 'Verified' : 'Unverified'}`,
+          `${plaidData.accounts?.length || 0} accounts`
+        ] : [
+          'No bank data',
+          'Connect to unlock',
+          '0 points'
+        ]
+      },
+      {
+        key: 'REPAYMENT_HISTORY',
+        factor: 'Repayment History',
+        score: repaymentHistoryScore,
+        impact: 'high',
+        description: 'Track record of loan repayments',
+        metrics: [
+          `${protocolInteractions.filter(p => p.type === 'borrow').length} loans`,
+          `${protocolInteractions.filter(p => p.type === 'repay').length} repayments`,
+          repaymentHistoryScore > 0 ? 'Repayment history' : 'No repayment history'
+        ]
+      }
+    ];
 
-      console.log('⚖️ Weighted Average:', weightedAverage);
+    // Calculate weighted average
+    const weightedAverage = factors.reduce((total, factor) => {
+      const weight = CREDIT_FACTORS[factor.key]?.weight || 0;
+      return total + (factor.score * weight);
+    }, 0);
 
-      // Convert to 300-850 credit score range
-      const creditScore = Math.round(300 + (weightedAverage * 5.5));
-      const finalScore = safeMinMax(creditScore, 300, 850);
+    // Convert to 300-850 range
+    const creditScore = Math.round(300 + (weightedAverage * 5.5));
 
-      console.log('🏆 Final Credit Score:', finalScore);
-      console.log('📈 Final Factors:', factors);
+    console.log('🏆 useCreditScore: FINAL CREDIT SCORE', {
+      weightedAverage,
+      creditScore,
+      factors: factors.map(f => ({ factor: f.factor, score: f.score }))
+    });
 
-      return {
-        creditScore: finalScore,
-        factors
-      };
-    } catch (error) {
-      console.error('💥 Critical error in credit score calculation:', error);
-      // Fallback to using the credit score from API data if available
-      return {
-        creditScore: safeNumber(creditData.creditScore, 300),
-        factors: []
-      };
-    }
+    return {
+      creditScore: Math.min(Math.max(creditScore, 300), 850),
+      factors
+    };
   }, [creditData, plaidData, zkProofs]);
 };

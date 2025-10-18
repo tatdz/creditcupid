@@ -4,9 +4,9 @@ import { WagmiProvider, createConfig, http } from 'wagmi';
 import { sepolia, mainnet, polygon, arbitrum, optimism, base } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { injected } from 'wagmi/connectors';
-import { TransactionPopupProvider } from "@blockscout/app-sdk";
+import { NotificationProvider, TransactionPopupProvider } from "@blockscout/app-sdk";
 
-// Updated RPC URLs using public endpoints
+// RPC URLs using public endpoints
 const rpcUrls = {
   [sepolia.id]: 'https://rpc.sepolia.org',
   [mainnet.id]: 'https://eth.llamarpc.com',
@@ -46,11 +46,13 @@ function App() {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <TransactionPopupProvider>
-          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-            <CreditDashboard />
-          </div>
-        </TransactionPopupProvider>
+        <NotificationProvider>
+          <TransactionPopupProvider>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+              <CreditDashboard />
+            </div>
+          </TransactionPopupProvider>
+        </NotificationProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
