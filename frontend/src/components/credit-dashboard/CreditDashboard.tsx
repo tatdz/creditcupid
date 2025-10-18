@@ -45,7 +45,7 @@ export const CreditDashboard: React.FC = () => {
   
   // Use ONLY real data - no fallback to mock data
   const displayData = creditData;
-  const { creditScore, factors } = useCreditScore(displayData, plaidData, privacyProofs);
+  const { creditScore, factors, collateralBoost } = useCreditScore(displayData, plaidData, privacyProofs);
 
   const handleViewTransactions = () => {
     if (!address) return;
@@ -262,6 +262,12 @@ export const CreditDashboard: React.FC = () => {
   // Main dashboard with data - displayData is guaranteed to be non-null here
   const safeDisplayData = displayData!;
 
+  // Prepare factor scores for CreditBenefits component
+  const factorScores = factors.reduce((acc, factor) => {
+    acc[factor.key] = factor.score;
+    return acc;
+  }, {} as { [key: string]: number });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
@@ -369,13 +375,10 @@ export const CreditDashboard: React.FC = () => {
                 />
                 
                 <CreditBenefits 
-                  benefits={safeDisplayData.creditBenefits}
-                  collateralBoost={safeDisplayData.collateralAnalysis?.collateralBoost || 1.0}
+                  benefits={safeDisplayData.creditBenefits || []}
+                  collateralBoost={collateralBoost} // Now using the calculated boost from useCreditScore
                   creditScore={creditScore}
-                  factorScores={factors.reduce((acc, factor) => {
-                    acc[factor.key] = factor.score;
-                    return acc;
-                  }, {} as { [key: string]: number })}
+                  factorScores={factorScores}
                 />
 
                 <FinancialHealthPanel

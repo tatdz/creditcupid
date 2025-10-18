@@ -5,7 +5,7 @@ import { CheckCircle, Clock, Zap, Shield, Globe, Info } from 'lucide-react';
 
 interface CreditBenefitsProps {
   benefits: any[];
-  collateralBoost: number;
+  collateralBoost: number; // This is now a percentage (e.g., 15 means 15%)
   creditScore: number;
   factorScores?: {
     [key: string]: number;
@@ -53,7 +53,6 @@ export const CreditBenefits: React.FC<CreditBenefitsProps> = ({
 
   // Calculate benefits based on credit score and factor performance
   const calculateDynamicBenefits = () => {
-    const collateralBoostValue = calculateCollateralBoost();
     const collateralReduction = calculateCollateralReduction();
     const rateImprovement = calculateRateImprovement();
 
@@ -61,12 +60,13 @@ export const CreditBenefits: React.FC<CreditBenefitsProps> = ({
       {
         type: 'credit_boost',
         description: 'Higher valuation for your assets in lending protocols',
-        value: `${collateralBoostValue}%`,
-        status: creditScore >= 550 ? 'active' as const : 'pending' as const,
-        eligibility: creditScore >= 550,
-        formula: `Base: min(5, floor((${creditScore} - 600) / 25)) = ${Math.min(5, Math.floor((creditScore - 600) / 25))}
-Collateral Bonus: floor((${factorScores?.COLLATERAL_DIVERSITY || 0} - 50) / 20) = ${Math.floor(((factorScores?.COLLATERAL_DIVERSITY || 0) - 50) / 20)}
-Total: ${collateralBoostValue}%`
+        value: `${collateralBoost}%`,
+        status: creditScore >= 500 ? 'active' as const : 'pending' as const,
+        eligibility: creditScore >= 500,
+        formula: `Credit Score: ${creditScore}
+Collateral Diversity: ${factorScores?.COLLATERAL_DIVERSITY || 0}/100
+Boost Tier: ${getBoostTier(creditScore)}
+Total Boost: ${collateralBoost}%`
       },
       {
         type: 'lower_requirements',
@@ -84,9 +84,9 @@ Reduction: ${collateralReduction}%`
         value: `${rateImprovement}% better`,
         status: creditScore >= 700 ? 'active' as const : 'pending' as const,
         eligibility: creditScore >= 700,
-        formula: `Base: min(0.3, (${creditScore} - 600) × 0.002) = ${Math.min(0.3, (creditScore - 600) * 0.002).toFixed(3)}
-Protocol Bonus: floor((${factorScores?.PROTOCOL_USAGE || 0} - 60) / 10) × 0.01 = ${(Math.floor(((factorScores?.PROTOCOL_USAGE || 0) - 60) / 10) * 0.01).toFixed(3)}
-Total: ${rateImprovement}%`
+        formula: `Credit Score: ${creditScore}
+Protocol Usage: ${factorScores?.PROTOCOL_USAGE || 0}/100
+Rate Improvement: ${rateImprovement}%`
       },
       {
         type: 'cross_chain',
@@ -101,6 +101,17 @@ Total: ${rateImprovement}%`
     return baseBenefits;
   };
 
+  const getBoostTier = (score: number): string => {
+    if (score >= 800) return 'Excellent (15% + diversity bonus)';
+    if (score >= 750) return 'Very Good (12% + diversity bonus)';
+    if (score >= 700) return 'Good (10% + diversity bonus)';
+    if (score >= 650) return 'Fair (8% + diversity bonus)';
+    if (score >= 600) return 'Basic (5% + diversity bonus)';
+    if (score >= 550) return 'Starter (3% + diversity bonus)';
+    if (score >= 500) return 'Minimum (1% + diversity bonus)';
+    return 'No Boost (Under 500)';
+  };
+
   const getCollateralTier = (score: number): string => {
     if (score >= 800) return 'Excellent (800+)';
     if (score >= 750) return 'Very Good (750-799)';
@@ -108,16 +119,6 @@ Total: ${rateImprovement}%`
     if (score >= 650) return 'Fair (650-699)';
     if (score >= 600) return 'Basic (600-649)';
     return 'Below Minimum (Under 600)';
-  };
-
-  const calculateCollateralBoost = (): number => {
-    // Base boost + bonus from collateral diversity score
-    const baseBoost = Math.min(5, Math.floor((creditScore - 600) / 25));
-    const collateralBonus = factorScores?.COLLATERAL_DIVERSITY 
-      ? Math.floor((factorScores.COLLATERAL_DIVERSITY - 50) / 20)
-      : 0;
-    
-    return Math.max(0.5, baseBoost + collateralBonus);
   };
 
   const calculateCollateralReduction = (): number => {
@@ -131,12 +132,18 @@ Total: ${rateImprovement}%`
   };
 
   const calculateRateImprovement = (): number => {
-    // Interest rate improvement in basis points
+    // Interest rate improvement in percentage points
     const protocolUsageBonus = factorScores?.PROTOCOL_USAGE 
-      ? Math.floor((factorScores.PROTOCOL_USAGE - 60) / 10) * 0.01
+      ? Math.floor((factorScores.PROTOCOL_USAGE - 60) / 10) * 0.05
       : 0;
     
-    const baseImprovement = Math.min(0.3, (creditScore - 600) * 0.002);
+    let baseImprovement = 0;
+    if (creditScore >= 800) baseImprovement = 0.5;
+    else if (creditScore >= 750) baseImprovement = 0.4;
+    else if (creditScore >= 700) baseImprovement = 0.3;
+    else if (creditScore >= 650) baseImprovement = 0.2;
+    else if (creditScore >= 600) baseImprovement = 0.1;
+    
     return Math.max(0, Number((baseImprovement + protocolUsageBonus).toFixed(2)));
   };
 
@@ -170,18 +177,18 @@ Total: ${rateImprovement}%`
     switch (benefit.type) {
       case 'credit_boost':
         return {
-          title: 'Higher Valuation Calculation',
-          content: `This benefit increases how much your collateral is worth in lending protocols.\n\nFormula:\n${benefit.formula}\n\nStatus: ${benefit.eligibility ? 'ACTIVE' : 'PENDING'}\nMinimum Score: 550\nYour Score: ${creditScore}\n\nWhy ${benefit.eligibility ? 'Active' : 'Pending'}: ${benefit.eligibility ? 'Your credit score meets the minimum requirement for this benefit.' : 'Your credit score is below the minimum threshold. Improve your on-chain history and collateral diversity to unlock this benefit.'}`
+          title: 'Collateral Boost Calculation',
+          content: `This benefit increases how much your collateral is worth in lending protocols.\n\nFormula:\n${benefit.formula}\n\nStatus: ${benefit.eligibility ? 'ACTIVE' : 'PENDING'}\nMinimum Score: 500\nYour Score: ${creditScore}\n\nWhy ${benefit.eligibility ? 'Active' : 'Pending'}: ${benefit.eligibility ? 'Your credit score meets the minimum requirement for this benefit.' : 'Your credit score is below the minimum threshold. Improve your on-chain history and collateral diversity to unlock this benefit.'}\n\nHow it works: Lending protocols will value your collateral assets ${collateralBoost}% higher than their market price.`
         };
       case 'lower_requirements':
         return {
           title: 'Reduced Collateral Calculation',
-          content: `This benefit reduces how much collateral you need to provide for borrowing.\n\nFormula:\n${benefit.formula}\n\nStatus: ${benefit.eligibility ? 'ACTIVE' : 'PENDING'}\nMinimum Score: 600\nYour Score: ${creditScore}\n\nWhy ${benefit.eligibility ? 'Active' : 'Pending'}: ${benefit.eligibility ? `Your credit score qualifies you for the ${benefit.value} reduction tier.` : 'You need a minimum credit score of 600 to access collateral reduction benefits.'}`
+          content: `This benefit reduces how much collateral you need to provide for borrowing.\n\nFormula:\n${benefit.formula}\n\nStatus: ${benefit.eligibility ? 'ACTIVE' : 'PENDING'}\nMinimum Score: 600\nYour Score: ${creditScore}\n\nWhy ${benefit.eligibility ? 'Active' : 'Pending'}: ${benefit.eligibility ? `Your credit score qualifies you for the ${benefit.value} reduction tier.` : 'You need a minimum credit score of 600 to access collateral reduction benefits.'}\n\nHow it works: You need to provide ${benefit.value} less collateral for the same loan amount.`
         };
       case 'better_rates':
         return {
           title: 'Improved Rates Calculation',
-          content: `This benefit gives you better interest rates when borrowing and lending.\n\nFormula:\n${benefit.formula}\n\nStatus: ${benefit.eligibility ? 'ACTIVE' : 'PENDING'}\nMinimum Score: 700\nYour Score: ${creditScore}\n\nWhy ${benefit.eligibility ? 'Active' : 'Pending'}: ${benefit.eligibility ? 'Your excellent credit score qualifies you for premium interest rates.' : 'You need a credit score of 700+ to access improved interest rates. Focus on protocol usage and repayment history.'}`
+          content: `This benefit gives you better interest rates when borrowing and lending.\n\nFormula:\n${benefit.formula}\n\nStatus: ${benefit.eligibility ? 'ACTIVE' : 'PENDING'}\nMinimum Score: 700\nYour Score: ${creditScore}\n\nWhy ${benefit.eligibility ? 'Active' : 'Pending'}: ${benefit.eligibility ? 'Your excellent credit score qualifies you for premium interest rates.' : 'You need a credit score of 700+ to access improved interest rates. Focus on protocol usage and repayment history.'}\n\nHow it works: You get ${benefit.value} better interest rates on borrowing and lending.`
         };
       case 'cross_chain':
         return {
@@ -197,9 +204,24 @@ Total: ${rateImprovement}%`
   };
 
   const getCollateralBoostExplanation = () => {
+    const diversityBonus = factorScores?.COLLATERAL_DIVERSITY 
+      ? (factorScores.COLLATERAL_DIVERSITY >= 80 ? 5 : 
+         factorScores.COLLATERAL_DIVERSITY >= 60 ? 3 : 
+         factorScores.COLLATERAL_DIVERSITY >= 40 ? 1 : 0)
+      : 0;
+
+    let baseBoost = 0;
+    if (creditScore >= 800) baseBoost = 15;
+    else if (creditScore >= 750) baseBoost = 12;
+    else if (creditScore >= 700) baseBoost = 10;
+    else if (creditScore >= 650) baseBoost = 8;
+    else if (creditScore >= 600) baseBoost = 5;
+    else if (creditScore >= 550) baseBoost = 3;
+    else if (creditScore >= 500) baseBoost = 1;
+
     return {
       title: 'Collateral Boost Calculation',
-      content: `Your collateral gets enhanced valuation based on creditworthiness.\n\nCurrent Boost: +${(collateralBoost * 100).toFixed(1)}%\n\nCalculation Factors:\n• Credit Score: ${creditScore}\n• Collateral Diversity: ${factorScores?.COLLATERAL_DIVERSITY || 0}/100\n• Asset Quality: Blue-chip assets preferred\n• Historical Performance: Consistent on-chain activity\n\nThis boost increases the effective value of your collateral in lending protocols, allowing you to borrow more against the same assets.`
+      content: `Your collateral gets enhanced valuation based on creditworthiness.\n\nCurrent Boost: +${collateralBoost}%\n\nBreakdown:\n• Credit Score (${creditScore}): +${baseBoost}%\n• Collateral Diversity (${factorScores?.COLLATERAL_DIVERSITY || 0}/100): +${diversityBonus}%\n• Total Boost: +${collateralBoost}%\n\nCalculation Factors:\n• Credit Score Tier: ${getBoostTier(creditScore)}\n• Collateral Diversity: Quality and variety of your assets\n• Asset Quality: Blue-chip assets preferred\n• Historical Performance: Consistent on-chain activity\n\nThis boost increases the effective value of your collateral in lending protocols, allowing you to borrow more against the same assets.`
     };
   };
 
@@ -252,23 +274,38 @@ Total: ${rateImprovement}%`
             );
           })}
           
-          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className={`p-3 rounded-lg border ${
+            collateralBoost > 0 
+              ? 'bg-blue-50 border-blue-200' 
+              : 'bg-gray-50 border-gray-200'
+          }`}>
             <div className="flex items-center justify-between">
-              <div className="font-medium text-blue-900 flex items-center gap-2">
+              <div className={`font-medium flex items-center gap-2 ${
+                collateralBoost > 0 ? 'text-blue-900' : 'text-gray-700'
+              }`}>
                 Collateral Boost
                 <button
                   onClick={() => setOpenPopup('collateral-boost')}
-                  className="text-blue-600 hover:text-blue-800"
+                  className={`hover:opacity-70 ${
+                    collateralBoost > 0 ? 'text-blue-600' : 'text-gray-500'
+                  }`}
                 >
                   <Info className="h-3 w-3" />
                 </button>
               </div>
-              <div className="text-blue-700 font-semibold">
-                +{(collateralBoost * 100).toFixed(1)}%
+              <div className={`font-semibold ${
+                collateralBoost > 0 ? 'text-blue-700' : 'text-gray-500'
+              }`}>
+                +{collateralBoost}%
               </div>
             </div>
-            <div className="text-sm text-blue-800 mt-1">
-              Enhanced valuation for your assets
+            <div className={`text-sm mt-1 ${
+              collateralBoost > 0 ? 'text-blue-800' : 'text-gray-600'
+            }`}>
+              {collateralBoost > 0 
+                ? 'Enhanced valuation for your assets' 
+                : 'No boost available - improve your credit score'
+              }
             </div>
 
             <BenefitPopup
