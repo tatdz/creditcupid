@@ -1,3 +1,4 @@
+// src/types/credit.ts
 export interface TokenBalance {
   symbol: string;
   balance: string;
@@ -75,23 +76,23 @@ export interface CreditBenefit {
   eligibility: boolean;
 }
 
-export interface ZKProofData {
+export interface PrivacyProofData {
   incomeProof: string;
   balanceProof: string;
   transactionProof: string;
   identityProof: string;
 }
 
-export interface ZKValidationUrls {
+export interface PrivacyValidationUrls {
   incomeProof: string;
   balanceProof: string;
   transactionProof: string;
   identityProof: string;
 }
 
-export interface ZKProofs {
-  proofs: ZKProofData;
-  validationUrls: ZKValidationUrls;
+export interface PrivacyProofs {
+  proofs: PrivacyProofData;
+  validationUrls: PrivacyValidationUrls;
   incomeVerified: boolean;
   accountBalanceVerified: boolean;
   transactionHistoryVerified: boolean;
@@ -99,7 +100,7 @@ export interface ZKProofs {
 }
 
 // Enhanced interface for Pinata-stored proofs with public gateway support
-export interface StoredZKProofs extends ZKProofs {
+export interface StoredPrivacyProofs extends PrivacyProofs {
   ipfsData: {
     incomeProofCID?: string;
     balanceProofCID?: string;
@@ -129,6 +130,8 @@ export interface StoredZKProofs extends ZKProofs {
       transactions: boolean;
       identity: boolean;
     };
+    privacyNotice?: string;
+    privacyVersion?: string;
   };
 }
 
@@ -212,7 +215,7 @@ export interface CreditData {
   oracleData: OracleData;
   protocolInteractions: ProtocolInteraction[];
   transactionAnalysis: TransactionAnalysis;
-  zkProofs?: StoredZKProofs;
+  privacyProofs?: StoredPrivacyProofs;
 }
 
 // Credit Score Specific Types

@@ -1,11 +1,11 @@
 // src/hooks/usePlaidIntegration.ts
 import { useState, useCallback } from 'react';
-import { PlaidData, StoredZKProofs } from '../../../types/credit';
-import { realZKProofGenerator } from '../../../components/credit-dashboard/utils/realZKProofs';
+import { PlaidData, StoredPrivacyProofs } from '../../../types/credit';
+import { privacyProofGenerator } from '../../../components/credit-dashboard/utils/PrivacyProofs';
 
 export const usePlaidIntegration = () => {
   const [plaidData, setPlaidData] = useState<PlaidData | null>(null);
-  const [zkProofs, setZkProofs] = useState<StoredZKProofs | null>(null);
+  const [zkProofs, setZkProofs] = useState<StoredPrivacyProofs | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pinataStatus, setPinataStatus] = useState<{
@@ -22,7 +22,7 @@ export const usePlaidIntegration = () => {
       
       // Check Pinata status
       try {
-        const status = realZKProofGenerator.getPinataStatus();
+        const status = privacyProofGenerator.getPinataStatus();
         setPinataStatus({
           available: status.available,
           message: status.message
@@ -45,7 +45,7 @@ export const usePlaidIntegration = () => {
       console.log('✅ Bank data received, generating REAL ZK proofs...');
 
       // Generate REAL ZK proofs - this will throw if Pinata fails
-      const proofs = await realZKProofGenerator.generateRealZKProofs(mockPlaidData);
+      const proofs = await privacyProofGenerator.generatePrivacyProofs(mockPlaidData);
       setZkProofs(proofs);
       
       console.log('🎉 REAL ZK Proofs Generated Successfully!');
@@ -62,7 +62,7 @@ export const usePlaidIntegration = () => {
   // Method to verify a specific CID
   const verifyCID = useCallback(async (cid: string) => {
     try {
-      return await realZKProofGenerator.verifyCID(cid);
+      return await privacyProofGenerator.verifyCID(cid);
     } catch (error) {
       console.error('CID verification failed:', error);
       return { verified: false, error: 'Verification failed' };

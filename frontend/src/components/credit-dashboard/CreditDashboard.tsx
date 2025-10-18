@@ -140,16 +140,16 @@ export const CreditDashboard: React.FC = () => {
   const { creditScore, factors } = useCreditScore(displayData, plaidData, zkProofs);
 
   // Specifically check the collateral diversity factor
-const collateralFactor = factors.find(f => f.key === 'COLLATERAL_DIVERSITY');
-if (collateralFactor) {
-  console.log('🔍 COLLATERAL FACTOR DETAILS:', {
-    factor: collateralFactor.factor,
-    score: collateralFactor.score,
-    isNaN: isNaN(collateralFactor.score),
-    metrics: collateralFactor.metrics,
-    rawData: displayData?.walletData
-  });
-}
+  const collateralFactor = factors.find(f => f.key === 'COLLATERAL_DIVERSITY');
+  if (collateralFactor) {
+    console.log('🔍 COLLATERAL FACTOR DETAILS:', {
+      factor: collateralFactor.factor,
+      score: collateralFactor.score,
+      isNaN: isNaN(collateralFactor.score),
+      metrics: collateralFactor.metrics,
+      rawData: displayData?.walletData
+    });
+  }
 
   const handleViewTransactions = () => {
     if (!address) return;
@@ -202,25 +202,23 @@ if (collateralFactor) {
     );
   }
 
+  console.log('Credit Data:', creditData);
+  console.log('Credit Score:', creditScore);
+  console.log('Factors:', factors);
+  console.log('Display Data:', displayData);
 
-console.log('Credit Data:', creditData);
-console.log('Credit Score:', creditScore);
-console.log('Factors:', factors);
-console.log('Display Data:', displayData);
-
-console.log('🔍 Credit Data Debug:', {
-  walletData: displayData?.walletData,
-  tokenBalances: displayData?.walletData?.tokenBalances,
-  totalValueUSD: displayData?.walletData?.totalValueUSD,
-  tokenValues: displayData?.walletData?.tokenBalances?.map(t => ({
-    symbol: t.symbol,
-    valueUSD: t.valueUSD,
-    balance: t.balance
-  }))
-});
+  console.log('🔍 Credit Data Debug:', {
+    walletData: displayData?.walletData,
+    tokenBalances: displayData?.walletData?.tokenBalances,
+    totalValueUSD: displayData?.walletData?.totalValueUSD,
+    tokenValues: displayData?.walletData?.tokenBalances?.map(t => ({
+      symbol: t.symbol,
+      valueUSD: t.valueUSD,
+      balance: t.balance
+    }))
+  });
 
   return (
-    
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -228,7 +226,7 @@ console.log('🔍 Credit Data Debug:', {
           <div>
             <h1 className="text-4xl font-bold text-gray-900">Darma Credit Protocol</h1>
             <p className="text-gray-600 mt-2">
-              Privacy-preserving credit scoring powered by on-chain data and zero-knowledge proofs
+              Privacy-preserving credit scoring powered by on-chain data and cryptographic verification
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -307,7 +305,7 @@ console.log('🔍 Credit Data Debug:', {
 
                 <FinancialHealthPanel
                   plaidData={plaidData}
-                  zkProofs={zkProofs}
+                  privacyProofs={zkProofs}
                   onConnectBank={connectBank}
                   loading={plaidLoading}
                   error={plaidError}
