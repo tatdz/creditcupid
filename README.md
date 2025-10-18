@@ -93,10 +93,10 @@ Darma is built with a modular, full-stack approach:
 - A wallet with Sepolia testnet ETH and relevant tokens (USDC, etc.)
 
 ### Installation & Local Development
-
-#### 1. Clone the Repository
 ```bash
-git clone <repository-url>
+#### 1. Clone repository
+```bash
+git clone <github.com/tatdz/darma>
 cd darma
 
 #### 2. Backend setup
