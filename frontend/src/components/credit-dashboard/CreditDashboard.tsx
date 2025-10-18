@@ -1,3 +1,4 @@
+// components/credit-dashboard/CreditDashboard.tsx
 import React, { useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
@@ -12,12 +13,13 @@ import {
   TrendingUp, 
   MessageCircle,
   DollarSign,
-  CreditCard,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  BarChart3,
+  Shield,
+  Zap
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
-import { CollateralAnalysis } from '../ui/CollateralAnalysis';
 import { CreditBenefits } from '../ui/CreditBenefits';
 import { CreditData } from '../../types/credit';
 
@@ -26,103 +28,8 @@ import { useCreditData } from './hooks/useCreditData';
 import { usePlaidIntegration } from './hooks/usePlaidIntegration';
 import { useCreditScore } from './hooks/useCreditScore';
 import { FinancialHealthPanel } from './components/FinancialHealthPanel';
-import { CreditScoreBreakdown } from './components/CreditScoreBreakdown';
 import { ProtocolComparison } from './components/ProtocolComparison';
-import { formatUSD } from './utils/formatters';
-
-// Mock data - Fix the WalletActivity type issue
-const mockCreditData: CreditData = {
-  address: '0x0',
-  creditScore: 723,
-  riskFactors: [
-    'Limited borrowing history',
-    'High concentration in stablecoins',
-    'New to DeFi protocols'
-  ],
-  creditBenefits: [
-    {
-      type: 'credit_boost',
-      description: 'Enhanced collateral value across all protocols',
-      value: '+1.9%',
-      status: 'active',
-      eligibility: true
-    },
-    {
-      type: 'lower_requirements',
-      description: 'Reduced collateral needed for borrowing',
-      value: 'Up to 10% less',
-      status: 'active',
-      eligibility: true
-    },
-    {
-      type: 'better_rates',
-      description: 'Improved borrowing and lending rates',
-      value: '0.1% better',
-      status: 'pending',
-      eligibility: false
-    }
-  ],
-  walletData: {
-    totalValueUSD: 18750.25,
-    nativeBalance: '2.15',
-    tokenBalances: [
-      { symbol: 'ETH', balance: '2.15', valueUSD: 6450, contractAddress: '0x' },
-      { symbol: 'USDC', balance: '8500', valueUSD: 8500, contractAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' },
-      { symbol: 'WBTC', balance: '0.25', valueUSD: 8750, contractAddress: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599' }
-    ],
-    activity: {
-      totalTransactions: 156,
-      activeDays: 365,
-      transactions: [], // Add empty arrays for optional fields
-      interactions: [],
-      lastActivity: Date.now()
-    }
-  },
-  collateralAnalysis: {
-    collateralValueUSD: 24500,
-    collateralRatio: 2.1,
-    liquidationThreshold: 1.5,
-    collateralBoost: 1.19,
-    assets: [
-      { 
-        symbol: 'ETH', 
-        amount: '2.15', 
-        valueUSD: 6450, 
-        collateralFactor: 0.82
-      },
-      { 
-        symbol: 'WBTC', 
-        amount: '0.25', 
-        valueUSD: 8750, 
-        collateralFactor: 0.75
-      },
-      { 
-        symbol: 'USDC', 
-        amount: '8500', 
-        valueUSD: 8500, 
-        collateralFactor: 0.90
-      }
-    ],
-    currentCollateralValue: '$17,250',
-    enhancedCollateralValue: '$20,527'
-  },
-  oracleData: {
-    ethPriceUSD: 3000,
-    gasPrices: { slow: 25, standard: 35, fast: 50 }
-  },
-  protocolInteractions: [
-    { protocol: 'aave', type: 'deposit', asset: 'ETH', amount: '0.5', timestamp: Date.now() / 1000 - 86400, txHash: '0x123...', chainId: 1 },
-    { protocol: 'uniswap', type: 'swap', asset: 'USDC', amount: '1000', timestamp: Date.now() / 1000 - 172800, txHash: '0x456...', chainId: 1 }
-  ],
-  transactionAnalysis: {
-    totalTransactions: 156,
-    activeMonths: 12,
-    transactionVolume: 45.2,
-    protocolInteractions: 28,
-    avgTxFrequency: '2.3/day',
-    riskScore: 23
-  }
-};
+import { CreditScoreBreakdownPanel } from './components/CreditScoreBreakdownPanel';
 
 export const CreditDashboard: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
@@ -132,24 +39,13 @@ export const CreditDashboard: React.FC = () => {
   
   const [activeTab, setActiveTab] = useState('overview');
 
-  // Use custom hooks
+  // Use custom hooks - NO MOCK DATA
   const { creditData, loading, error, retry } = useCreditData();
   const { plaidData, privacyProofs, loading: plaidLoading, error: plaidError, connectBank } = usePlaidIntegration();
   
-  const displayData = creditData || mockCreditData;
+  // Use ONLY real data - no fallback to mock data
+  const displayData = creditData;
   const { creditScore, factors } = useCreditScore(displayData, plaidData, privacyProofs);
-
-  // Specifically check the collateral diversity factor
-  const collateralFactor = factors.find(f => f.key === 'COLLATERAL_DIVERSITY');
-  if (collateralFactor) {
-    console.log('🔍 COLLATERAL FACTOR DETAILS:', {
-      factor: collateralFactor.factor,
-      score: collateralFactor.score,
-      isNaN: isNaN(collateralFactor.score),
-      metrics: collateralFactor.metrics,
-      rawData: displayData?.walletData
-    });
-  }
 
   const handleViewTransactions = () => {
     if (!address) return;
@@ -159,6 +55,18 @@ export const CreditDashboard: React.FC = () => {
     });
   };
 
+  // Helper function to safely check if wallet has activity
+  const hasWalletActivity = (data: CreditData | null): boolean => {
+    if (!data) return false;
+    
+    const totalTransactions = data.transactionAnalysis?.totalTransactions || 0;
+    const totalValueUSD = parseFloat(data.walletData?.totalValueUSD?.toString() || '0');
+    const tokenBalancesCount = data.walletData?.tokenBalances?.length || 0;
+    
+    return totalTransactions > 0 || totalValueUSD > 0 || tokenBalancesCount > 0;
+  };
+
+  // Not connected state
   if (!isConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -183,6 +91,7 @@ export const CreditDashboard: React.FC = () => {
             </Button>
             <div className="text-xs text-gray-600 text-center">
               <p>We'll analyze your on-chain activity to build your credit profile</p>
+              <p className="mt-1 text-gray-500">No data will be stored - everything stays in your browser</p>
             </div>
           </CardContent>
         </Card>
@@ -190,33 +99,168 @@ export const CreditDashboard: React.FC = () => {
     );
   }
 
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Analyzing your on-chain activity...</p>
-          <p className="text-sm text-gray-500">This may take a few moments</p>
+          <p className="text-sm text-gray-500">Scanning transactions and protocol interactions</p>
+          <div className="mt-4 flex justify-center space-x-2">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          </div>
         </div>
       </div>
     );
   }
 
-  console.log('Credit Data:', creditData);
-  console.log('Credit Score:', creditScore);
-  console.log('Factors:', factors);
-  console.log('Display Data:', displayData);
+  // No data state (API unavailable or no data returned)
+  if (!displayData && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="flex items-center justify-center gap-2">
+              <AlertCircle className="h-6 w-6" />
+              Unable to Load Data
+            </CardTitle>
+            <CardDescription>
+              {error || 'We could not fetch your on-chain data. This might be because:'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="text-sm text-gray-600 space-y-2">
+              <p>• Backend service is unavailable</p>
+              <p>• Network connection issues</p>
+              <p>• Wallet has no on-chain activity</p>
+            </div>
+            
+            <Button 
+              onClick={retry} 
+              size="lg" 
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-5 w-5" />
+              Try Again
+            </Button>
+            
+            <Button 
+              onClick={handleViewTransactions} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              View Transactions on Blockscout
+            </Button>
+            
+            <div className="text-xs text-gray-500 text-center">
+              <p>Your data is processed locally and never stored on our servers</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
-  console.log('🔍 Credit Data Debug:', {
-    walletData: displayData?.walletData,
-    tokenBalances: displayData?.walletData?.tokenBalances,
-    totalValueUSD: displayData?.walletData?.totalValueUSD,
-    tokenValues: displayData?.walletData?.tokenBalances?.map(t => ({
-      symbol: t.symbol,
-      valueUSD: t.valueUSD,
-      balance: t.balance
-    }))
-  });
+  // Empty wallet state (connected but no activity)
+  if (displayData && !hasWalletActivity(displayData)) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900">Darma Credit Protocol</h1>
+              <p className="text-gray-600 mt-2">
+                Privacy-preserving credit scoring powered by on-chain data
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="bg-white rounded-lg px-3 py-2 border">
+                <div className="text-sm text-gray-600">Network</div>
+                <div className="text-sm font-semibold capitalize">
+                  {chain?.name || 'Ethereum'}
+                </div>
+              </div>
+              
+              <Button
+                onClick={() => disconnect()}
+                variant="outline"
+                className="border-red-200 text-red-600 hover:bg-red-50"
+              >
+                Disconnect
+              </Button>
+            </div>
+          </div>
+
+          {/* Welcome Card for New Users */}
+          <div className="max-w-4xl mx-auto">
+            <Card className="border-2 border-dashed border-blue-200 bg-blue-50">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Zap className="h-8 w-8 text-blue-600" />
+                </div>
+                <CardTitle className="text-2xl text-blue-900">Welcome to On-Chain Credit!</CardTitle>
+                <CardDescription className="text-blue-700 text-lg">
+                  Start building your credit score with on-chain activity
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-6">
+                <div className="grid md:grid-cols-3 gap-4 text-sm">
+                  <div className="bg-white p-4 rounded-lg border border-blue-100">
+                    <BarChart3 className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-blue-900 mb-1">Make Transactions</h3>
+                    <p className="text-blue-700">Start with simple ETH transfers or token swaps</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-blue-100">
+                    <Shield className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-green-900 mb-1">Build Portfolio</h3>
+                    <p className="text-green-700">Hold diverse assets like ETH, USDC, or WBTC</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-lg border border-blue-100">
+                    <TrendingUp className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                    <h3 className="font-semibold text-purple-900 mb-1">Use DeFi Protocols</h3>
+                    <p className="text-purple-700">Interact with Aave, Morpho, or other lending protocols</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    onClick={handleViewTransactions} 
+                    size="lg"
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                  >
+                    <BarChart3 className="h-5 w-5" />
+                    View Wallet on Explorer
+                  </Button>
+                  <Button 
+                    onClick={() => setActiveTab('lending')} 
+                    variant="outline"
+                    size="lg"
+                    className="flex items-center gap-2"
+                  >
+                    <DollarSign className="h-5 w-5" />
+                    Explore Lending Protocols
+                  </Button>
+                </div>
+
+                <div className="text-xs text-blue-600">
+                  <p>Your credit score will update automatically as you use your wallet</p>
+                  <p>All analysis happens locally - your data never leaves your browser</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main dashboard with data - displayData is guaranteed to be non-null here
+  const safeDisplayData = displayData!;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -254,7 +298,7 @@ export const CreditDashboard: React.FC = () => {
               <div className="flex items-center gap-2 text-red-800">
                 <AlertCircle className="h-5 w-5" />
                 <div>
-                  <p className="font-medium">Unable to fetch live data</p>
+                  <p className="font-medium">Limited Data Available</p>
                   <p className="text-sm">{error}</p>
                 </div>
               </div>
@@ -271,9 +315,35 @@ export const CreditDashboard: React.FC = () => {
           </div>
         )}
 
+        {/* Data Quality Notice */}
+        {displayData && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Shield className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-blue-800">
+                  <strong>Privacy First:</strong> Your credit analysis happens locally using on-chain data. 
+                  No personal information is stored on our servers.
+                </p>
+              </div>
+              <Button
+                onClick={handleViewTransactions}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-blue-300 text-blue-700 whitespace-nowrap"
+              >
+                <BarChart3 className="h-4 w-4" />
+                Verify Data
+              </Button>
+            </div>
+          </div>
+        )}
+
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full bg-white p-1 rounded-lg border">
+          <TabsList className="grid grid-cols-3 w-full bg-white p-1 rounded-lg border">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
@@ -294,13 +364,18 @@ export const CreditDashboard: React.FC = () => {
               <div className="lg:col-span-1 space-y-6">
                 <CreditScore 
                   score={creditScore}
-                  address={displayData.address}
-                  riskFactors={displayData.riskFactors}
+                  address={safeDisplayData.address}
+                  riskFactors={safeDisplayData.riskFactors}
                 />
                 
                 <CreditBenefits 
-                  benefits={displayData.creditBenefits}
-                  collateralBoost={displayData.collateralAnalysis?.collateralBoost || 1.0}
+                  benefits={safeDisplayData.creditBenefits}
+                  collateralBoost={safeDisplayData.collateralAnalysis?.collateralBoost || 1.0}
+                  creditScore={creditScore}
+                  factorScores={factors.reduce((acc, factor) => {
+                    acc[factor.key] = factor.score;
+                    return acc;
+                  }, {} as { [key: string]: number })}
                 />
 
                 <FinancialHealthPanel
@@ -313,10 +388,11 @@ export const CreditDashboard: React.FC = () => {
               </div>
 
               <div className="lg:col-span-2 space-y-6">
-                <CreditScoreBreakdown factors={factors} creditScore={creditScore} />
-                <CollateralAnalysis 
-                  analysis={displayData.collateralAnalysis}
-                  oracleData={displayData.oracleData}
+                <CreditScoreBreakdownPanel 
+                  factors={factors} 
+                  creditScore={creditScore}
+                  plaidData={plaidData}
+                  privacyProofs={privacyProofs}
                 />
               </div>
             </div>
@@ -336,6 +412,24 @@ export const CreditDashboard: React.FC = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Footer */}
+        <div className="mt-12 pt-8 border-t border-gray-200">
+          <div className="text-center text-sm text-gray-600">
+            <p>
+              Darma Credit Protocol • Privacy-first on-chain credit scoring •{' '}
+              <button 
+                onClick={handleViewTransactions}
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                Verify your data on Blockscout
+              </button>
+            </p>
+            <p className="mt-2 text-xs text-gray-500">
+              All analysis performed locally in your browser. No data stored on our servers.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

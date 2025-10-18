@@ -99,7 +99,6 @@ export interface PrivacyProofs {
   identityVerified: boolean;
 }
 
-// Enhanced interface for Pinata-stored proofs with public gateway support
 export interface StoredPrivacyProofs extends PrivacyProofs {
   ipfsData: {
     incomeProofCID?: string;
@@ -257,4 +256,49 @@ export interface PinataStatus {
   hasApiKey: boolean;
   hasApiSecret: boolean;
   publicGateways: string[];
+}
+
+// Blockscout Data Types
+export interface BlockscoutTransaction {
+  hash: string;
+  from: string;
+  to: string;
+  value: string;
+  timestamp: number;
+  status: 'success' | 'failed';
+  tokenTransfers?: BlockscoutTokenTransfer[];
+  functionName?: string;
+  input?: string; // Add this line
+}
+
+export interface BlockscoutTokenTransfer {
+  token: {
+    address: string;
+    symbol: string;
+    decimals: number;
+  };
+  value: string;
+  from: string;
+  to: string;
+}
+
+export interface ProtocolInteractionAnalysis {
+  hash: string;
+  protocol: 'morpho' | 'aave' | 'other';
+  type: 'supply' | 'withdraw' | 'borrow' | 'repay' | 'liquidate' | 'flashloan';
+  asset: string;
+  amount: string;
+  timestamp: number;
+  success: boolean;
+  contractAddress: string;
+  method?: string;
+}
+
+export interface BlockscoutData {
+  transactionHistory: BlockscoutTransaction[];
+  protocolInteractions: ProtocolInteractionAnalysis[];
+  repaymentHistory: ProtocolInteractionAnalysis[];
+  loading: boolean;
+  error: string | null;
+  blockscoutUrl: string;
 }
