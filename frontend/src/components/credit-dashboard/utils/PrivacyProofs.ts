@@ -26,7 +26,7 @@ interface VerificationReport {
   ipfsReportURL?: string;
 }
 
-// Enhanced Pinata service with guaranteed real CIDs
+// Enhanced Pinata service with guaranteed CIDs
 class RealPinataService {
   private config = getPinataConfig();
   private credentialsValid: boolean;
@@ -41,7 +41,7 @@ class RealPinataService {
     this.credentialsValid = !!(this.config.jwt || (this.config.apiKey && this.config.apiSecret));
     
     if (this.credentialsValid) {
-      console.log('✅ Pinata credentials found - REAL IPFS enabled');
+      console.log('✅ Pinata credentials found - IPFS enabled');
     } else {
       throw new Error(
         '❌ Pinata credentials missing. ' +
@@ -50,7 +50,7 @@ class RealPinataService {
     }
   }
 
-  // Main method to upload JSON to Pinata IPFS - ONLY REAL CIDs
+  // Main method to upload JSON to Pinata IPFS - ONLY CIDs
   async pinJSONToIPFS(data: any, name: string): Promise<{
     IpfsHash: string;
     PinSize: number;
@@ -59,7 +59,7 @@ class RealPinataService {
     url: string;
     pinataURL: string;
   }> {
-    console.log(`📤 Uploading ${name} to REAL Pinata IPFS...`);
+    console.log(`📤 Uploading ${name} to Pinata IPFS...`);
 
     // Method 1: Try JWT auth first (preferred)
     if (this.config.jwt) {
@@ -77,7 +77,7 @@ class RealPinataService {
             pinataMetadata: {
               name: `Darma-${name}-${Date.now()}`,
               keyvalues: {
-                type: 'zk-proof',
+                type: 'privacy-proof',
                 protocol: 'darma-credit',
                 timestamp: new Date().toISOString(),
                 source: 'darma-frontend',
@@ -91,7 +91,7 @@ class RealPinataService {
           const result = await response.json();
           const publicCid = result.IpfsHash;
           
-          console.log(`✅ REAL IPFS SUCCESS: ${publicCid}`);
+          console.log(`✅ IPFS SUCCESS: ${publicCid}`);
           console.log(`🔗 IPFS.io: https://ipfs.io/ipfs/${publicCid}`);
           console.log(`🔗 Pinata: https://gateway.pinata.cloud/ipfs/${publicCid}`);
           
@@ -130,7 +130,7 @@ class RealPinataService {
             pinataMetadata: {
               name: `Darma-${name}-${Date.now()}`,
               keyvalues: {
-                type: 'zk-proof',
+                type: 'privacy-proof',
                 protocol: 'darma-credit',
                 timestamp: new Date().toISOString(),
                 source: 'darma-frontend'
@@ -143,7 +143,7 @@ class RealPinataService {
           const result = await response.json();
           const publicCid = result.IpfsHash;
           
-          console.log(`✅ REAL IPFS SUCCESS (API Key): ${publicCid}`);
+          console.log(`✅ IPFS SUCCESS (API Key): ${publicCid}`);
           this.verifyPublicAccess(publicCid);
           
           return {
@@ -196,7 +196,7 @@ class RealPinataService {
 
   // Enhanced CID verification
   async verifyCID(cid: string): Promise<{ verified: boolean; data?: any; error?: string }> {
-    console.log("🔍 Verifying REAL CID:", cid);
+    console.log("🔍 Verifying CID:", cid);
     
     for (const gateway of this.publicGateways) {
       try {
@@ -253,25 +253,25 @@ class RealPinataService {
   }
 }
 
-// Real ZK Proof Generator - PROPER ZERO-KNOWLEDGE IMPLEMENTATION
+// Privacy Proof Generator - Cryptographic privacy IMPLEMENTATION
 export class PrivacyProofGenerator {
   private pinataService: RealPinataService;
 
   constructor() {
     try {
       this.pinataService = new RealPinataService();
-      console.log('🚀 PrivacyProofGenerator initialized with REAL IPFS and ZK Privacy');
+      console.log('🚀 PrivacyProofGenerator initialized with IPFS and cryptographic Privacy');
     } catch (error: any) {
       console.error('❌ CRITICAL: Failed to initialize Pinata service:', error.message);
       throw new Error(
-        'REAL IPFS storage unavailable. ' +
-        'Please add Pinata credentials to your .env file to generate real CIDs. ' +
+        'IPFS storage unavailable. ' +
+        'Please add Pinata credentials to your .env file to generate CIDs. ' +
         'Required: VITE_PINATA_JWT or VITE_PINATA_API_KEY + VITE_PINATA_SECRET_KEY'
       );
     }
   }
 
-  // Generate ZK-proof hash that doesn't reveal sensitive data
+  // Generate privacy proof hash that doesn't reveal sensitive data
   private async generateZKProofHash(verified: boolean, criteria: string, salt: string): Promise<string> {
     try {
       // Only include verification result and criteria, NOT sensitive data
@@ -294,7 +294,7 @@ export class PrivacyProofGenerator {
     }
   }
 
-  // Store ZK proof - ONLY verification status, NO sensitive data
+  // Store Privacy proof - ONLY verification status, NO sensitive data
   private async storeZKProof(proofType: string, verified: boolean, criteria: any): Promise<{ 
     cid: string; 
     url: string; 
@@ -302,11 +302,11 @@ export class PrivacyProofGenerator {
     isReal: boolean;
     success: boolean;
   }> {
-    console.log(`💾 Storing ZK ${proofType} proof on REAL IPFS...`);
+    console.log(`💾 Storing ${proofType} privacy proof on IPFS...`);
 
-    // ZK Proof - Only contains verification result, NOT the underlying data
+    // Privacy Proof - Only contains verification result, NOT the underlying data
     const zkProofData = {
-      // Zero-Knowledge: Only reveal that verification passed/failed, not the data
+      // Cryptographic privacy: only reveal that verification passed/failed, not the data
       proofType: proofType,
       verified: verified,
       verificationCriteria: criteria,
@@ -316,18 +316,18 @@ export class PrivacyProofGenerator {
       // Metadata - No sensitive financial data
       _metadata: {
         proofType: proofType,
-        protocol: 'darma-credit-zk',
+        protocol: 'darma-credit',
         version: '1.0.0',
         timestamp: new Date().toISOString(),
         generatedBy: 'Darma Credit Protocol',
-        storage: 'real-ipfs',
-        privacy: 'zero-knowledge' // Emphasize this is ZK
+        storage: 'ipfs',
+        privacy: 'cryptographic privacy' 
       }
     };
 
     const pinataResponse = await this.pinataService.pinJSONToIPFS(zkProofData, `zk-${proofType}-proof`);
 
-    console.log(`✅ ZK REAL CID Generated: ${pinataResponse.IpfsHash}`);
+    console.log(`✅ CID Generated: ${pinataResponse.IpfsHash}`);
     
     const urls = this.pinataService.getIPFSURLs(pinataResponse.IpfsHash);
     
@@ -340,9 +340,9 @@ export class PrivacyProofGenerator {
     };
   }
 
-  // Main method to generate PROPER ZK proofs
+  // Main method to generate PROPER Privacy proofs
   async generatePrivacyProofs(plaidData: PlaidData): Promise<StoredPrivacyProofs> {
-    console.log('🚀 Starting PROPER ZK Proof Generation with Privacy...');
+    console.log('🚀 Starting PROPER Privacy Proof Generation with Privacy...');
 
     // Test connection first
     const connectionTest = await this.pinataService.testConnection();
@@ -369,14 +369,14 @@ export class PrivacyProofGenerator {
       identity: !!hasIdentity
     };
 
-    console.log('📊 ZK Financial Verification (Private Analysis):', {
+    console.log('📊 Privacy Financial Verification (Private Analysis):', {
       verificationStatus,
       accounts: plaidData.accounts?.length || 0,
       transactions: plaidData.transactions?.length || 0,
       // Note: NOT logging sensitive financial data
     });
 
-    // Generate ZK proofs - ONLY store verification results
+    // Generate Privacy proofs - ONLY store verification results
     const [incomeResult, balanceResult, transactionResult, identityResult] = await Promise.all([
       this.storeZKProof('income', !!hasStableIncome, {
         description: "Income stability verification",
@@ -403,9 +403,9 @@ export class PrivacyProofGenerator {
       })
     ]);
 
-    // Store complete ZK proofs set (aggregated verification only)
+    // Store complete Privacy proofs set (aggregated verification only)
     const completeZKProofsData = {
-      // Zero-Knowledge: Only verification results, no raw data
+      // Cryptographic privacy: Only verification results, no raw data
       verificationSummary: verificationStatus,
       proofHashes: {
         income: incomeResult.cid,
@@ -415,14 +415,14 @@ export class PrivacyProofGenerator {
       },
       timestamp: new Date().toISOString(),
       
-      // Metadata - Emphasize ZK nature
+      // Metadata - Emphasize Privacy nature
       _metadata: {
-        protocol: 'darma-credit-zk',
+        protocol: 'darma-credit',
         version: '1.0.0',
         generatedAt: new Date().toISOString(),
         proofCount: 4,
-        privacyLevel: 'zero-knowledge',
-        description: 'Zero-Knowledge Proofs - Only verification status revealed',
+        privacyLevel: 'cryptographic',
+        description: 'Privacy Proofs - Only verification status revealed',
         dataPrivacy: 'No sensitive financial or personal data stored on IPFS'
       }
     };
@@ -432,7 +432,7 @@ export class PrivacyProofGenerator {
     // Calculate verification score
     const totalScore = Object.values(verificationStatus).filter(Boolean).length * 25;
 
-    // Build the final proofs object with REAL ZK CIDs
+    // Build the final proofs object with CIDs
     const baseProofs: PrivacyProofs = {
       incomeVerified: !!hasStableIncome,
       accountBalanceVerified: totalBalance >= 1000,
@@ -476,19 +476,19 @@ export class PrivacyProofGenerator {
         pinataGateway: 'https://gateway.pinata.cloud/ipfs',
         publicGateways: this.pinataService.getPublicGateways(),
         verificationStatus: verificationStatus,
-        privacyNotice: 'Zero-Knowledge: No sensitive data exposed', // Now this property exists
+        privacyNotice: 'Cryptographic privacy: No sensitive data exposed', // Now this property exists
         privacyVersion: '1.0.0'
       }
     };
 
-    console.log('🎉 PROPER ZK Proofs Generation Complete!', {
+    console.log('🎉 Privacy Proofs Generation Complete!', {
       totalScore: `${totalScore}/100`,
       verifiedProofs: `${Object.values(verificationStatus).filter(Boolean).length}/4`,
       privacyCIDs: storedProofs.ipfsData,
-      privacy: '✓ Zero-Knowledge: No financial data exposed on IPFS'
+      privacy: '✓ Cryptographic privacy: No financial data exposed on IPFS'
     });
 
-    console.log('🔒 ZK Privacy Guarantee:');
+    console.log('🔒 Cryptographic Privacy Guarantee:');
     console.log('   - No income amounts stored publicly');
     console.log('   - No balance amounts stored publicly'); 
     console.log('   - No transaction details stored publicly');
@@ -513,7 +513,7 @@ export class PrivacyProofGenerator {
     return {
       available: this.pinataService.isAvailable(),
       publicGateways: this.pinataService.getPublicGateways(),
-      message: 'REAL IPFS storage with ZK privacy enabled'
+      message: 'IPFS storage with cryptographic privacy enabled'
     };
   }
 }

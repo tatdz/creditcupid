@@ -77,7 +77,7 @@ export class PinataService {
     }
 
     try {
-      console.log(`📤 Pinning ${name} to real IPFS via Pinata...`);
+      console.log(`📤 Pinning ${name} to IPFS via Pinata...`);
       
       const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
         method: 'POST',
@@ -119,7 +119,7 @@ export class PinataService {
       // Verify this is a real CID (not example)
       const isRealCID = result.IpfsHash && !result.IpfsHash.startsWith('local_') && !result.IpfsHash.startsWith('QmZy6LGm');
       
-      console.log(`✅ Successfully pinned "${name}" to real IPFS:`, {
+      console.log(`✅ Successfully pinned "${name}" to IPFS:`, {
         cid: result.IpfsHash,
         isRealCID: isRealCID,
         size: result.PinSize,
@@ -135,7 +135,7 @@ export class PinataService {
         customGateway: this.customGateway
       };
     } catch (error: any) {
-      console.error('❌ Failed to pin to real IPFS, falling back to local storage:', error.message);
+      console.error('❌ Failed to pin to IPFS, falling back to local storage:', error.message);
       return this.storeWithExampleCID(data, name);
     }
   }
