@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { ethers } from 'ethers';
 import { DarmaCreditClient, RpcUrls } from './mcp/client';
-import { RealBlockscoutService } from './services/realBlockscoutService';
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;

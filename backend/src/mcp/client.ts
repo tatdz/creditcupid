@@ -1,23 +1,90 @@
 import { ethers } from 'ethers';
-import { AaveProtocol, AavePosition } from '../protocols/aave';
-import { MorphoProtocol, MorphoPosition } from '../protocols/morpho';
-import { WalletDataService } from '../services/walletDataService';
-import { PythMorphoWrapper } from '../oracles/pythMorphoWrapper';
-import { AaveOracle } from '../oracles/aaveOracle';
-import { RealBlockscoutService } from '../services/realBlockscoutService';
-import { EnhancedProtocolService } from '../services/enhancedProtocolService';
 
-// Import types from realBlockscoutService to ensure consistency
-import type {
-  WalletActivity as BlockscoutWalletActivity,
-  ProtocolInteraction as BlockscoutProtocolInteraction,
-  Transaction as BlockscoutTransaction,
-  TokenTransfer as BlockscoutTokenTransfer,
-  InternalTransaction as BlockscoutInternalTransaction,
-  NFTTransfer as BlockscoutNFTTransfer
-} from '../services/realBlockscoutService';
+// Core protocol interfaces
+interface AavePosition {
+  totalCollateralETH: string;
+  totalDebtETH: string;
+  availableBorrowsETH: string;
+  currentLiquidationThreshold: string;
+  ltv: string;
+  healthFactor: string;
+}
 
-// Core interfaces - Now using the same types as realBlockscoutService
+interface MorphoPosition {
+  supplied: string;
+  borrowed: string;
+  collateral: string;
+}
+
+// Core service interfaces
+interface TokenBalance {
+  contractAddress: string;
+  name: string;
+  symbol: string;
+  balance: string;
+  valueUSD: string;
+}
+
+export interface ProtocolInteraction {
+  protocol: 'aave' | 'morpho' | 'uniswap' | 'compound' | 'curve' | 'balancer' | 'sushiswap' | 'yearn' | 'maker' | 'lido' | 'rocketpool' | 'other';
+  type: 'deposit' | 'withdraw' | 'borrow' | 'repay' | 'supply' | 'swap' | 'liquidity_add' | 'liquidity_remove' | 'stake' | 'unstake' | 'claim' | 'governance' | 'interaction';
+  amount: string;
+  timestamp: number;
+  chainId: number;
+  txHash: string;
+  asset: string;
+  contractAddress: string;
+  success: boolean;
+  gasUsed?: string;
+  gasCostUSD?: string;
+}
+
+export interface WalletActivity {
+  transactions: Transaction[];
+  tokenTransfers: TokenTransfer[];
+  internalTransactions: InternalTransaction[];
+  nftTransfers: NFTTransfer[];
+  protocolInteractions: ProtocolInteraction[];
+  blockscoutSupported: boolean;
+  lastUpdated: number;
+}
+
+export interface Transaction {
+  hash: string;
+  timestamp: number;
+  value: string;
+  fee: string;
+  status: 'success' | 'failed';
+}
+
+export interface TokenTransfer {
+  transactionHash: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  value: string;
+  tokenAddress: string;
+  tokenSymbol: string;
+}
+
+export interface InternalTransaction {
+  transactionHash: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  value: string;
+}
+
+export interface NFTTransfer {
+  transactionHash: string;
+  timestamp: number;
+  from: string;
+  to: string;
+  tokenId: string;
+  contractAddress: string;
+}
+
+// Core interfaces
 export interface CrossChainData {
   address: string;
   creditScore: number;
@@ -33,9 +100,6 @@ export interface CrossChainData {
   oracleData: OracleData;
   transactionAnalysis: TransactionAnalysis;
 }
-
-// Use the exact same ProtocolInteraction type as realBlockscoutService
-export type ProtocolInteraction = BlockscoutProtocolInteraction;
 
 export interface Recommendation {
   message: string;
@@ -75,23 +139,6 @@ export interface WalletData {
   activity: WalletActivity;
 }
 
-export interface TokenBalance {
-  contractAddress: string;
-  name: string;
-  symbol: string;
-  balance: string;
-  valueUSD: string;
-}
-
-// Use the exact same WalletActivity type as realBlockscoutService
-export type WalletActivity = BlockscoutWalletActivity;
-
-// Use the exact same transaction types as realBlockscoutService
-export type Transaction = BlockscoutTransaction;
-export type TokenTransfer = BlockscoutTokenTransfer;
-export type InternalTransaction = BlockscoutInternalTransaction;
-export type NFTTransfer = BlockscoutNFTTransfer;
-
 export interface OracleData {
   morphoPrices: any;
   aavePrices: any;
@@ -115,7 +162,7 @@ export interface TransactionAnalysis {
   gasSpentETH: number;
 }
 
-// Interface for the raw wallet data returned by WalletDataService
+// Interface for the raw wallet data
 interface RawWalletData {
   nativeBalance: string;
   tokenBalances: TokenBalance[];
@@ -127,39 +174,216 @@ export interface RpcUrls {
   [chainId: number]: string;
 }
 
+// Mock implementations for missing services
+class MockWalletDataService {
+  constructor(private rpcUrl: string) {}
+
+  async getWalletData(address: string): Promise<RawWalletData> {
+    console.log(`📱 Mock: Getting wallet data for ${address}`);
+    
+    // Generate realistic mock data
+    return {
+      nativeBalance: (Math.random() * 5 + 0.1).toFixed(4),
+      tokenBalances: [
+        {
+          contractAddress: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+          name: 'USD Coin',
+          symbol: 'USDC',
+          balance: (Math.random() * 10000 + 1000).toFixed(2),
+          valueUSD: (Math.random() * 10000 + 1000).toFixed(2)
+        },
+        {
+          contractAddress: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+          name: 'Wrapped Bitcoin',
+          symbol: 'WBTC',
+          balance: (Math.random() * 0.5 + 0.01).toFixed(4),
+          valueUSD: (Math.random() * 15000 + 5000).toFixed(2)
+        }
+      ],
+      totalValueUSD: (Math.random() * 20000 + 5000).toFixed(2)
+    };
+  }
+}
+
+class MockPythMorphoWrapper {
+  constructor(private rpcUrl: string) {}
+
+  async getMorphoCollateralPrices(): Promise<any> {
+    console.log('🔮 Mock: Getting Morpho collateral prices');
+    
+    return {
+      ETH: { price: (Math.random() * 1000 + 2000).toFixed(2), source: 'pyth-mock' },
+      WBTC: { price: (Math.random() * 10000 + 30000).toFixed(2), source: 'pyth-mock' },
+      USDC: { price: '1.00', source: 'pyth-mock' },
+      DAI: { price: '1.00', source: 'pyth-mock' }
+    };
+  }
+}
+
+class MockAaveOracle {
+  constructor(private rpcUrl: string, private chainId: number) {}
+
+  async getAaveCollateralPrices(): Promise<any> {
+    console.log('🏦 Mock: Getting Aave collateral prices');
+    
+    return {
+      ETH: { price: (Math.random() * 1000 + 2000).toFixed(2), source: 'aave-mock' },
+      WBTC: { price: (Math.random() * 10000 + 30000).toFixed(2), source: 'aave-mock' },
+      USDC: { price: '1.00', source: 'aave-mock' }
+    };
+  }
+}
+
+class MockRealBlockscoutService {
+  constructor(private chainId: number) {}
+
+  async getWalletActivity(address: string): Promise<WalletActivity> {
+    console.log(`📊 Mock: Getting wallet activity for ${address} on chain ${this.chainId}`);
+    
+    const now = Math.floor(Date.now() / 1000);
+    const thirtyDaysAgo = now - (30 * 24 * 60 * 60);
+    
+    // Generate mock transactions
+    const transactions: Transaction[] = Array.from({ length: 15 }, (_, i) => ({
+      hash: `0x${Math.random().toString(16).slice(2, 66)}`,
+      timestamp: Math.floor(Math.random() * (now - thirtyDaysAgo) + thirtyDaysAgo),
+      value: ethers.parseEther((Math.random() * 2).toFixed(4)).toString(),
+      fee: (Math.random() * 0.1).toFixed(6),
+      status: Math.random() > 0.1 ? 'success' : 'failed'
+    }));
+
+    // Generate mock protocol interactions
+    const protocols: ProtocolInteraction['protocol'][] = ['aave', 'morpho', 'uniswap', 'compound'];
+    const interactionTypes: ProtocolInteraction['type'][] = ['deposit', 'withdraw', 'borrow', 'supply'];
+    
+    const protocolInteractions: ProtocolInteraction[] = Array.from({ length: 8 }, (_, i) => ({
+      protocol: protocols[Math.floor(Math.random() * protocols.length)],
+      type: interactionTypes[Math.floor(Math.random() * interactionTypes.length)],
+      amount: ethers.parseEther((Math.random() * 5).toFixed(4)).toString(),
+      timestamp: Math.floor(Math.random() * (now - thirtyDaysAgo) + thirtyDaysAgo),
+      chainId: this.chainId,
+      txHash: transactions[i]?.hash || `0x${Math.random().toString(16).slice(2, 66)}`,
+      asset: ['ETH', 'USDC', 'WBTC'][Math.floor(Math.random() * 3)],
+      contractAddress: `0x${Math.random().toString(16).slice(2, 42)}`,
+      success: Math.random() > 0.1,
+      gasUsed: (Math.random() * 50000 + 10000).toFixed(0),
+      gasCostUSD: (Math.random() * 50 + 5).toFixed(2)
+    }));
+
+    return {
+      transactions,
+      tokenTransfers: [],
+      internalTransactions: [],
+      nftTransfers: [],
+      protocolInteractions,
+      blockscoutSupported: false,
+      lastUpdated: now
+    };
+  }
+}
+
+class MockEnhancedProtocolService {
+  constructor(private rpcUrl: string, private privateKey: string) {}
+
+  async getProtocolInteractions(address: string, chainId: number): Promise<any[]> {
+    console.log(`🔄 Mock: Getting enhanced protocol interactions for ${address}`);
+    
+    const now = Math.floor(Date.now() / 1000);
+    const ninetyDaysAgo = now - (90 * 24 * 60 * 60);
+    
+    return Array.from({ length: 5 }, (_, i) => ({
+      protocol: ['aave', 'morpho', 'uniswap'][Math.floor(Math.random() * 3)],
+      type: ['deposit', 'borrow', 'supply'][Math.floor(Math.random() * 3)],
+      amount: ethers.parseEther((Math.random() * 10).toFixed(4)).toString(),
+      timestamp: Math.floor(Math.random() * (now - ninetyDaysAgo) + ninetyDaysAgo),
+      chainId,
+      txHash: `0x${Math.random().toString(16).slice(2, 66)}`,
+      asset: 'ETH',
+      contractAddress: `0x${Math.random().toString(16).slice(2, 42)}`,
+      success: true,
+      gasUsed: (Math.random() * 100000 + 50000).toFixed(0),
+      gasCostUSD: (Math.random() * 100 + 10).toFixed(2)
+    }));
+  }
+}
+
+// Mock protocol implementations
+class MockAaveProtocol {
+  constructor(private rpcUrls: RpcUrls) {}
+
+  async getUserPositions(address: string, chainIds: number[]): Promise<{ [chainId: number]: AavePosition }> {
+    console.log(`🏦 Mock: Getting Aave positions for ${address}`);
+    
+    const positions: { [chainId: number]: AavePosition } = {};
+    
+    for (const chainId of chainIds) {
+      positions[chainId] = {
+        totalCollateralETH: (Math.random() * 10 + 1).toFixed(4),
+        totalDebtETH: (Math.random() * 2).toFixed(4),
+        availableBorrowsETH: (Math.random() * 5).toFixed(4),
+        currentLiquidationThreshold: (Math.random() * 0.5 + 0.5).toFixed(4),
+        ltv: (Math.random() * 0.3 + 0.6).toFixed(4),
+        healthFactor: (Math.random() * 3 + 1).toFixed(4)
+      };
+    }
+    
+    return positions;
+  }
+}
+
+class MockMorphoProtocol {
+  constructor(private rpcUrls: RpcUrls) {}
+
+  async getUserPositions(address: string, chainIds: number[]): Promise<{ [chainId: number]: MorphoPosition }> {
+    console.log(`🦋 Mock: Getting Morpho positions for ${address}`);
+    
+    const positions: { [chainId: number]: MorphoPosition } = {};
+    
+    for (const chainId of chainIds) {
+      positions[chainId] = {
+        supplied: (Math.random() * 20 + 5).toFixed(4),
+        borrowed: (Math.random() * 10).toFixed(4),
+        collateral: (Math.random() * 15 + 3).toFixed(4)
+      };
+    }
+    
+    return positions;
+  }
+}
+
 export class DarmaCreditClient {
   private rpcUrls: RpcUrls;
-  private aaveProtocol: AaveProtocol;
-  private morphoProtocol: MorphoProtocol;
-  private walletDataServices: { [chainId: number]: WalletDataService } = {};
-  public pythWrappers: { [chainId: number]: PythMorphoWrapper } = {};
-  public aaveOracles: { [chainId: number]: AaveOracle } = {};
-  private blockscoutServices: { [chainId: number]: RealBlockscoutService } = {};
-  private enhancedProtocolServices: { [chainId: number]: EnhancedProtocolService } = {};
+  private aaveProtocol: MockAaveProtocol;
+  private morphoProtocol: MockMorphoProtocol;
+  private walletDataServices: { [chainId: number]: MockWalletDataService } = {};
+  public pythWrappers: { [chainId: number]: MockPythMorphoWrapper } = {};
+  public aaveOracles: { [chainId: number]: MockAaveOracle } = {};
+  private blockscoutServices: { [chainId: number]: MockRealBlockscoutService } = {};
+  private enhancedProtocolServices: { [chainId: number]: MockEnhancedProtocolService } = {};
 
   constructor(rpcUrls: RpcUrls) {
     this.rpcUrls = rpcUrls;
-    this.aaveProtocol = new AaveProtocol(rpcUrls);
-    this.morphoProtocol = new MorphoProtocol(rpcUrls);
+    this.aaveProtocol = new MockAaveProtocol(rpcUrls);
+    this.morphoProtocol = new MockMorphoProtocol(rpcUrls);
     
     // Initialize all services for each chain with new RPC endpoints
     Object.entries(rpcUrls).forEach(([chainId, url]) => {
       const chainIdNum = parseInt(chainId);
-      console.log(`🔗 Initializing services for chain ${chainIdNum} with RPC: ${url}`);
+      console.log(`🔗 Initializing MOCK services for chain ${chainIdNum} with RPC: ${url}`);
       
-      this.walletDataServices[chainIdNum] = new WalletDataService(url);
-      this.pythWrappers[chainIdNum] = new PythMorphoWrapper(url);
-      this.aaveOracles[chainIdNum] = new AaveOracle(url, chainIdNum);
-      this.blockscoutServices[chainIdNum] = new RealBlockscoutService(chainIdNum);
+      this.walletDataServices[chainIdNum] = new MockWalletDataService(url);
+      this.pythWrappers[chainIdNum] = new MockPythMorphoWrapper(url);
+      this.aaveOracles[chainIdNum] = new MockAaveOracle(url, chainIdNum);
+      this.blockscoutServices[chainIdNum] = new MockRealBlockscoutService(chainIdNum);
       
       // Use a default private key for EnhancedProtocolService
       const defaultPrivateKey = process.env.PROTOCOL_SERVICE_PRIVATE_KEY || '0x0000000000000000000000000000000000000000000000000000000000000001';
-      this.enhancedProtocolServices[chainIdNum] = new EnhancedProtocolService(url, defaultPrivateKey);
+      this.enhancedProtocolServices[chainIdNum] = new MockEnhancedProtocolService(url, defaultPrivateKey);
     });
   }
 
   async getCreditData(address: string, currentChainId: number = 1): Promise<CrossChainData> {
-    console.log(`📊 Analyzing REAL credit data with REAL oracles for: ${address} on chain ${currentChainId}`);
+    console.log(`📊 Analyzing MOCK credit data with MOCK oracles for: ${address} on chain ${currentChainId}`);
 
     try {
       // Validate address
@@ -167,10 +391,10 @@ export class DarmaCreditClient {
         throw new Error(`Invalid Ethereum address: ${address}`);
       }
 
-      // Get REAL wallet data (balances and portfolio value)
+      // Get MOCK wallet data (balances and portfolio value)
       const rawWalletData = await this.walletDataServices[currentChainId].getWalletData(address) as RawWalletData;
       
-      // Get REAL wallet activity from Blockscout
+      // Get MOCK wallet activity from Blockscout
       const walletActivity = await this.blockscoutServices[currentChainId].getWalletActivity(address);
       
       // Combine wallet data with activity to create the complete WalletData object
@@ -184,22 +408,22 @@ export class DarmaCreditClient {
       // Get transaction analysis
       const transactionAnalysis = await this.analyzeTransactions(walletActivity);
       
-      // Get REAL protocol positions
+      // Get MOCK protocol positions
       const [aavePositions, morphoPositions] = await Promise.all([
         this.getRealAavePositions(address, [currentChainId]),
         this.getRealMorphoPositions(address, [currentChainId])
       ]);
 
-      // Get REAL collateral prices from oracles
+      // Get MOCK collateral prices from oracles
       const [morphoCollateralPrices, aaveCollateralPrices] = await Promise.all([
         this.pythWrappers[currentChainId].getMorphoCollateralPrices(),
         this.aaveOracles[currentChainId].getAaveCollateralPrices()
       ]);
 
-      // Calculate REAL credit score based on actual data
+      // Calculate MOCK credit score based on actual data
       const creditScore = this.calculateRealCreditScore(walletData, transactionAnalysis, aavePositions, morphoPositions);
       
-      // Get REAL collateral analysis with actual oracle prices
+      // Get MOCK collateral analysis with actual oracle prices
       const collateralAnalysis = await this.getRealCollateralAnalysis(
         walletData, 
         creditScore, 
@@ -208,7 +432,7 @@ export class DarmaCreditClient {
         currentChainId
       );
       
-      // Calculate REAL credit benefits
+      // Calculate MOCK credit benefits
       const creditBenefits = this.calculateRealCreditBenefits(creditScore, collateralAnalysis);
 
       // Get protocol interactions from enhanced service
@@ -275,7 +499,7 @@ export class DarmaCreditClient {
     }
 
     // Calculate transaction volume (ETH)
-    const transactionVolume = transactions.reduce((sum, tx) => {
+    const transactionVolume = transactions.reduce((sum: number, tx: Transaction) => {
       return sum + parseFloat(ethers.formatEther(tx.value || '0'));
     }, 0);
 
@@ -293,7 +517,7 @@ export class DarmaCreditClient {
       (Date.now() / 1000 - Math.min(...transactions.map(tx => tx.timestamp))) / (24 * 60 * 60) : 0;
 
     // Calculate gas spent
-    const gasSpentETH = transactions.reduce((sum, tx) => sum + parseFloat(tx.fee || '0'), 0);
+    const gasSpentETH = transactions.reduce((sum: number, tx: Transaction) => sum + parseFloat(tx.fee || '0'), 0);
 
     return {
       totalTransactions,
@@ -532,23 +756,6 @@ export class DarmaCreditClient {
             currentPrice: price.price,
             source: price.source || 'aave-oracle'
           };
-        }
-      }
-
-      // Fallback to Chainlink via wallet service
-      const walletService = this.walletDataServices[chainId];
-      if (walletService && (walletService as any).chainlinkOracle) {
-        try {
-          const chainlinkOracle = (walletService as any).chainlinkOracle;
-          const priceData = await chainlinkOracle.getPrice(normalizedSymbol);
-          if (priceData && priceData.price && parseFloat(priceData.price) > 0) {
-            return {
-              currentPrice: priceData.price,
-              source: 'chainlink'
-            };
-          }
-        } catch (error) {
-          console.warn(`⚠️ Chainlink price failed for ${normalizedSymbol}:`, this.getErrorMessage(error));
         }
       }
 
