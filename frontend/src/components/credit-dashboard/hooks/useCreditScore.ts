@@ -270,11 +270,44 @@ const calculateFinancialHealthScore = (plaidData: PlaidData | null, zkProofs: Pr
   return score;
 };
 
+// NEW: Calculate collateral boost based on credit score and collateral diversity
+const calculateCollateralBoost = (creditScore: number, collateralDiversityScore: number): number => {
+  console.log('🚀 Calculating Collateral Boost:', { creditScore, collateralDiversityScore });
+
+  // Base boost from credit score (0-15% range)
+  let baseBoost = 0;
+  
+  if (creditScore >= 800) baseBoost = 15;
+  else if (creditScore >= 750) baseBoost = 12;
+  else if (creditScore >= 700) baseBoost = 10;
+  else if (creditScore >= 650) baseBoost = 8;
+  else if (creditScore >= 600) baseBoost = 5;
+  else if (creditScore >= 550) baseBoost = 3;
+  else if (creditScore >= 500) baseBoost = 1;
+  else baseBoost = 0; // No boost for scores below 500
+
+  // Bonus from collateral diversity (0-5% range)
+  let diversityBonus = 0;
+  if (collateralDiversityScore >= 80) diversityBonus = 5;
+  else if (collateralDiversityScore >= 60) diversityBonus = 3;
+  else if (collateralDiversityScore >= 40) diversityBonus = 1;
+
+  const totalBoost = baseBoost + diversityBonus;
+  
+  console.log('🚀 Collateral Boost Calculation:', {
+    baseBoost,
+    diversityBonus,
+    totalBoost
+  });
+
+  return totalBoost; // This is already a percentage (e.g., 15 means 15%)
+};
+
 export const useCreditScore = (
   creditData: CreditData | null, 
   plaidData: PlaidData | null = null, 
   zkProofs: PrivacyProofs | null = null
-): CreditScoreResult => {
+): CreditScoreResult & { collateralBoost: number } => {
   return useMemo(() => {
     console.log('🚀 useCreditScore: Starting calculation with REAL data only');
 
@@ -283,7 +316,8 @@ export const useCreditScore = (
       console.log('❌ useCreditScore: NO credit data - returning minimum 300');
       return {
         creditScore: 300,
-        factors: []
+        factors: [],
+        collateralBoost: 0 // No boost for no data
       };
     }
 
@@ -395,15 +429,20 @@ export const useCreditScore = (
     // Convert to 300-850 range
     const creditScore = Math.round(300 + (weightedAverage * 5.5));
 
+    // Calculate collateral boost based on final credit score and collateral diversity
+    const collateralBoost = calculateCollateralBoost(creditScore, collateralDiversityScore);
+
     console.log('🏆 useCreditScore: FINAL CREDIT SCORE', {
       weightedAverage,
       creditScore,
+      collateralBoost,
       factors: factors.map(f => ({ factor: f.factor, score: f.score }))
     });
 
     return {
       creditScore: Math.min(Math.max(creditScore, 300), 850),
-      factors
+      factors,
+      collateralBoost
     };
   }, [creditData, plaidData, zkProofs]);
 };
