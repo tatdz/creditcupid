@@ -96,7 +96,7 @@ Darma is built with a modular, full-stack approach:
 ```bash
 #### 1. Clone repository
 ```bash
-git clone <github.com/tatdz/darma>
+git clone github.com/tatdz/darma
 cd darma
 
 #### 2. Backend setup
