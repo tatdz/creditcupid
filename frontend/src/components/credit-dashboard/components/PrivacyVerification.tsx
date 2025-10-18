@@ -1,10 +1,10 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/Card';
 import { CheckCircle, ExternalLink, Shield, FileText, Download, AlertCircle } from 'lucide-react';
-import { StoredZKProofs } from '../../../types/credit';
+import { StoredPrivacyProofs } from '../../../types/credit';
 
-interface RealZKVerificationProps {
-  proofs: StoredZKProofs;
+interface PrivacyVerificationProps {
+  proofs: StoredPrivacyProofs;
 }
 
 const ProofItem: React.FC<{
@@ -71,7 +71,7 @@ const ProofItem: React.FC<{
   );
 };
 
-export const RealZKVerification: React.FC<RealZKVerificationProps> = ({ proofs }) => {
+export const PrivacyVerification: React.FC<PrivacyVerificationProps> = ({ proofs }) => {
   const downloadAllProofs = () => {
     const proofsData = {
       generatedBy: 'Darma Credit Protocol',
@@ -115,7 +115,7 @@ export const RealZKVerification: React.FC<RealZKVerificationProps> = ({ proofs }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `darma-zk-proofs-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `darma-privacy-proofs-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -147,7 +147,7 @@ export const RealZKVerification: React.FC<RealZKVerificationProps> = ({ proofs }
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          Zero-Knowledge Proof Verification
+          Privacy-Preserving Verification
           <span className="px-2 py-1 bg-green-100 text-green-800 text-sm rounded font-semibold">
             {verifiedCount}/4 Verified
           </span>
@@ -269,7 +269,7 @@ export const RealZKVerification: React.FC<RealZKVerificationProps> = ({ proofs }
           <div className="flex items-center gap-2 text-sm text-green-800">
             <Shield className="h-4 w-4" />
             <div>
-              <strong>Automatic Verification:</strong> All zero-knowledge proofs are generated and verified automatically when you connect your bank account. 
+              <strong>Automatic Verification:</strong> All privacy-preserving verifications are generated and confirmed automatically when you connect your bank account. 
               {!hasRealIPFS && (
                 <span className="block mt-1">
                   <strong>To enable IPFS storage:</strong> Add valid Pinata credentials to your .env file for permanent proof storage.
