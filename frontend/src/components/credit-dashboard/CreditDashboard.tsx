@@ -134,10 +134,10 @@ export const CreditDashboard: React.FC = () => {
 
   // Use custom hooks
   const { creditData, loading, error, retry } = useCreditData();
-  const { plaidData, zkProofs, loading: plaidLoading, error: plaidError, connectBank } = usePlaidIntegration();
+  const { plaidData, privacyProofs, loading: plaidLoading, error: plaidError, connectBank } = usePlaidIntegration();
   
   const displayData = creditData || mockCreditData;
-  const { creditScore, factors } = useCreditScore(displayData, plaidData, zkProofs);
+  const { creditScore, factors } = useCreditScore(displayData, plaidData, privacyProofs);
 
   // Specifically check the collateral diversity factor
   const collateralFactor = factors.find(f => f.key === 'COLLATERAL_DIVERSITY');
@@ -305,7 +305,7 @@ export const CreditDashboard: React.FC = () => {
 
                 <FinancialHealthPanel
                   plaidData={plaidData}
-                  privacyProofs={zkProofs}
+                  privacyProofs={privacyProofs}
                   onConnectBank={connectBank}
                   loading={plaidLoading}
                   error={plaidError}
