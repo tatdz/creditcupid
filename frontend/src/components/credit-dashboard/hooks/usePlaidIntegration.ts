@@ -5,7 +5,7 @@ import { privacyProofGenerator } from '../../../components/credit-dashboard/util
 
 export const usePlaidIntegration = () => {
   const [plaidData, setPlaidData] = useState<PlaidData | null>(null);
-  const [zkProofs, setZkProofs] = useState<StoredPrivacyProofs | null>(null);
+  const [privacyProofs, setPrivacyProofs] = useState<StoredPrivacyProofs | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pinataStatus, setPinataStatus] = useState<{
@@ -42,13 +42,13 @@ export const usePlaidIntegration = () => {
       const mockPlaidData: PlaidData = await simulatePlaidConnection();
       setPlaidData(mockPlaidData);
       
-      console.log('✅ Bank data received, generating REAL ZK proofs...');
+      console.log('✅ Bank data received, generating cryptographic proofs...');
 
-      // Generate REAL ZK proofs - this will throw if Pinata fails
+      // Generate cryptographic proofs - this will throw if Pinata fails
       const proofs = await privacyProofGenerator.generatePrivacyProofs(mockPlaidData);
-      setZkProofs(proofs);
+      setPrivacyProofs(proofs);
       
-      console.log('🎉 REAL ZK Proofs Generated Successfully!');
+      console.log('🎉 REAL cryptographic proofs Generated Successfully!');
       console.log('🔗 All proofs are now publicly accessible on IPFS');
 
     } catch (err: any) {
@@ -71,7 +71,7 @@ export const usePlaidIntegration = () => {
 
   return {
     plaidData,
-    zkProofs,
+    privacyProofs,
     loading,
     error,
     pinataStatus,
