@@ -1,12 +1,12 @@
 # 😇 CreditCupid
 
-**Privacy-Preserving On-Chain Credit Oracle with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
+**Privacy-Preserving Onchain Credit Oracle with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
 
 ---
 
 ## 🚀 Problem We Solve
 
-In today’s lonely Web3 world, over 17 million DeFi users transact openly on-chain but struggle to find trustworthy, verified partners for love and finance.  
+In today’s lonely Web3 world, over 17 million DeFi users transact openly onchain but struggle to find trustworthy, verified partners for love and finance.  
 $4.2 trillion is locked in overcollateralized loans—wasting capital and hurting adoption. Meanwhile, scams like the Tinder Swindler have defrauded victims of over $100 million, showing how traditional dating apps fail to protect users.  
 Users see wallet addresses and transactions but lack social trust mechanisms. CreditCupid solves this by merging privacy-first credit scores with a new social matchmaking experience—building genuine connections backed by financial credibility and cryptographic proofs.
 
@@ -26,7 +26,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 ## 🎯 How It Works
 
-1. **Connect & Analyze:** Connect your wallet. CreditCupid scans your on-chain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) plus off-chain bank verification with Plaid.  
+1. **Connect & Analyze:** Connect your wallet. CreditCupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) plus off-chain bank verification with Plaid.  
 2. **Get Score & Recommendations:** AI Agents analyze risks, explain your score, and guide you to build better credit and social appeal.  
 3. **Match & Borrow:** Use separate, intuitive flows to find romantic or finance partners based purely on verified, privacy-protected credit identities.  
 4. **Stay Private & Secure:** Your financial details stay confidential. Wallets shown as pseudonyms with optional explorer links.
