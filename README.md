@@ -1,6 +1,6 @@
 # 😇 CreditCupid
 
-**Privacy-Preserving On-Chain Credit Oracle & Financial Matchmaking Platform**
+**Privacy-Preserving On-Chain Credit Oracle with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
 
 ---
 
@@ -46,4 +46,24 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 ## 🚀 Quick Start Guide
 
 Prerequisites: Node.js v20+, Foundry, Python 3.10.9, Sepolia ETH wallet
+```bash
+git clone https://github.com/tatdz/darma.git
+cd darma
+
+# Backend setup
+cd backend
+npm install
+# Add .env configuration (Blockscout, Pinata, Plaid, RPC)
+npm run dev
+
+# Frontend setup
+cd ../frontend
+npm install
+npm run dev
+
+# AI Agents setup
+cd ../agents
+# Setup python environment & dependencies
+python3 analyst.py
+
 
