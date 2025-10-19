@@ -20,7 +20,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
   - **Dating Flow:** Find life partners filtered by verified credit score, age, and gender—pseudonymous and privacy-first.  
   - **Finance Flow:** Discover trusted peers for undercollateralized peer-to-peer lending and borrowing opportunities.  
 - 🔐 **Privacy-Preserving Verification:** Cryptographic proofs confirm creditworthiness without leaking sensitive data. Wallet addresses remain private by default, revealed only with consent.  
-- 💰 **UnderCollateralized Lending:** Access loans at 50-80% LTV based on your credit profile, eliminating the need to over-collateralize.
+- 💰 **UnderCollateralized Lending:** Access loans at 60-80% LTV based on your credit profile, eliminating the need to over-collateralize.
 
 ---
 
