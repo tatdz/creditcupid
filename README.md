@@ -14,7 +14,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 ## ✨ What is CreditCupid?
 
-- 🔄 **Cross-Chain Credit Oracle:** Aggregates your DeFi activity and verified Web2 income and identity into a dynamic, privacy-first credit score (300-850).  
+- 🔄 **Cross-Chain Credit Oracle:** Aggregates your DeFi activity and verified Web2 income and identity into a dynamic, privacy-first credit score (300-850 that follows FICO scoring).  
 - 🤖 **AI-Powered Credit Analysis Agents:** Transparent credit score breakdowns and actionable recommendations verified by Blockscout MCP data—helping you improve your creditworthiness and attract better matches.  
 - 💘 **Dual Matchmaking Experiences:**  
   - **Dating Flow:** Find life partners filtered by verified credit score, age, and gender—pseudonymous and privacy-first.  
