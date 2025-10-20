@@ -64,6 +64,48 @@ npm run dev
 # AI Agents setup
 cd ../agents
 # Setup python environment & dependencies
+brew install pyenv
+pyenv install 3.10.9
+pyenv local 3.10.9
+
+# Install OpenSSL and set environment variables
+brew install openssl@3
+
+# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+echo 'export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1' >> ~/.bashrc
+echo 'export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1' >> ~/.bashrc
+echo 'export LDFLAGS="-L/opt/homebrew/opt/openssl@3/lib"' >> ~/.bashrc
+echo 'export CPPFLAGS="-I/opt/homebrew/opt/openssl@3/include"' >> ~/.bashrc
+
+# Reload your shell
+source ~/.bashrc
+
+# Upgrade pip and install dependencies
+python3 -m pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+
+# Start the analyst agent first
 python3 analyst.py
+
+Important: Save the address output from analyst.py to use when running other agent files.
+
+#### 5. Environment Configuration
+Backend (.env):
+
+env
+BLOCKSCOUT_API_KEY=your_blockscout_key
+PINATA_JWT=your_pinata_jwt
+# or use API key/secret
+PINATA_API_KEY=your_pinata_key
+PINATA_SECRET_KEY=your_pinata_secret
+SEPOLIA_RPC_URL=your_sepolia_rpc_url
+PRIVATE_KEY=your_wallet_private_key
+
+Frontend (.env):
+
+env
+VITE_PINATA_JWT=your_pinata_jwt
+VITE_BLOCKSCOUT_API_KEY=your_blockscout_key
+VITE_WALLET_CONNECT_PROJECT_ID=your_walletconnect_id
 
 
