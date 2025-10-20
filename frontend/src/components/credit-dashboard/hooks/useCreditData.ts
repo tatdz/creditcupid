@@ -9,22 +9,22 @@ export const useCreditData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchCreditData = async (walletAddress: string) => {
+  const fetchCreditData = async (walletAddress: string, signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       console.log(`📊 Fetching REAL credit data for ${walletAddress} on chain ${chain?.id}`);
-      
-      // Try to fetch from your backend API
+
       const response = await axios.get(
-        `http://localhost:3001/api/credit-data/${walletAddress}`,
+        `/api/credit-data/${walletAddress}`, // relative URL to use Vite proxy
         {
           params: { chainId: chain?.id || 1 },
-          timeout: 10000 // 10 second timeout
+          timeout: 15000, // increased timeout
+          signal, // abort signal for cancellation
         }
       );
-      
+
       if (response.data) {
         console.log('✅ REAL credit data loaded successfully from API:', {
           creditScore: response.data.creditScore,
@@ -32,21 +32,39 @@ export const useCreditData = () => {
           walletValue: response.data.walletData?.totalValueUSD,
           tokenCount: response.data.walletData?.tokenBalances?.length
         });
-        
+
         setCreditData(response.data as CreditData);
       } else {
         throw new Error('No data received from server');
       }
     } catch (err: any) {
-      console.error('❌ API fetch failed:', err.message);
-      
-      // DO NOT USE MOCK DATA - set to null instead
-      setCreditData(null);
-      setError(`Unable to fetch credit data: ${err.message}`);
+      if (axios.isCancel(err)) {
+        console.log('Request cancelled', err.message);
+      } else {
+        console.error('❌ API fetch failed:', err.toJSON ? err.toJSON() : err.message);
+        setCreditData(null);
+        setError(`Unable to fetch credit data: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isConnected || !address) {
+      setCreditData(null);
+      setError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetchCreditData(address, controller.signal);
+
+    return () => {
+      controller.abort(); // cancel pending requests on deps change or unmount
+    };
+  }, [address, isConnected, chain?.id]);
 
   const retry = () => {
     if (address) {
@@ -54,19 +72,5 @@ export const useCreditData = () => {
     }
   };
 
-  useEffect(() => {
-    if (isConnected && address) {
-      fetchCreditData(address);
-    } else {
-      setCreditData(null);
-      setError(null);
-    }
-  }, [address, isConnected, chain?.id]); // Added chain.id dependency
-
-  return {
-    creditData,
-    loading,
-    error,
-    retry
-  };
+  return { creditData, loading, error, retry };
 };
