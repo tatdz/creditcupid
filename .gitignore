@@ -29,3 +29,10 @@ __pycache__/
 
 .DS_Store
 .gitignore
+# --- agents sub-project ---
+agents/.venv/
+agents/__pycache__/
+agents/*.pyc
+agents/.env
+agents/.env.*
+agents/*.log
