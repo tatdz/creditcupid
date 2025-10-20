@@ -4,7 +4,6 @@ import {
   WagmiProvider,
   http,
   useAccount,
-  useConnect,
 } from 'wagmi';
 import {
   sepolia,
@@ -44,9 +43,15 @@ const transports = {
   [base.id]: http(rpcUrls[base.id]),
 };
 
+const connectors = [
+  injected({
+    shimDisconnect: true,
+  }),
+];
+
 const config = createConfig({
   chains: [sepolia, mainnet, polygon, arbitrum, optimism, base],
-  connectors: [injected()],
+  connectors,
   transports,
 });
 
@@ -60,44 +65,12 @@ const queryClient = new QueryClient({
   },
 });
 
-function ConnectWalletPrompt() {
-  const { connect, connectors, error } = useConnect();
-  const { isConnected } = useAccount();
-
-  if (isConnected) return null;
-
-  return (
-    <div className="h-screen flex flex-col justify-center items-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
-      <h2 className="mb-6 text-2xl font-semibold text-center">
-        Please connect your wallet to continue
-      </h2>
-      <div className="flex flex-col gap-4 w-60">
-        {connectors.map((connector) => (
-          <button
-            key={connector.id}
-            onClick={() => connect({ connector })}
-            disabled={!connector.ready}
-            className="rounded px-6 py-3 bg-blue-600 text-white text-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {connector.name}
-          </button>
-        ))}
-      </div>
-      {error && <p className="mt-4 text-red-600 text-center">{error.message}</p>}
-    </div>
-  );
-}
-
 function AppContent() {
-  const [showPopup, setShowPopup] = useState(true);
   const { isConnected } = useAccount();
 
-  if (showPopup) {
-    return <LandingPopup gifUrl={cupidGif} onComplete={() => setShowPopup(false)} />;
-  }
-
+  // Show LandingPopup until wallet is connected
   if (!isConnected) {
-    return <ConnectWalletPrompt />;
+    return <LandingPopup gifUrl={cupidGif} onComplete={() => {}} />;
   }
 
   return (
