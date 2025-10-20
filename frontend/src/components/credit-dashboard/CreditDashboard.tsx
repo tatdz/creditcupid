@@ -24,13 +24,13 @@ import {
 import { CreditScore } from '../ui/CreditScore';
 import { CreditBenefits } from '../ui/CreditBenefits';
 import { CreditData } from '../../types/credit';
+import { ProtocolComparison } from './components/ProtocolComparison';
 
 // Import new modular components
 import { useCreditData } from './hooks/useCreditData';
 import { usePlaidIntegration } from './hooks/usePlaidIntegration';
 import { useCreditScore } from './hooks/useCreditScore';
 import { FinancialHealthPanel } from './components/FinancialHealthPanel';
-import { ProtocolComparison } from './components/ProtocolComparison';
 import { CreditScoreBreakdownPanel } from './components/CreditScoreBreakdownPanel';
 
 export const CreditDashboard: React.FC = () => {
@@ -342,12 +342,12 @@ export const CreditDashboard: React.FC = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-3 w-full bg-white p-1 rounded-lg border">
+          <TabsList className="grid grid-cols-4 w-full bg-white p-1 rounded-lg border">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
-              </TabsTrigger>
-              <TabsTrigger value="dating" className="flex items-center gap-2">
+            </TabsTrigger>
+            <TabsTrigger value="dating" className="flex items-center gap-2">
               <Heart className="h-4 w-4 text-pink-500" />
               Dating
             </TabsTrigger>
@@ -403,8 +403,8 @@ export const CreditDashboard: React.FC = () => {
           </TabsContent>
           {/* Lending Tab */}
           <TabsContent value="lending" className="space-y-6">
-            <ProtocolComparison />
-            <P2PLending />
+            <ProtocolComparison userCreditScore={creditScore} />
+            <P2PLending userCreditScore={creditScore} userAddress={address!} />
           </TabsContent>
 
           {/* AI Agents Tab */}

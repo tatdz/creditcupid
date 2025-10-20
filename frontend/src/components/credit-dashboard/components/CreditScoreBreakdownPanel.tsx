@@ -228,7 +228,7 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
             Credit Score Breakdown
           </CardTitle>
           <CardDescription>
-            Unable to fetch on-chain data
+            Unable to fetch onchain data
           </CardDescription>
         </CardHeader>
         <CardContent>
