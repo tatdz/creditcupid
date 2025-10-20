@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { CreditDashboard } from './components/credit-dashboard/CreditDashboard';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { sepolia, mainnet, polygon, arbitrum, optimism, base } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { injected } from 'wagmi/connectors';
 import { NotificationProvider, TransactionPopupProvider } from "@blockscout/app-sdk";
+import LandingPopup from './components/LandingPopup';
+import cupidGif from './assets/cupid.gif';  // Make sure this path & filename are correct
 
-// RPC URLs using public endpoints
+// RPC URLs
 const rpcUrls = {
   [sepolia.id]: 'https://rpc.sepolia.org',
   [mainnet.id]: 'https://eth.llamarpc.com',
@@ -43,20 +45,25 @@ const queryClient = new QueryClient({
 });
 
 function App() {
+  const [showPopup, setShowPopup] = useState(true);
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
         <NotificationProvider>
           <TransactionPopupProvider>
-            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-              <CreditDashboard />
-            </div>
+            {showPopup ? (
+              <LandingPopup gifUrl={cupidGif} onComplete={() => setShowPopup(false)} />
+            ) : (
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+                <CreditDashboard />
+              </div>
+            )}
           </TransactionPopupProvider>
         </NotificationProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );
 }
-
 
 export default App;

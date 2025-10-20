@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { useTransactionPopup } from "@blockscout/app-sdk";
+import { DatingTab } from '../DatingTab';
 import { P2PLending } from '../P2PLending';
 import { AgentChat } from '../AgentChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
@@ -17,6 +18,7 @@ import {
   RefreshCw,
   BarChart3,
   Shield,
+  Heart,
   Zap
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
@@ -173,7 +175,7 @@ export const CreditDashboard: React.FC = () => {
           {/* Header */}
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">Darma Credit Protocol</h1>
+              <h1 className="text-4xl font-bold text-gray-900">CreditCupid</h1>
               <p className="text-gray-600 mt-2">
                 Privacy-preserving credit scoring powered by on-chain data
               </p>
@@ -274,9 +276,9 @@ export const CreditDashboard: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">Darma Credit Protocol</h1>
+            <h1 className="text-4xl font-bold text-gray-900">CreditCupid</h1>
             <p className="text-gray-600 mt-2">
-              Privacy-preserving credit scoring powered by on-chain data and cryptographic verification
+              The first onchain credit oracle to spark authentic bonds in romance and P2P lending
             </p>
           </div>
           <div className="flex items-center gap-4">
@@ -334,15 +336,6 @@ export const CreditDashboard: React.FC = () => {
                   No personal information is stored on our servers.
                 </p>
               </div>
-              <Button
-                onClick={handleViewTransactions}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 border-blue-300 text-blue-700 whitespace-nowrap"
-              >
-                <BarChart3 className="h-4 w-4" />
-                Verify Data
-              </Button>
             </div>
           </div>
         )}
@@ -353,10 +346,14 @@ export const CreditDashboard: React.FC = () => {
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
               Overview
+              </TabsTrigger>
+              <TabsTrigger value="dating" className="flex items-center gap-2">
+              <Heart className="h-4 w-4 text-pink-500" />
+              Dating
             </TabsTrigger>
             <TabsTrigger value="lending" className="flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              Lending
+              P2P Lending
             </TabsTrigger>
             <TabsTrigger value="agents" className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
@@ -400,7 +397,10 @@ export const CreditDashboard: React.FC = () => {
               </div>
             </div>
           </TabsContent>
-
+          {/* Dating Tab */}
+          <TabsContent value="dating">
+           <DatingTab />
+          </TabsContent>
           {/* Lending Tab */}
           <TabsContent value="lending" className="space-y-6">
             <ProtocolComparison />
@@ -420,7 +420,7 @@ export const CreditDashboard: React.FC = () => {
         <div className="mt-12 pt-8 border-t border-gray-200">
           <div className="text-center text-sm text-gray-600">
             <p>
-              Darma Credit Protocol • Privacy-first on-chain credit scoring •{' '}
+              CreditCupid • The first onchain credit oracle to spark authentic bonds in romance and P2P lending •{' '}
               <button 
                 onClick={handleViewTransactions}
                 className="text-blue-600 hover:text-blue-800 underline"
