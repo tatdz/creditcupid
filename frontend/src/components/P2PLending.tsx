@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useContractWrite } from 'wagmi';
+import { useAccount, useContractWrite, useContractRead } from 'wagmi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
@@ -185,6 +185,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<'borrower' | 'lender' | null>(null);
   const [loanAmount, setLoanAmount] = useState('');
+  const [collateralAmount, setCollateralAmount] = useState('');
   const [lendAmount, setLendAmount] = useState('');
 
   // Calculate LTV based on credit score (matching contract logic)
@@ -204,6 +205,16 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     if (creditScore >= 700) return baseRate + 1.0;
     if (creditScore >= 650) return baseRate + 2.0;
     return baseRate + 4.0;
+  };
+
+  // Calculate maximum loan amount based on collateral and LTV
+  const calculateMaxLoanAmount = (collateral: number, ltv: number): number => {
+    return collateral * (ltv / 100);
+  };
+
+  // Calculate minimum collateral based on loan amount and LTV
+  const calculateMinCollateral = (loan: number, ltv: number): number => {
+    return loan / (ltv / 100);
   };
 
   // Initialize user profile
@@ -230,7 +241,34 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     }
   }, [isConnected, userAddress, userCreditScore]);
 
-  // Mock data for demonstration (you can replace with real contract calls)
+  // Set active tab based on selected role
+  useEffect(() => {
+    if (selectedRole === 'borrower') {
+      setActiveTab('borrow');
+    } else if (selectedRole === 'lender') {
+      setActiveTab('lend');
+    }
+  }, [selectedRole]);
+
+  // Update max loan amount when collateral changes
+  useEffect(() => {
+    if (collateralAmount && userProfile) {
+      const collateral = parseFloat(collateralAmount);
+      const maxLoan = calculateMaxLoanAmount(collateral, userProfile.preferredTerms.maxLTV);
+      setLoanAmount(maxLoan.toFixed(2));
+    }
+  }, [collateralAmount, userProfile]);
+
+  // Update min collateral when loan amount changes
+  useEffect(() => {
+    if (loanAmount && userProfile && !collateralAmount) {
+      const loan = parseFloat(loanAmount);
+      const minCollateral = calculateMinCollateral(loan, userProfile.preferredTerms.maxLTV);
+      setCollateralAmount(minCollateral.toFixed(2));
+    }
+  }, [loanAmount, userProfile]);
+
+  // Mock data for demonstration
   useEffect(() => {
     if (isConnected && userProfile) {
       const mockProfiles: P2PProfile[] = [
@@ -284,7 +322,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
           borrowerProfile: mockProfiles[1],
           token: 'ETH',
           amount: 5000,
-          collateral: 6250,
+          collateral: 6667, // 5000 / 0.75 = 6667 (75% LTV)
           duration: 120,
           interestRate: 4.5,
           status: 'pending'
@@ -302,8 +340,8 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     mutation: {
       onSuccess: (data) => {
         console.log('Loan request created:', data);
-        setLoanAmount(''); // Reset form
-        // You could refresh loan requests here
+        setLoanAmount('');
+        setCollateralAmount('');
       },
       onError: (error) => {
         console.error('Failed to create loan:', error);
@@ -316,8 +354,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     mutation: {
       onSuccess: (data) => {
         console.log('Lender offer created:', data);
-        setLendAmount(''); // Reset form
-        // You could refresh loan offers here
+        setLendAmount('');
       },
       onError: (error) => {
         console.error('Failed to create offer:', error);
@@ -325,11 +362,23 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     }
   });
 
+  // Contract write for funding a loan
+  const { writeContract: fundLoan, isPending: isFundingLoan } = useContractWrite({
+    mutation: {
+      onSuccess: (data) => {
+        console.log('Loan funded:', data);
+      },
+      onError: (error) => {
+        console.error('Failed to fund loan:', error);
+      }
+    }
+  });
+
   const handleCreateLoan = () => {
-    if (!loanAmount || !userProfile) return;
+    if (!loanAmount || !collateralAmount || !userProfile) return;
     
     const loanAmountWei = BigInt(Math.floor(parseFloat(loanAmount) * 1e18));
-    const collateralAmountWei = BigInt(Math.floor((parseFloat(loanAmount) / (userProfile.preferredTerms.maxLTV / 100)) * 1e18));
+    const collateralAmountWei = BigInt(Math.floor(parseFloat(collateralAmount) * 1e18));
     const durationSeconds = BigInt(90 * 24 * 60 * 60); // 90 days in seconds
 
     createLoan({
@@ -348,7 +397,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     if (!lendAmount || !userProfile) return;
     
     const lendAmountWei = BigInt(Math.floor(parseFloat(lendAmount) * 1e18));
-    const maxLTVBps = BigInt(8000); // 80% in basis points
+    const maxLTVBps = BigInt(userProfile.preferredTerms.maxLTV * 100); // Convert to basis points
     const interestRateBps = BigInt(400); // 4% in basis points
     const maxDurationSeconds = BigInt(180 * 24 * 60 * 60); // 180 days in seconds
 
@@ -362,6 +411,18 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
         maxLTVBps,
         interestRateBps,
         maxDurationSeconds
+      ]
+    });
+  };
+
+  const handleFundLoan = (loanId: number, offerId: number) => {
+    fundLoan({
+      address: P2P_LENDING_ADDRESS,
+      abi: P2P_LENDING_ABI,
+      functionName: 'fundLoan',
+      args: [
+        BigInt(loanId),
+        BigInt(offerId)
       ]
     });
   };
@@ -386,7 +447,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     return (
       <Card>
         <CardHeader>
-          <CardTitle>CreditCupid P2P Lending</CardTitle>
+          <CardTitle>P2P Lending</CardTitle>
           <CardDescription>
             Connect your wallet to access credit-based lending
           </CardDescription>
@@ -431,7 +492,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-6 w-6" />
-            CreditCupid P2P Lending
+            P2P Lending
           </CardTitle>
           <CardDescription>
             Credit-based lending with better terms than traditional DeFi
@@ -479,7 +540,9 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
               userProfile={userProfile}
               loanOffers={filteredOffers}
               loanAmount={loanAmount}
+              collateralAmount={collateralAmount}
               onLoanAmountChange={setLoanAmount}
+              onCollateralAmountChange={setCollateralAmount}
               onCreateLoan={handleCreateLoan}
               isCreatingLoan={isCreatingLoan}
               comparison={comparison}
@@ -493,7 +556,9 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
               lendAmount={lendAmount}
               onLendAmountChange={setLendAmount}
               onCreateOffer={handleCreateOffer}
+              onFundLoan={handleFundLoan}
               isCreatingOffer={isCreatingOffer}
+              isFundingLoan={isFundingLoan}
             />
           )}
         </CardContent>
@@ -540,11 +605,11 @@ const RoleSelection: React.FC<{
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Borrower Option */}
             <Card className="border-2 hover:border-blue-500 transition-colors cursor-pointer">
-              <div className="pt-6 text-center cursor-pointer" onClick={() => onSelectRole('borrower')}>
+              <div className="pt-6 text-center">
                 <TrendingUp className="h-12 w-12 mx-auto mb-4 text-blue-600" />
                 <CardTitle className="mb-2">Borrower</CardTitle>
                 <p className="text-sm text-gray-600 mb-4">
-                  Get loans with better terms based on your credit score
+                  Get undercollateralized loans based on your credit score
                 </p>
                 {userProfile && (
                   <div className="space-y-2 text-sm">
@@ -562,7 +627,7 @@ const RoleSelection: React.FC<{
                     </div>
                   </div>
                 )}
-                <Button className="w-full mt-4">
+                <Button className="w-full mt-4" onClick={() => onSelectRole('borrower')}>
                   Start Borrowing
                 </Button>
               </div>
@@ -570,7 +635,7 @@ const RoleSelection: React.FC<{
 
             {/* Lender Option */}
             <Card className="border-2 hover:border-green-500 transition-colors cursor-pointer">
-              <div className="pt-6 text-center cursor-pointer" onClick={() => onSelectRole('lender')}>
+              <div className="pt-6 text-center">
                 <DollarSign className="h-12 w-12 mx-auto mb-4 text-green-600" />
                 <CardTitle className="mb-2">Lender</CardTitle>
                 <p className="text-sm text-gray-600 mb-4">
@@ -592,7 +657,7 @@ const RoleSelection: React.FC<{
                     </div>
                   </div>
                 )}
-                <Button className="w-full mt-4" variant="outline">
+                <Button className="w-full mt-4" variant="outline" onClick={() => onSelectRole('lender')}>
                   Start Lending
                 </Button>
               </div>
@@ -610,34 +675,17 @@ const ProfilesTab: React.FC<{
   searchTerm: string;
   onSearchChange: (term: string) => void;
 }> = ({ profiles, userProfile, searchTerm, onSearchChange }) => {
-  // Simple Input component
-  const Input: React.FC<{
-    value: string;
-    onChange?: (value: string) => void;
-    placeholder?: string;
-    disabled?: boolean;
-    className?: string;
-  }> = ({ value, onChange, placeholder, disabled, className }) => (
-    <input
-      type="text"
-      value={value}
-      onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-      placeholder={placeholder}
-      disabled={disabled}
-      className={`w-full p-2 border rounded-lg ${className || ''} ${disabled ? 'bg-gray-100' : ''}`}
-    />
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Search by nickname or wallet address..."
+          <input
+            type="text"
             value={searchTerm}
-            onChange={onSearchChange}
-            className="pl-10"
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search by nickname or wallet address..."
+            className="w-full p-2 pl-10 border rounded-lg"
           />
         </div>
       </div>
@@ -692,13 +740,18 @@ const BorrowTab: React.FC<{
   userProfile: P2PProfile;
   loanOffers: LoanOffer[];
   loanAmount: string;
+  collateralAmount: string;
   onLoanAmountChange: (amount: string) => void;
+  onCollateralAmountChange: (amount: string) => void;
   onCreateLoan: () => void;
   isCreatingLoan: boolean;
   comparison: any;
-}> = ({ userProfile, loanOffers, loanAmount, onLoanAmountChange, onCreateLoan, isCreatingLoan, comparison }) => {
-  const requiredCollateral = loanAmount ? 
-    (parseFloat(loanAmount) / (userProfile.preferredTerms.maxLTV / 100)).toFixed(2) : '0';
+}> = ({ userProfile, loanOffers, loanAmount, collateralAmount, onLoanAmountChange, onCollateralAmountChange, onCreateLoan, isCreatingLoan, comparison }) => {
+  // Calculate current LTV based on inputs (matches contract logic)
+  const currentLTV = loanAmount && collateralAmount ? 
+    ((parseFloat(loanAmount) / parseFloat(collateralAmount)) * 100).toFixed(1) : '0';
+
+  const isLTVValid = parseFloat(currentLTV) <= userProfile.preferredTerms.maxLTV;
 
   return (
     <div className="space-y-6">
@@ -707,8 +760,8 @@ const BorrowTab: React.FC<{
         <CardContent className="pt-6">
           <div className="text-center">
             <Zap className="h-8 w-8 mx-auto mb-3 text-blue-600" />
-            <h3 className="font-semibold text-lg mb-2">Your CreditCupid Benefits</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <h3 className="font-semibold text-lg mb-2">Your Credit-Based Benefits</h3>
+            <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-2xl font-bold text-blue-600">
                   {userProfile.preferredTerms.maxLTV}%
@@ -720,6 +773,12 @@ const BorrowTab: React.FC<{
                   {comparison.creditCupid.rate.toFixed(1)}%
                 </div>
                 <div className="text-gray-600">Borrow Rate</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {userProfile.creditScore}
+                </div>
+                <div className="text-gray-600">Credit Score</div>
               </div>
             </div>
             <p className="text-xs text-gray-600 mt-2">
@@ -734,12 +793,25 @@ const BorrowTab: React.FC<{
         <CardHeader>
           <CardTitle>Create Loan Request</CardTitle>
           <CardDescription>
-            Request a loan using your credit score for better terms
+            Request an undercollateralized loan using your credit score
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Loan Amount (ETH)</label>
+            <label className="block text-sm font-medium mb-2">Collateral Amount</label>
+            <input
+              type="number"
+              value={collateralAmount}
+              onChange={(e) => onCollateralAmountChange(e.target.value)}
+              className="w-full p-2 border rounded-lg"
+              placeholder="0.00"
+            />
+            <p className="text-xs text-gray-600 mt-1">
+              The collateral you're willing to lock (test tokens only for demo)
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2">Loan Amount</label>
             <input
               type="number"
               value={loanAmount}
@@ -747,23 +819,38 @@ const BorrowTab: React.FC<{
               className="w-full p-2 border rounded-lg"
               placeholder="0.00"
             />
+            <p className="text-xs text-gray-600 mt-1">
+              Maximum loan based on your {userProfile.preferredTerms.maxLTV}% LTV: {collateralAmount ? (parseFloat(collateralAmount) * (userProfile.preferredTerms.maxLTV / 100)).toFixed(2) : '0'}
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Required Collateral (ETH)</label>
-            <input
-              value={requiredCollateral}
-              disabled
-              className="w-full p-2 border rounded-lg bg-gray-100"
-              placeholder="0.00"
-            />
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <div className="flex justify-between text-sm">
+              <span>Current LTV:</span>
+              <span className={isLTVValid ? 'text-green-600' : 'text-red-600'}>
+                {currentLTV}% {!isLTVValid && '(Exceeds your limit)'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span>Your Max LTV:</span>
+              <span>{userProfile.preferredTerms.maxLTV}%</span>
+            </div>
+            <div className="text-xs text-gray-600 mt-2">
+              <strong>LTV Formula:</strong> (Loan Amount ÷ Collateral Amount) × 100%
+            </div>
+            <div className="text-xs text-gray-600">
+              <strong>Example:</strong> 10 ETH collateral at 60% LTV = 6 ETH loan
+            </div>
           </div>
           <Button 
             onClick={onCreateLoan}
-            disabled={!loanAmount || isCreatingLoan}
+            disabled={!loanAmount || !collateralAmount || isCreatingLoan || !isLTVValid}
             className="w-full"
           >
             {isCreatingLoan ? 'Creating Loan...' : 'Create Loan Request (Smart Contract)'}
           </Button>
+          <p className="text-xs text-gray-600 text-center">
+            Uses Sepolia testnet tokens for demonstration purposes only
+          </p>
         </CardContent>
       </Card>
 
@@ -831,8 +918,10 @@ const LendTab: React.FC<{
   lendAmount: string;
   onLendAmountChange: (amount: string) => void;
   onCreateOffer: () => void;
+  onFundLoan: (loanId: number, offerId: number) => void;
   isCreatingOffer: boolean;
-}> = ({ userProfile, loanRequests, lendAmount, onLendAmountChange, onCreateOffer, isCreatingOffer }) => {
+  isFundingLoan: boolean;
+}> = ({ userProfile, loanRequests, lendAmount, onLendAmountChange, onCreateOffer, onFundLoan, isCreatingOffer, isFundingLoan }) => {
   return (
     <div className="space-y-6">
       <Card>
@@ -844,7 +933,7 @@ const LendTab: React.FC<{
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Lending Amount (ETH)</label>
+            <label className="block text-sm font-medium mb-2">Lending Amount</label>
             <input
               type="number"
               value={lendAmount}
@@ -860,6 +949,9 @@ const LendTab: React.FC<{
           >
             {isCreatingOffer ? 'Creating Offer...' : 'Create Lender Offer (Smart Contract)'}
           </Button>
+          <p className="text-xs text-gray-600 text-center">
+            Uses Sepolia testnet tokens for demonstration purposes only
+          </p>
         </CardContent>
       </Card>
 
@@ -886,10 +978,14 @@ const LendTab: React.FC<{
                     Score: {request.borrowerProfile.creditScore}
                   </Badge>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
                   <div>
-                    <div className="text-gray-600">Amount</div>
+                    <div className="text-gray-600">Loan Amount</div>
                     <div className="font-medium">${request.amount.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-600">Collateral</div>
+                    <div className="font-medium">${request.collateral.toLocaleString()}</div>
                   </div>
                   <div>
                     <div className="text-gray-600">LTV</div>
@@ -902,9 +998,14 @@ const LendTab: React.FC<{
                     <div className="font-medium">{request.interestRate}%</div>
                   </div>
                 </div>
-                <div className="flex gap-2 mt-3">
-                  <Button className="flex-1" size="sm">
-                    Fund Loan
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1" 
+                    size="sm"
+                    onClick={() => onFundLoan(request.id, 1)} // Using offer ID 1 for demo
+                    disabled={isFundingLoan}
+                  >
+                    {isFundingLoan ? 'Funding...' : 'Fund Loan (Smart Contract)'}
                   </Button>
                   <Button variant="outline" size="sm">
                     <MessageCircle className="h-4 w-4" />
