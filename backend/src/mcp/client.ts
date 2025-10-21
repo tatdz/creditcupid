@@ -616,7 +616,7 @@ class RealAaveOracle {
   }
 }
 
-export class DarmaCreditClient {
+export class CreditCupidCreditClient {
   private rpcUrls: RpcUrls;
   private walletDataServices: { [chainId: number]: RealWalletDataService } = {};
   private pythWrappers: { [chainId: number]: RealPythMorphoWrapper } = {};

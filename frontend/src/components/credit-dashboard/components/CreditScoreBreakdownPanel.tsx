@@ -1,10 +1,11 @@
 // components/credit-dashboard/components/CreditScoreBreakdownPanel.tsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/Card';
 import { ExternalLink, Calculator, Wallet, Layers, Cpu, History, AlertCircle, Info } from 'lucide-react';
 import { useAccount } from 'wagmi';
-import { useBlockscoutData } from '../hooks/useBlockscoutData';
-import { PlaidData, PrivacyProofs } from '../../../types/credit';
+import { PlaidData, StoredPrivacyProofs } from '../../../types/credit';
+import { getChainConfig } from '../../../config/chains';
+import { apiService, OnChainData } from '../../../utils/api';
 
 interface CreditScoreBreakdownPanelProps {
   factors: Array<{
@@ -17,7 +18,7 @@ interface CreditScoreBreakdownPanelProps {
   }>;
   creditScore: number;
   plaidData: PlaidData | null;
-  privacyProofs: PrivacyProofs | null;
+  privacyProofs: StoredPrivacyProofs | null;
 }
 
 // Simple dialog component for our use case
@@ -53,6 +54,36 @@ const InfoDialog: React.FC<{ title: string; content: string }> = ({ title, conte
   );
 };
 
+// Single link component for Onchain Activity
+const OnchainActivityLink: React.FC<{ 
+  address: string;
+  chainId: string | number;
+}> = ({ address, chainId }) => {
+  const chain = getChainConfig(chainId);
+  const blockscoutUrl = `${chain.blockscoutUrl}/address/${address}`;
+  const apiUrl = `${chain.blockscoutUrl}/api?module=account&action=eth_get_balance&address=${address}`;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <a 
+        href={blockscoutUrl}
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+      >
+        View Activity on Blockscout <ExternalLink className="h-3 w-3" />
+      </a>
+      <a 
+        href={apiUrl}
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 text-xs"
+      >
+      </a>
+    </div>
+  );
+};
+
 export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps> = ({ 
   factors, 
   creditScore,
@@ -60,74 +91,89 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
   privacyProofs
 }) => {
   const { address, isConnected, chain } = useAccount();
-  
-  const {
-    transactionHistory,
-    protocolInteractions,
-    repaymentHistory,
-    loading,
-    error,
-    blockscoutUrl
-  } = useBlockscoutData(address, chain?.id.toString() || '1');
+  const [onChainData, setOnChainData] = useState<OnChainData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Use Sepolia as default (chain ID 11155111)
+  const chainId = chain?.id || 11155111;
+  const chainConfig = getChainConfig(chainId);
+
+  useEffect(() => {
+    const fetchOnChainData = async () => {
+      if (!address) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await apiService.getOnChainData(address, chainId);
+        setOnChainData(data);
+      } catch (error) {
+        console.error('Failed to fetch on-chain data:', error);
+        setError('Failed to fetch on-chain data from Blockscout API');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOnChainData();
+  }, [address, chainId]);
 
   // Calculate real metrics for each factor
   const enhancedFactors = factors.map(factor => {
     let realMetrics: string[] = [];
     let realDescription = factor.description;
-    let blockscoutLink: string | null = null;
     let showInfoDialog = false;
+    let transactionHashes: string[] = [];
 
     switch (factor.key) {
       case 'ON_CHAIN_HISTORY':
-        const activeMonths = getActiveMonths(transactionHistory);
-        const totalVolume = getTransactionVolume(transactionHistory);
+        // Rename to "Onchain Activity"
+        const transactionCount = onChainData?.transactions.length || 0;
+        const monthsActive = onChainData?.monthsActive || 0;
+        const totalVolume = onChainData?.totalVolume || 0;
+        
         realMetrics = [
-          `${transactionHistory.length} transactions`,
-          `${activeMonths} months active`,
+          `${transactionCount} transactions`,
+          `${monthsActive} months active`,
           `${totalVolume.toFixed(4)} ETH volume`
         ];
-        blockscoutLink = `${blockscoutUrl}?tab=transactions`;
+        // Get first 3 transaction hashes for linking
+        transactionHashes = onChainData?.transactions.slice(0, 3).map(tx => tx.hash) || [];
         break;
 
       case 'COLLATERAL_DIVERSITY':
-        const uniqueAssets = getUniqueAssets(transactionHistory);
-        const collateralValue = getCollateralValue(transactionHistory);
-        realMetrics = [
-          `${uniqueAssets.length} token types`,
-          `$${collateralValue.toLocaleString()} total value`,
-          uniqueAssets.length >= 3 ? 'Diverse portfolio' : 'Limited diversity'
-        ];
-        // Show actual tokens in description
-        if (uniqueAssets.length > 0) {
-          realDescription = `Assets: ${uniqueAssets.slice(0, 3).map(asset => asset.symbol).join(', ')}${uniqueAssets.length > 3 ? '...' : ''}`;
-        }
-        blockscoutLink = `${blockscoutUrl}?tab=tokens`;
-        break;
+        // Remove Wallet Balance factor - we'll filter this out
+        return null;
 
       case 'PROTOCOL_USAGE':
-        // Rename to Lending Protocol Usage
-        const morphoInteractions = protocolInteractions.filter(p => p.protocol === 'morpho' && p.type !== 'repay');
-        const aaveInteractions = protocolInteractions.filter(p => p.protocol === 'aave' && p.type !== 'repay');
-        const uniqueProtocols = new Set(protocolInteractions.map(p => p.protocol)).size;
+        // Lending Protocol Usage
+        const totalInteractions = onChainData?.lendingInteractions.length || 0;
+        const morphoInteractions = onChainData?.lendingInteractions.filter(p => p.protocol === 'Morpho') || [];
+        const aaveInteractions = onChainData?.lendingInteractions.filter(p => p.protocol === 'Aave') || [];
+        const uniqueProtocols = new Set(onChainData?.lendingInteractions.map(p => p.protocol) || []).size;
+        
         realMetrics = [
-          `${protocolInteractions.length} total interactions`,
+          `${totalInteractions} total interactions`,
           `${morphoInteractions.length} Morpho, ${aaveInteractions.length} Aave`,
           `${uniqueProtocols} protocols used`
         ];
         realDescription = 'Active participation in lending protocols (Morpho & Aave)';
         
-        // Only create link if there are interactions
-        if (protocolInteractions.length > 0) {
-          blockscoutLink = `${blockscoutUrl}?tab=transactions`;
-        } else {
+        // Get transaction hashes for protocol interactions
+        transactionHashes = onChainData?.lendingInteractions.slice(0, 3).map(interaction => interaction.hash) || [];
+        
+        if (totalInteractions === 0) {
           showInfoDialog = true;
         }
         break;
 
       case 'REPAYMENT_HISTORY':
-        const morphoRepayments = repaymentHistory.filter(r => r.protocol === 'morpho');
-        const aaveRepayments = repaymentHistory.filter(r => r.protocol === 'aave');
-        const totalRepayments = repaymentHistory.length;
+        const repayments = onChainData?.lendingInteractions.filter(p => p.type === 'repay') || [];
+        const morphoRepayments = repayments.filter(r => r.protocol === 'Morpho');
+        const aaveRepayments = repayments.filter(r => r.protocol === 'Aave');
+        const totalRepayments = repayments.length;
+        
         realMetrics = [
           `${totalRepayments} total repayments`,
           `${morphoRepayments.length} Morpho, ${aaveRepayments.length} Aave`,
@@ -135,10 +181,10 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
         ];
         realDescription = 'Track record of loan repayments on Morpho & Aave';
         
-        // Only create link if there are repayments
-        if (repaymentHistory.length > 0) {
-          blockscoutLink = `${blockscoutUrl}?tab=transactions`;
-        } else {
+        // Get transaction hashes for repayments
+        transactionHashes = repayments.slice(0, 3).map(repayment => repayment.hash);
+        
+        if (repayments.length === 0) {
           showInfoDialog = true;
         }
         break;
@@ -152,7 +198,7 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
             privacyProofs.identityVerified ? 'Identity verified' : 'Identity not verified'
           ];
           realDescription = 'Web2 financial health from verified bank data';
-          showInfoDialog = true; // Always show info dialog for Financial Health
+          showInfoDialog = true;
         } else {
           realMetrics = [
             'Connect bank account via Plaid',
@@ -168,29 +214,62 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
 
     return {
       ...factor,
-      factor: factor.key === 'PROTOCOL_USAGE' ? 'Lending Protocol Usage' : factor.factor,
+      factor: factor.key === 'ON_CHAIN_HISTORY' ? 'Onchain Activity' : 
+              factor.key === 'PROTOCOL_USAGE' ? 'Lending Protocol Usage' : factor.factor,
       metrics: realMetrics,
       description: realDescription,
-      blockscoutLink,
+      transactionHashes,
       showInfoDialog,
-      realData: getRealDataForFactor(factor.key, {
-        transactionHistory,
-        protocolInteractions,
-        repaymentHistory,
-        plaidData
-      })
+      realData: getRealDataForFactor(factor.key, onChainData, plaidData)
     };
-  });
+  }).filter(factor => factor !== null); // Remove Wallet Balance factor
+
+  // Calculate actual credit score based on real data with new weights
+  const calculateRealScore = () => {
+    if (!onChainData) return creditScore;
+
+    const weights = {
+      onchainActivity: 0.35,      // 35% weight
+      lendingUsage: 0.15,         // 15% weight
+      financialHealth: 0.35,      // 35% weight
+      repaymentHistory: 0.15      // 15% weight
+    };
+
+    // Calculate individual scores (0-100 scale)
+    const onchainActivityScore = Math.min(100, (onChainData.transactions.length / 500) * 100);
+    const lendingUsageScore = Math.min(100, (onChainData.lendingInteractions.length / 50) * 100);
+    
+    // Use Plaid verification status for financial health if available
+    const financialHealthScore = privacyProofs ? 
+      (privacyProofs.incomeVerified ? 80 : 40) + // Base score based on income verification
+      (privacyProofs.accountBalanceVerified ? 10 : 0) +
+      (privacyProofs.transactionHistoryVerified ? 10 : 0) :
+      Math.min(100, (onChainData.walletBalance / 5000) * 100); // Use wallet balance as fallback
+    
+    const repaymentHistoryScore = Math.min(100, ((onChainData.lendingInteractions.filter(i => i.type === 'repay').length) / 20) * 100);
+
+    // Apply new scoring formula: 300 + (weighted average × 5.5)
+    const weightedScore = (
+      onchainActivityScore * weights.onchainActivity +
+      lendingUsageScore * weights.lendingUsage +
+      financialHealthScore * weights.financialHealth +
+      repaymentHistoryScore * weights.repaymentHistory
+    );
+
+    return Math.round(300 + weightedScore * 5.5);
+  };
+
+  const realCreditScore = calculateRealScore();
 
   if (!isConnected) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+      <Card className="w-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Calculator className="h-4 w-4" />
             Credit Score Breakdown
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Connect your wallet to view your credit score breakdown
           </CardDescription>
         </CardHeader>
@@ -200,19 +279,19 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+      <Card className="w-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Calculator className="h-4 w-4" />
             Credit Score Breakdown
           </CardTitle>
-          <CardDescription>
-            Analyzing your on-chain activity via Blockscout...
+          <CardDescription className="text-sm">
+            Analyzing your onchain activity via Blockscout...
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <CardContent className="py-4">
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           </div>
         </CardContent>
       </Card>
@@ -221,20 +300,20 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
 
   if (error) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
+      <Card className="w-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Calculator className="h-4 w-4" />
             Credit Score Breakdown
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm">
             Unable to fetch onchain data
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center text-red-600 py-4">
-            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-            {error}
+        <CardContent className="py-4">
+          <div className="text-center text-red-600">
+            <AlertCircle className="h-6 w-6 mx-auto mb-1" />
+            <p className="text-sm">{error}</p>
           </div>
         </CardContent>
       </Card>
@@ -242,34 +321,35 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Calculator className="h-5 w-5" />
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Calculator className="h-4 w-4" />
           Credit Score Breakdown
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-sm">
           How your credit score is calculated across different factors
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
+      <CardContent className="pt-0">
+        <div className="space-y-4">
           {enhancedFactors.map((factor, index) => (
             <CreditFactorCard 
               key={factor.key} 
               factor={factor}
+              chainId={chainId}
+              address={address}
             />
           ))}
         </div>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <h4 className="font-semibold text-blue-900 mb-2">Scoring Formula</h4>
-          <p className="text-sm text-blue-700 mb-2">
-            Credit score = 300 + (On-Chain History × 25% + Collateral Diversity × 20% + 
-            Lending Protocol Usage × 15% + Financial Health × 25% + Repayment History × 15%) × 5.5
+        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <h4 className="font-semibold text-blue-900 mb-1 text-sm">Scoring Formula</h4>
+          <p className="text-xs text-blue-700 mb-1">
+            Credit score = 300 + (Onchain Activity × 35% + Lending Protocol Usage × 15% + Financial Health × 35% + Repayment History × 15%) × 5.5
           </p>
           <p className="text-xs text-blue-600">
-            Range 300-850 follows traditional FICO scoring for familiarity. 300 represents minimum score, 850 represents excellent credit.
+            Current calculated score: <strong>{realCreditScore}</strong> (based on real Sepolia data)
           </p>
         </div>
       </CardContent>
@@ -287,26 +367,30 @@ interface CreditFactorCardProps {
     description: string;
     metrics: string[];
     realData: any[];
-    blockscoutLink: string | null;
+    transactionHashes: string[];
     showInfoDialog: boolean;
   };
+  chainId: string | number;
+  address: string | undefined;
 }
 
-const CreditFactorCard: React.FC<CreditFactorCardProps> = ({ factor }) => {
+const CreditFactorCard: React.FC<CreditFactorCardProps> = ({ 
+  factor, 
+  chainId,
+  address
+}) => {
   const getFactorIcon = (key: string) => {
     switch (key) {
       case 'ON_CHAIN_HISTORY':
-        return <Wallet className="h-4 w-4" />;
-      case 'COLLATERAL_DIVERSITY':
-        return <Layers className="h-4 w-4" />;
+        return <History className="h-3 w-3" />;
       case 'PROTOCOL_USAGE':
-        return <Cpu className="h-4 w-4" />;
+        return <Cpu className="h-3 w-3" />;
       case 'REPAYMENT_HISTORY':
-        return <History className="h-4 w-4" />;
+        return <Layers className="h-3 w-3" />;
       case 'FINANCIAL_HEALTH':
-        return <Calculator className="h-4 w-4" />;
+        return <Calculator className="h-3 w-3" />;
       default:
-        return <Calculator className="h-4 w-4" />;
+        return <Calculator className="h-3 w-3" />;
     }
   };
 
@@ -319,10 +403,9 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({ factor }) => {
 
   const getWeight = (key: string): string => {
     switch (key) {
-      case 'ON_CHAIN_HISTORY': return '25%';
-      case 'COLLATERAL_DIVERSITY': return '20%';
+      case 'ON_CHAIN_HISTORY': return '35%';
       case 'PROTOCOL_USAGE': return '15%';
-      case 'FINANCIAL_HEALTH': return '25%';
+      case 'FINANCIAL_HEALTH': return '35%';
       case 'REPAYMENT_HISTORY': return '15%';
       default: return '0%';
     }
@@ -333,12 +416,12 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({ factor }) => {
       case 'PROTOCOL_USAGE':
         return {
           title: 'Lending Protocol Usage',
-          content: 'We track your interactions with Morpho and Aave lending protocols across all supported chains. This includes supply, withdraw, borrow, liquidate, and flash loan operations, but excludes repayments (which are tracked separately).'
+          content: 'We track your interactions with Morpho and Aave lending protocols on Sepolia. This includes supply, withdraw, borrow, and liquidate operations using real Blockscout API data.'
         };
       case 'REPAYMENT_HISTORY':
         return {
           title: 'Repayment History',
-          content: 'We monitor your loan repayments on Morpho and Aave protocols across all supported chains. Timely repayments improve your credit score, while missed payments negatively impact it.'
+          content: 'We monitor your loan repayments on Morpho and Aave protocols on Sepolia. Timely repayments improve your credit score. Uses real transaction data from Blockscout.'
         };
       case 'FINANCIAL_HEALTH':
         return {
@@ -358,54 +441,63 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({ factor }) => {
   const infoContent = getInfoDialogContent(factor.key);
 
   return (
-    <div className="p-4 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
-      <div className="flex justify-between items-start mb-3">
-        <div className="flex items-start gap-3 flex-1">
-          <div className="p-2 bg-blue-100 rounded-lg">
+    <div className="p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
+      <div className="flex justify-between items-start mb-2">
+        <div className="flex items-start gap-2 flex-1">
+          <div className="p-1.5 bg-blue-100 rounded-lg">
             {getFactorIcon(factor.key)}
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-semibold">{factor.factor}</h4>
+            <div className="flex items-center gap-1 mb-1">
+              <h4 className="font-semibold text-sm">{factor.factor}</h4>
               
               {factor.showInfoDialog ? (
                 <InfoDialog title={infoContent.title} content={infoContent.content} />
-              ) : factor.blockscoutLink ? (
-                <a 
-                  href={factor.blockscoutLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink className="h-3 w-3" />
-                </a>
+              ) : factor.key === 'ON_CHAIN_HISTORY' && address ? (
+                <OnchainActivityLink address={address} chainId={chainId} />
+              ) : factor.transactionHashes.length > 0 ? (
+                <div className="flex gap-1">
+                  {factor.transactionHashes.slice(0, 2).map((hash, index) => (
+                    <a 
+                      key={hash}
+                      href={apiService.getExplorerUrl(chainId, 'tx', hash)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
+                    >
+                      View TX <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  ))}
+                  {factor.transactionHashes.length > 2 && (
+                    <span className="text-xs text-gray-500">+{factor.transactionHashes.length - 2} more</span>
+                  )}
+                </div>
               ) : null}
             </div>
-            <p className="text-sm text-gray-600">{factor.description}</p>
+            <p className="text-xs text-gray-600">{factor.description}</p>
           </div>
         </div>
         <div className="text-right">
-          <div className={`text-lg font-bold ${color.text}`}>
+          <div className={`text-base font-bold ${color.text}`}>
             {factor.score}/100
           </div>
-          <div className="text-sm text-gray-500">{weight} weight</div>
+          <div className="text-xs text-gray-500">{weight} weight</div>
           <div className="text-xs text-gray-400 capitalize">{factor.impact} impact</div>
         </div>
       </div>
       
       {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
         <div 
-          className={`h-2 rounded-full transition-all duration-500 ${color.bg}`}
+          className={`h-1.5 rounded-full transition-all duration-500 ${color.bg}`}
           style={{ width: `${factor.score}%` }}
         />
       </div>
       
       {/* Metrics */}
-      <div className="flex flex-wrap gap-1 mb-3">
+      <div className="flex flex-wrap gap-1">
         {factor.metrics.map((metric: string, idx: number) => (
-          <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200">
+          <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
             {metric}
           </span>
         ))}
@@ -414,78 +506,20 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({ factor }) => {
   );
 };
 
-// Helper functions (keep the same as before)
-const getRealDataForFactor = (factorKey: string, data: any) => {
+// Helper functions
+const getRealDataForFactor = (factorKey: string, onChainData: OnChainData | null, plaidData: any) => {
+  if (!onChainData) return [];
+
   switch (factorKey) {
     case 'ON_CHAIN_HISTORY':
-      return data.transactionHistory?.slice(0, 3) || [];
-    case 'COLLATERAL_DIVERSITY':
-      return getUniqueAssets(data.transactionHistory).slice(0, 3);
+      return onChainData.transactions.slice(0, 3);
     case 'PROTOCOL_USAGE':
-      return data.protocolInteractions?.slice(0, 3) || [];
+      return onChainData.lendingInteractions.slice(0, 3);
     case 'REPAYMENT_HISTORY':
-      return data.repaymentHistory?.slice(0, 3) || [];
+      return onChainData.lendingInteractions.filter(i => i.type === 'repay').slice(0, 3);
     case 'FINANCIAL_HEALTH':
-      return data.plaidData?.transactions?.slice(0, 3) || [];
+      return plaidData?.transactions?.slice(0, 3) || [];
     default:
       return [];
   }
-};
-
-const getActiveMonths = (transactions: any[]): number => {
-  if (!transactions || transactions.length === 0) return 0;
-  const months = new Set();
-  transactions.forEach(tx => {
-    if (tx.timestamp) {
-      const date = new Date(tx.timestamp * 1000);
-      months.add(`${date.getFullYear()}-${date.getMonth()}`);
-    }
-  });
-  return months.size;
-};
-
-const getTransactionVolume = (transactions: any[]): number => {
-  if (!transactions) return 0;
-  return transactions.reduce((total, tx) => {
-    const value = parseFloat(tx.value) || 0;
-    return total + (value / 1e18); // Convert from wei to ETH
-  }, 0);
-};
-
-const getUniqueAssets = (transactions: any[]): any[] => {
-  if (!transactions) return [];
-  const assets: any[] = [];
-  const seen = new Set();
-  
-  transactions.forEach(tx => {
-    if (tx.tokenTransfers) {
-      tx.tokenTransfers.forEach((transfer: any) => {
-        if (transfer.token && !seen.has(transfer.token.address)) {
-          seen.add(transfer.token.address);
-          assets.push({
-            symbol: transfer.token.symbol || 'Unknown',
-            address: transfer.token.address,
-            value: transfer.value
-          });
-        }
-      });
-    }
-  });
-  
-  return assets;
-};
-
-const getCollateralValue = (transactions: any[]): number => {
-  if (!transactions) return 0;
-  let total = 0;
-  
-  // This would need actual price data from an oracle
-  // For now, we'll estimate based on transaction values
-  transactions.forEach(tx => {
-    const value = parseFloat(tx.value) || 0;
-    total += value / 1e18; // Convert from wei to ETH
-  });
-  
-  // Rough estimate: assume $2000 per ETH
-  return total * 2000;
 };

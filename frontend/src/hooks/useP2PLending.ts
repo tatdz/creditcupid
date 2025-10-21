@@ -1,144 +1,230 @@
-import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { ethers } from 'ethers';
+import { useState } from 'react';
+import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { sepolia } from 'wagmi/chains';
 
-export interface LoanOffer {
-  id: number;
-  lender: string;
-  token: string;
-  maxAmount: string;
-  minScore: number;
-  maxLTV: number;
-  interestRate: number;
-  maxDuration: number;
-  active: boolean;
-}
+const P2P_LENDING_ADDRESS = '0xaF1847D02A5d235730c19f1aA5D95296D5EAE691' as `0x${string}`;
 
-export interface Loan {
-  id: number;
-  borrower: string;
-  lender: string;
-  token: string;
-  principal: string;
-  collateral: string;
-  interestRate: number;
-  duration: number;
-  startTime: number;
-  dueTime: number;
-  status: 'Active' | 'Repaid' | 'Defaulted' | 'Liquidated';
+const P2P_LENDING_ABI = [
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_loanAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_duration",
+        "type": "uint256"
+      }
+    ],
+    "name": "createLoanRequest",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_maxAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minCreditScore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_maxLtv",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_interestRate",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_maxDuration",
+        "type": "uint256"
+      }
+    ],
+    "name": "createLenderOffer",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+] as const;
+
+interface P2PTransactionState {
+  type: 'createLoan' | 'createOffer' | null;
+  isPending: boolean;
+  hash: string | null;
+  success: boolean;
+  error: string | null;
 }
 
 export const useP2PLending = () => {
-  const { address, isConnected } = useAccount();
-  const [loanOffers, setLoanOffers] = useState<LoanOffer[]>([]);
-  const [userLoans, setUserLoans] = useState<Loan[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { writeContract } = useWriteContract();
+  const [transactionState, setTransactionState] = useState<P2PTransactionState>({
+    type: null,
+    isPending: false,
+    hash: null,
+    success: false,
+    error: null
+  });
 
-  const fetchLoanOffers = async () => {
-    if (!address) return;
-    
-    setLoading(true);
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash: transactionState.hash as `0x${string}`,
+  });
+
+  // Update state when transaction is confirmed
+  if (isConfirmed && transactionState.hash && !transactionState.success) {
+    setTransactionState(prev => ({
+      ...prev,
+      isPending: false,
+      success: true
+    }));
+  }
+
+  const createLoanRequest = async (loanAmount: string, collateralAmount: string) => {
+    setTransactionState({
+      type: 'createLoan',
+      isPending: true,
+      hash: null,
+      success: false,
+      error: null
+    });
+
     try {
-      // In production, this would call your backend API
-      // const response = await axios.get(`/api/p2p/offers?address=${address}`);
-      // setLoanOffers(response.data);
-      
-      // Mock data for demonstration
-      const mockOffers: LoanOffer[] = [
-        {
-          id: 1,
-          lender: '0x742E...C5D4E',
-          token: 'USDC',
-          maxAmount: '10000.00',
-          minScore: 700,
-          maxLTV: 75,
-          interestRate: 6.5,
-          maxDuration: 180,
-          active: true
-        },
-        // ... more mock offers
-      ];
-      
-      setLoanOffers(mockOffers);
-    } catch (err) {
-      setError('Failed to fetch loan offers');
-      console.error(err);
-    } finally {
-      setLoading(false);
+      const loanAmountWei = BigInt(Math.floor(parseFloat(loanAmount) * 1e18));
+      const collateralAmountWei = BigInt(Math.floor(parseFloat(collateralAmount) * 1e18));
+      const duration = BigInt(30 * 24 * 60 * 60);
+
+      return new Promise<boolean>((resolve) => {
+        writeContract({
+          address: P2P_LENDING_ADDRESS,
+          abi: P2P_LENDING_ABI,
+          functionName: 'createLoanRequest',
+          args: [loanAmountWei, duration],
+          value: collateralAmountWei
+        }, {
+          onSuccess: (hash: string) => {
+            setTransactionState(prev => ({ 
+              ...prev, 
+              hash 
+            }));
+            resolve(true);
+          },
+          onError: (error: any) => {
+            let errorMessage = error.message || 'Unknown error occurred';
+            if (errorMessage.includes('user rejected')) {
+              errorMessage = 'Transaction was rejected in MetaMask';
+            }
+            setTransactionState(prev => ({ 
+              ...prev, 
+              isPending: false, 
+              error: errorMessage 
+            }));
+            resolve(false);
+          }
+        });
+      });
+    } catch (error: any) {
+      setTransactionState(prev => ({ 
+        ...prev, 
+        isPending: false, 
+        error: error.message 
+      }));
+      return false;
     }
   };
 
-  const fetchUserLoans = async () => {
-    if (!address) return;
-    
-    setLoading(true);
+  const createLenderOffer = async (lendAmount: string) => {
+    setTransactionState({
+      type: 'createOffer',
+      isPending: true,
+      hash: null,
+      success: false,
+      error: null
+    });
+
     try {
-      // Mock data for demonstration
-      const mockLoans: Loan[] = [
-        {
-          id: 1,
-          borrower: address,
-          lender: '0x742E...C5D4E',
-          token: 'USDC',
-          principal: '2500.00',
-          collateral: '3125.00',
-          interestRate: 6.5,
-          duration: 90,
-          startTime: Date.now() - 30 * 24 * 60 * 60 * 1000,
-          dueTime: Date.now() + 60 * 24 * 60 * 60 * 1000,
-          status: 'Active'
-        },
-        // ... more mock loans
-      ];
-      
-      setUserLoans(mockLoans);
-    } catch (err) {
-      setError('Failed to fetch user loans');
-      console.error(err);
-    } finally {
-      setLoading(false);
+      const amountWei = BigInt(Math.floor(parseFloat(lendAmount) * 1e18));
+      const minCreditScore = BigInt(600);
+      const maxLtv = BigInt(6000);
+      const interestRate = BigInt(400);
+      const maxDuration = BigInt(30 * 24 * 60 * 60);
+
+      return new Promise<boolean>((resolve) => {
+        writeContract({
+          address: P2P_LENDING_ADDRESS,
+          abi: P2P_LENDING_ABI,
+          functionName: 'createLenderOffer',
+          args: [amountWei, minCreditScore, maxLtv, interestRate, maxDuration],
+        }, {
+          onSuccess: (hash: string) => {
+            setTransactionState(prev => ({ 
+              ...prev, 
+              hash 
+            }));
+            resolve(true);
+          },
+          onError: (error: any) => {
+            let errorMessage = error.message || 'Unknown error occurred';
+            if (errorMessage.includes('user rejected')) {
+              errorMessage = 'Transaction was rejected in MetaMask';
+            }
+            setTransactionState(prev => ({ 
+              ...prev, 
+              isPending: false, 
+              error: errorMessage 
+            }));
+            resolve(false);
+          }
+        });
+      });
+    } catch (error: any) {
+      setTransactionState(prev => ({ 
+        ...prev, 
+        isPending: false, 
+        error: error.message 
+      }));
+      return false;
     }
   };
 
-  const createLoanOffer = async (offer: Omit<LoanOffer, 'id' | 'lender'>) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Contract interaction would go here
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Add to local state
-      const newOffer: LoanOffer = {
-        ...offer,
-        id: Date.now(),
-        lender: address!
-      };
-      
-      setLoanOffers(prev => [...prev, newOffer]);
-    } catch (err) {
-      setError('Failed to create loan offer');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  const clearTransactionState = () => {
+    setTransactionState({
+      type: null,
+      isPending: false,
+      hash: null,
+      success: false,
+      error: null
+    });
   };
-
-  useEffect(() => {
-    if (isConnected && address) {
-      fetchLoanOffers();
-      fetchUserLoans();
-    }
-  }, [isConnected, address]);
 
   return {
-    loanOffers,
-    userLoans,
-    loading,
-    error,
-    createLoanOffer,
-    refetchOffers: fetchLoanOffers,
-    refetchLoans: fetchUserLoans
+    createLoanRequest,
+    createLenderOffer,
+    transactionState: {
+      ...transactionState,
+      isConfirming
+    },
+    clearTransactionState
   };
 };

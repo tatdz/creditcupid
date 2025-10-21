@@ -1,7 +1,11 @@
+// src/hooks/useCreditData.ts
 import { useState, useEffect } from 'react';
 import { useAccount } from 'wagmi';
 import axios from 'axios';
 import { CreditData } from '../../../types/credit';
+
+// Use direct backend URL in development to avoid proxy issues
+const API_BASE_URL = 'http://localhost:3001';
 
 export const useCreditData = () => {
   const { address, isConnected, chain } = useAccount();
@@ -10,40 +14,68 @@ export const useCreditData = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchCreditData = async (walletAddress: string, signal?: AbortSignal) => {
+    if (!walletAddress) {
+      setError('No wallet address provided');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      console.log(`📊 Fetching REAL credit data for ${walletAddress} on chain ${chain?.id}`);
+      console.log(`📊 Fetching credit data for ${walletAddress} on chain ${chain?.id}`);
 
-      const response = await axios.get(
-        `/api/credit-data/${walletAddress}`, // relative URL to use Vite proxy
-        {
-          params: { chainId: chain?.id || 1 },
-          timeout: 15000, // increased timeout
-          signal, // abort signal for cancellation
-        }
-      );
+      // Use direct backend URL
+      const apiUrl = `${API_BASE_URL}/api/credit-data/${walletAddress}`;
+      console.log(`🔧 Making API request to: ${apiUrl}`);
 
-      if (response.data) {
-        console.log('✅ REAL credit data loaded successfully from API:', {
-          creditScore: response.data.creditScore,
-          transactions: response.data.transactionAnalysis?.totalTransactions,
-          walletValue: response.data.walletData?.totalValueUSD,
-          tokenCount: response.data.walletData?.tokenBalances?.length
-        });
+      const response = await axios.get(apiUrl, {
+        params: { 
+          chainId: chain?.id || 11155111
+        },
+        timeout: 10000,
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
+      console.log(`✅ API Response status: ${response.status}`);
+
+      if (response.data && (response.data.creditScore !== undefined || response.data.fallbackUsed)) {
+        console.log('✅ Credit data loaded successfully');
         setCreditData(response.data as CreditData);
       } else {
-        throw new Error('No data received from server');
+        throw new Error('Invalid data format received from server');
       }
     } catch (err: any) {
       if (axios.isCancel(err)) {
-        console.log('Request cancelled', err.message);
+        console.log('🔄 Request cancelled');
+        return;
+      }
+
+      console.error('❌ API fetch failed:', err.message);
+
+      if (err.code === 'ECONNABORTED') {
+        setError('Request timeout - please try again');
+      } else if (err.response?.status === 404) {
+        setError('Credit data not found for this wallet address');
+      } else if (err.response?.status === 503) {
+        // Backend has RPC issues but provided fallback data
+        if (err.response.data.fallbackUsed) {
+          setCreditData(err.response.data as CreditData);
+          setError('Using fallback data due to RPC issues');
+        } else {
+          setError('Backend temporarily unavailable - RPC connectivity issues');
+        }
+      } else if (err.message?.includes('Network Error') || err.code === 'ERR_NETWORK') {
+        setError('Cannot connect to backend server');
       } else {
-        console.error('❌ API fetch failed:', err.toJSON ? err.toJSON() : err.message);
+        setError(`Failed to load credit data: ${err.message}`);
+      }
+      
+      if (!err.response?.data?.fallbackUsed) {
         setCreditData(null);
-        setError(`Unable to fetch credit data: ${err.message}`);
       }
     } finally {
       setLoading(false);
@@ -54,6 +86,7 @@ export const useCreditData = () => {
     if (!isConnected || !address) {
       setCreditData(null);
       setError(null);
+      setLoading(false);
       return;
     }
 
@@ -62,7 +95,7 @@ export const useCreditData = () => {
     fetchCreditData(address, controller.signal);
 
     return () => {
-      controller.abort(); // cancel pending requests on deps change or unmount
+      controller.abort();
     };
   }, [address, isConnected, chain?.id]);
 

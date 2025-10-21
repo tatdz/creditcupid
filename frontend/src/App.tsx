@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// src/App.tsx
+import React, { useState, useEffect } from 'react';
 import {
   createConfig,
   WagmiProvider,
@@ -23,6 +24,7 @@ import {
 import LandingPopup from './components/LandingPopup';
 import { CreditDashboard } from './components/credit-dashboard/CreditDashboard';
 import cupidGif from './assets/cupid.gif';
+import { blockscoutCreditService } from './services/blockscoutCreditService';
 
 // RPC URLs keyed by chain ID
 const rpcUrls: Record<number, string> = {
@@ -59,14 +61,28 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 20000,
+      staleTime: 60000,
+      gcTime: 300000,
       refetchOnWindowFocus: false,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
     },
   },
 });
 
 function AppContent() {
   const { isConnected } = useAccount();
+
+  // Set API keys for frontend usage
+  useEffect(() => {
+    // Use Vite's import.meta.env - this will work with the vite-env.d.ts declaration
+    const blockscoutKey = import.meta.env.VITE_BLOCKSCOUT_API_KEY || '';
+    const etherscanKey = import.meta.env.VITE_ETHERSCAN_API_KEY || '';
+    
+    if (blockscoutKey || etherscanKey) {
+      blockscoutCreditService.setApiKeys(blockscoutKey, etherscanKey);
+      console.log('🔑 API keys set from frontend environment');
+    }
+  }, []);
 
   // Show LandingPopup until wallet is connected
   if (!isConnected) {
