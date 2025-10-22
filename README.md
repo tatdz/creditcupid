@@ -38,7 +38,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 - **Smart Contracts:** Foundry, Solidity 0.8.23—minimal proof verification & lending logic on Sepolia.
   - **CreditScore:** [https://eth-sepolia.blockscout.com/address/0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8](https://eth-sepolia.blockscout.com/address/0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8)  
     Manages credit scores onchain and integrates with AI credit analysis for real-time updates.  
-  - **P2PLending:** [https://eth-sepolia.blockscout.com/address/0xaF1847D02A5d235730c19f1aA5D95296D5EAE691](https://eth-sepolia.blockscout.com/address/0xaF1847D02A5d235730c19f1aA5D95296D5EAE691)  
+  - **P2PLending:** [https://eth-sepolia.blockscout.com/address/0x8F254C3A7858d05a9829391319821eC62d69ACa4?tab=index)  
     Handles ETH-based peer-to-peer lending using credit-based terms and undercollateralized logic.
 - **Backend & API:** Node.js + TypeScript; Blockscout MCP & API & SDK integration, Plaid bank verification, AI agent system, and privacy proof services.  
 - **Frontend:** React 18 + TypeScript, Vite, Wagmi & Viem for wallet interactions, Tailwind CSS + Shadcn/ui for UI.  
