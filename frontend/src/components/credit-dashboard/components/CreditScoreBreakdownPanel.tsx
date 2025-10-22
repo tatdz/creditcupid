@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi';
 import { PlaidData, StoredPrivacyProofs } from '../../../types/credit';
 import { getChainConfig } from '../../../config/chains';
 import { apiService, OnChainData } from '../../../utils/api';
+import { useCreditScoreContext } from '../../../hooks/useCreditScoreContext';
 
 interface CreditScoreBreakdownPanelProps {
   factors: Array<{
@@ -94,6 +95,9 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
   const [onChainData, setOnChainData] = useState<OnChainData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use the credit score context
+  const { setCalculatedScore } = useCreditScoreContext();
 
   // Use Sepolia as default (chain ID 11155111)
   const chainId = chain?.id || 11155111;
@@ -260,6 +264,13 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
   };
 
   const realCreditScore = calculateRealScore();
+
+  // Update the context whenever the real score changes
+  useEffect(() => {
+    if (onChainData && !loading && !error) {
+      setCalculatedScore(realCreditScore);
+    }
+  }, [realCreditScore, onChainData, loading, error, setCalculatedScore]);
 
   if (!isConnected) {
     return (

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import { ethers } from 'ethers';
-import { CreditCupidCreditClient, RpcUrls } from './mcp/client';
+import { CreditCupidCreditClient } from './mcp/client';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -10,8 +10,8 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Enhanced RPC configuration with reliable endpoints
-const rpcUrls: RpcUrls = {
+// Enhanced RPC configuration with reliable endpoints - use Record type for number indexing
+const rpcUrls: Record<number, string> = {
   1: process.env.ETH_MAINNET_RPC || 'https://eth.llamarpc.com',
   137: process.env.POLYGON_RPC || 'https://polygon.llamarpc.com',
   42161: process.env.ARBITRUM_RPC || 'https://arbitrum.llamarpc.com',
@@ -21,7 +21,7 @@ const rpcUrls: RpcUrls = {
 };
 
 // Updated fallback URLs with working endpoints
-const fallbackRpcUrls: { [key: number]: string[] } = {
+const fallbackRpcUrls: Record<number, string[]> = {
   1: ['https://rpc.ankr.com/eth', 'https://cloudflare-eth.com'],
   137: ['https://rpc.ankr.com/polygon', 'https://polygon-rpc.com'],
   42161: ['https://rpc.ankr.com/arbitrum', 'https://arb1.arbitrum.io/rpc'],
@@ -45,7 +45,8 @@ Object.entries(rpcUrls).forEach(([chainId, url]) => {
   });
 });
 
-const creditClient = new CreditCupidCreditClient(rpcUrls);
+// Remove the rpcUrls parameter since the client doesn't need it anymore
+const creditClient = new CreditCupidCreditClient();
 
 // Helper function to get primary RPC URL
 const getRpcUrl = (chainId: number): string => {
@@ -183,7 +184,7 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
 // Enhanced health check endpoint
 app.get('/health', async (req: express.Request, res: express.Response) => {
   try {
-    const { chainId = '1' } = req.query;
+    const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
     
     // Quick RPC connectivity check without blocking response
@@ -218,15 +219,12 @@ app.get('/health', async (req: express.Request, res: express.Response) => {
   }
 });
 
-// Enhanced credit data endpoint with comprehensive error handling
-app.get('/api/credit-data/:address', async (req: express.Request, res: express.Response) => {
-  let fallbackUsed = false;
-  
+// NEW ENDPOINT: Get raw on-chain data (what the frontend actually needs)
+app.get('/api/on-chain-data/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainId = '1', useFallback = 'false' } = req.query;
+    const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
-    const shouldUseFallback = useFallback === 'true';
 
     if (!address || !ethers.isAddress(address)) {
       return res.status(400).json({ 
@@ -235,111 +233,99 @@ app.get('/api/credit-data/:address', async (req: express.Request, res: express.R
       });
     }
 
-    console.log(`📊 Fetching credit data for: ${address} on chain ${chainId}`);
+    console.log(`📊 Fetching on-chain data for: ${address} on chain ${chainId}`);
     
-    // Test RPC connectivity first with timeout
-    let provider: ethers.JsonRpcProvider | null = null;
-    try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('RPC connection timeout')), 5000)
-      );
-      
-      provider = await Promise.race([
-        getWorkingProvider(chainIdNum),
-        timeoutPromise
-      ]) as ethers.JsonRpcProvider | null;
-    } catch (error) {
-      console.log('🔄 RPC connectivity test failed:', getErrorMessage(error));
-      provider = null;
-    }
+    // Get raw on-chain data (no credit score calculation)
+    const onChainData = await creditClient.getOnChainData(address, chainIdNum);
     
-    if (!provider || shouldUseFallback) {
-      console.log('🔄 Using fallback response for credit data');
-      fallbackUsed = true;
-      
-      // Enhanced fallback with realistic data based on address pattern
-      const fallbackScore = generateFallbackCreditScore(address);
-      return res.json({
-        fallbackUsed: true,
-        creditScore: fallbackScore,
-        address,
+    res.json({
+      ...onChainData,
+      metadata: {
         chainId: chainIdNum,
-        riskLevel: getRiskLevel(fallbackScore),
-        recommendation: getRecommendation(fallbackScore),
+        dataSource: 'blockscout',
         timestamp: new Date().toISOString(),
-        metadata: {
-          dataSource: 'fallback',
-          reason: provider ? 'user_requested_fallback' : 'rpc_unavailable',
-          message: 'Using fallback data due to service limitations'
-        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error fetching on-chain data:', getErrorMessage(error));
+    res.status(500).json({ 
+      error: 'Failed to fetch on-chain data',
+      details: getErrorMessage(error)
+    });
+  }
+});
+
+// Keep the existing credit-data endpoint for backward compatibility
+app.get('/api/credit-data/:address', async (req: express.Request, res: express.Response) => {
+  try {
+    const { address } = req.params;
+    const { chainId = '11155111' } = req.query;
+    const chainIdNum = parseInt(chainId as string);
+
+    if (!address || !ethers.isAddress(address)) {
+      return res.status(400).json({ 
+        error: 'Valid Ethereum address is required',
+        details: `Provided: ${address}`
       });
     }
+
+    console.log(`📊 [Legacy] Fetching credit data for: ${address} on chain ${chainId}`);
     
-    // Get real credit data with enhanced timeout and error handling
-    try {
-      const creditDataPromise = creditClient.getCreditData(address, chainIdNum);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Credit data fetch timeout')), 20000) // Increased timeout
-      );
-      
-      const creditData = await Promise.race([creditDataPromise, timeoutPromise]);
-      
-      // Enhanced response with additional metadata
-      const responseData = {
-        ...(creditData as any),
-        metadata: {
-          chainId: chainIdNum,
-          rpcProvider: getRpcUrl(chainIdNum),
-          dataSource: 'real-time',
-          timestamp: new Date().toISOString(),
-          fallbackUsed: false
+    // Get raw on-chain data
+    const onChainData = await creditClient.getOnChainData(address, chainIdNum);
+    
+    // Generate a simple fallback score for backward compatibility
+    const fallbackScore = generateFallbackCreditScore(address);
+    
+    res.json({
+      address,
+      creditScore: fallbackScore,
+      riskFactors: ['Using simplified scoring - upgrade to use frontend calculation'],
+      protocolInteractions: onChainData.lendingInteractions,
+      walletData: {
+        nativeBalance: onChainData.walletBalance.toString(),
+        tokenBalances: [],
+        totalValueUSD: '0',
+        activity: {
+          transactions: onChainData.transactions,
+          tokenTransfers: [],
+          internalTransactions: [],
+          nftTransfers: [],
+          protocolInteractions: onChainData.lendingInteractions,
+          blockscoutSupported: true,
+          lastUpdated: onChainData.timestamp
         }
-      };
-      
-      res.json(responseData);
-      
-    } catch (creditError) {
-      console.error('❌ Error fetching real credit data:', getErrorMessage(creditError));
-      
-      // Check if it's a rate limiting error from Blockscout
-      if (getErrorMessage(creditError).includes('Too Many Requests') || 
-          getErrorMessage(creditError).includes('rate limit') ||
-          getErrorMessage(creditError).includes('429')) {
-        
-        console.log('🔁 Blockscout rate limit hit, using fallback data');
-        fallbackUsed = true;
-        
-        const fallbackScore = generateFallbackCreditScore(address);
-        return res.json({
-          fallbackUsed: true,
-          creditScore: fallbackScore,
-          address,
-          chainId: chainIdNum,
-          riskLevel: getRiskLevel(fallbackScore),
-          recommendation: getRecommendation(fallbackScore),
-          timestamp: new Date().toISOString(),
-          metadata: {
-            dataSource: 'fallback',
-            reason: 'blockscout_rate_limit',
-            message: 'Using fallback data due to API rate limiting'
-          }
-        });
+      },
+      transactionAnalysis: {
+        totalTransactions: onChainData.transactions.length,
+        activeMonths: onChainData.monthsActive,
+        transactionVolume: onChainData.totalVolume,
+        protocolInteractions: onChainData.lendingInteractions.length,
+        avgTxFrequency: onChainData.monthsActive > 0 ? 
+          (onChainData.transactions.length / (onChainData.monthsActive * 30)).toFixed(1) + '/day' : '0/day',
+        riskScore: 50,
+        walletAgeDays: onChainData.monthsActive * 30,
+        gasSpentETH: onChainData.transactions.length * 0.001
+      },
+      timestamp: new Date().toISOString(),
+      metadata: {
+        note: 'This endpoint is deprecated. Use /api/on-chain-data and calculate scores in frontend',
+        dataSource: 'blockscout'
       }
-      
-      // Re-throw other errors to be caught by outer catch
-      throw creditError;
-    }
-  } catch (error) {
-    console.error('❌ Error fetching credit data:', getErrorMessage(error));
+    });
     
-    // Final fallback in case of any unhandled errors
+  } catch (error) {
+    console.error('❌ Error in legacy credit-data endpoint:', getErrorMessage(error));
+    
+    // Final fallback
     const fallbackScore = generateFallbackCreditScore(req.params.address);
     
     res.status(200).json({ 
       fallbackUsed: true,
       creditScore: fallbackScore,
       address: req.params.address,
-      chainId: parseInt(req.query.chainId as string) || 1,
+      chainId: parseInt(req.query.chainId as string) || 11155111,
       riskLevel: getRiskLevel(fallbackScore),
       recommendation: getRecommendation(fallbackScore),
       timestamp: new Date().toISOString(),
@@ -356,7 +342,7 @@ app.get('/api/credit-data/:address', async (req: express.Request, res: express.R
 app.get('/api/wallet-info/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainId = '1' } = req.query;
+    const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
 
     if (!address || !ethers.isAddress(address)) {
@@ -403,7 +389,7 @@ app.get('/api/wallet-info/:address', async (req: express.Request, res: express.R
 app.get('/api/protocol-info/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainId = '1' } = req.query;
+    const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
 
     if (!address || !ethers.isAddress(address)) {
@@ -450,7 +436,7 @@ app.get('/api/protocol-info/:address', async (req: express.Request, res: express
 app.get('/api/wallet-stats/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainId = '1' } = req.query;
+    const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
 
     if (!address || !ethers.isAddress(address)) {
@@ -509,7 +495,7 @@ app.get('/api/wallet-stats/:address', async (req: express.Request, res: express.
 app.post('/api/simulate-impact/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainId = '1', action, amount } = req.body;
+    const { chainId = '11155111', action, amount } = req.body;
     const chainIdNum = parseInt(chainId);
 
     if (!address || !ethers.isAddress(address)) {
@@ -562,7 +548,7 @@ app.post('/api/simulate-impact/:address', async (req: express.Request, res: expr
 app.get('/api/multi-chain-credit/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainIds = '1,137,42161,10,8453' } = req.query;
+    const { chainIds = '1,137,42161,10,8453,11155111' } = req.query;
 
     if (!address || !ethers.isAddress(address)) {
       return res.status(400).json({ 
@@ -734,7 +720,7 @@ app.get('/api/blockscout/info', (req: express.Request, res: express.Response) =>
 app.get('/api/fallback/credit-data/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
-    const { chainId = '1' } = req.query;
+    const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
 
     if (!address || !ethers.isAddress(address)) {
@@ -772,7 +758,7 @@ app.get('/api/fallback/credit-data/:address', async (req: express.Request, res: 
 
 // Helper functions
 function getChainName(chainId: number): string {
-  const names: { [key: number]: string } = {
+  const names: Record<number, string> = {
     1: 'Ethereum Mainnet',
     137: 'Polygon Mainnet',
     42161: 'Arbitrum One',
@@ -784,7 +770,7 @@ function getChainName(chainId: number): string {
 }
 
 function getNativeCurrency(chainId: number): string {
-  const currencies: { [key: number]: string } = {
+  const currencies: Record<number, string> = {
     1: 'ETH',
     137: 'MATIC',
     42161: 'ETH',
@@ -924,6 +910,7 @@ app.use('*', (req: express.Request, res: express.Response) => {
     availableEndpoints: [
       'GET /health',
       'GET /api/credit-data/:address',
+      'GET /api/on-chain-data/:address',
       'GET /api/fallback/credit-data/:address',
       'GET /api/wallet-info/:address',
       'GET /api/protocol-info/:address',
@@ -941,8 +928,8 @@ app.use('*', (req: express.Request, res: express.Response) => {
 app.listen(PORT, () => {
   console.log(`🚀 Credit Cupid API server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`💳 Credit data: http://localhost:${PORT}/api/credit-data/:address`);
-  console.log(`🔄 Fallback credit: http://localhost:${PORT}/api/fallback/credit-data/:address`);
+  console.log(`🔗 On-chain data: http://localhost:${PORT}/api/on-chain-data/:address`);
+  console.log(`💳 Legacy credit data: http://localhost:${PORT}/api/credit-data/:address`);
   console.log(`👛 Wallet info: http://localhost:${PORT}/api/wallet-info/:address`);
   console.log(`🏦 Protocol info: http://localhost:${PORT}/api/protocol-info/:address`);
   console.log(`📈 Wallet stats: http://localhost:${PORT}/api/wallet-stats/:address`);

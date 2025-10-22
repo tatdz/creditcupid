@@ -1,9 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/Card';
-import { Building, CheckCircle, Lock, Shield, Hash } from 'lucide-react';
+import { Building, CheckCircle, Shield, Hash, ExternalLink } from 'lucide-react';
 import { PlaidData, StoredPrivacyProofs, PrivacyProofs } from '../../../types/credit';
 import { PlaidIntegration } from './PlaidIntegration';
-import { PrivacyVerification } from './PrivacyVerification';
 import { formatUSD } from '../utils/formatters';
 
 interface FinancialHealthPanelProps {
@@ -42,6 +41,18 @@ export const FinancialHealthPanel: React.FC<FinancialHealthPanelProps> = ({
     return Math.min(100, score);
   };
 
+  const handleViewAllProofs = () => {
+    if (privacyProofs?.pinataURLs?.fullProofs) {
+      window.open(privacyProofs.pinataURLs.fullProofs, '_blank', 'noopener,noreferrer');
+    } else if (privacyProofs?.ipfsData?.fullProofsCID) {
+      // Fallback to public IPFS gateway
+      const ipfsUrl = `https://ipfs.io/ipfs/${privacyProofs.ipfsData.fullProofsCID}`;
+      window.open(ipfsUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const hasProofsAvailable = privacyProofs?.pinataURLs?.fullProofs || privacyProofs?.ipfsData?.fullProofsCID;
+
   return (
     <Card>
       <CardHeader>
@@ -53,39 +64,19 @@ export const FinancialHealthPanel: React.FC<FinancialHealthPanelProps> = ({
         </CardTitle>
         <CardDescription>
           {plaidData 
-            ? 'Your bank data is securely connected with privacy-preserving verification'
-            : 'Connect your bank account to enhance your credit score with verified financial data'
+            ? 'Bank data connected'
+            : 'Connect bank account to enhance credit score'
           }
         </CardDescription>
       </CardHeader>
       <CardContent>
         {!plaidData ? (
           <div className="space-y-4">
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <h4 className="font-semibold text-blue-900 mb-2">Boost Your Credit Score</h4>
-              <p className="text-sm text-blue-800">
-                Connect your bank account securely via Plaid to add traditional financial data to your credit profile.
-                This can increase your score by up to 100 points through verified factors.
-              </p>
-            </div>
-            
             <PlaidIntegration 
               onConnect={onConnectBank}
               loading={loading}
               error={error}
             />
-            
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="flex items-center gap-2 mb-2">
-                <Lock className="h-4 w-4 text-green-600" />
-                <h4 className="font-semibold text-green-900">Privacy First Verification</h4>
-              </div>
-              <p className="text-sm text-green-800">
-                Your sensitive financial data is never stored or exposed. We use cryptographic verification 
-                to confirm your financial health without revealing private information. All verification 
-                records are stored securely on IPFS.
-              </p>
-            </div>
           </div>
         ) : (
           <div className="space-y-4">
@@ -119,7 +110,7 @@ export const FinancialHealthPanel: React.FC<FinancialHealthPanelProps> = ({
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="font-semibold text-blue-900 flex items-center gap-2">
                     <Hash className="h-4 w-4" />
-                    Privacy-Preserving Verification
+                    Verification
                   </h4>
                   <div className="flex gap-2 text-sm">
                     <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -150,17 +141,17 @@ export const FinancialHealthPanel: React.FC<FinancialHealthPanelProps> = ({
                     Identity: {privacyProofs.identityVerified ? '✅' : '❌'}
                   </div>
                 </div>
-                <div className="mt-3 p-2 bg-blue-100 rounded border border-blue-200">
-                  <div className="flex items-center gap-2 text-xs text-blue-800">
-                    <Shield className="h-3 w-3" />
-                    <span>Verification records stored on IPFS - No sensitive data exposed</span>
-                  </div>
-                </div>
+                
+                {hasProofsAvailable && (
+                  <button
+                    onClick={handleViewAllProofs}
+                    className="w-full flex items-center justify-center gap-1 p-2 bg-blue-100 hover:bg-blue-200 text-blue-800 text-sm rounded border border-blue-200 transition-colors mt-3"
+                  >
+                    🔗 Click to view all proofs on IPFS
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
+                )}
               </div>
-            )}
-
-            {privacyProofs && (
-              <PrivacyVerification proofs={privacyProofs} />
             )}
 
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">

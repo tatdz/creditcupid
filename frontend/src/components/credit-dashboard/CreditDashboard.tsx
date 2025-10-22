@@ -22,7 +22,6 @@ import {
   Zap
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
-import { CreditBenefits } from '../ui/CreditBenefits';
 import { CreditData } from '../../types/credit';
 import { ProtocolComparison } from './components/ProtocolComparison';
 
@@ -33,7 +32,11 @@ import { useCreditScore } from './hooks/useCreditScore';
 import { FinancialHealthPanel } from './components/FinancialHealthPanel';
 import { CreditScoreBreakdownPanel } from './components/CreditScoreBreakdownPanel';
 
-export const CreditDashboard: React.FC = () => {
+// Import credit score context
+import { CreditScoreProvider, useCreditScoreContext } from '../../hooks/useCreditScoreContext';
+
+// Main dashboard component wrapped with provider
+const CreditDashboardContent: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
@@ -45,9 +48,15 @@ export const CreditDashboard: React.FC = () => {
   const { creditData, loading, error, retry } = useCreditData();
   const { plaidData, privacyProofs, loading: plaidLoading, error: plaidError, connectBank } = usePlaidIntegration();
   
+  // Use the credit score context
+  const { calculatedScore, isRealScore } = useCreditScoreContext();
+  
   // Use ONLY real data - no fallback to mock data
   const displayData = creditData;
-  const { creditScore, factors, collateralBoost } = useCreditScore(displayData, plaidData, privacyProofs);
+  const { creditScore: initialCreditScore, factors } = useCreditScore(displayData, plaidData, privacyProofs);
+
+  // Use calculated score from context if available, otherwise use initial score
+  const finalCreditScore = isRealScore ? calculatedScore : initialCreditScore;
 
   const handleViewTransactions = () => {
     if (!address) return;
@@ -264,12 +273,6 @@ export const CreditDashboard: React.FC = () => {
   // Main dashboard with data - displayData is guaranteed to be non-null here
   const safeDisplayData = displayData!;
 
-  // Prepare factor scores for CreditBenefits component
-  const factorScores = factors.reduce((acc, factor) => {
-    acc[factor.key] = factor.score;
-    return acc;
-  }, {} as { [key: string]: number });
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="container mx-auto px-4 py-8">
@@ -366,16 +369,9 @@ export const CreditDashboard: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-1 space-y-6">
                 <CreditScore 
-                  score={creditScore}
+                  score={finalCreditScore}
                   address={safeDisplayData.address}
                   riskFactors={safeDisplayData.riskFactors}
-                />
-                
-                <CreditBenefits 
-                  benefits={safeDisplayData.creditBenefits || []}
-                  collateralBoost={collateralBoost} // Now using the calculated boost from useCreditScore
-                  creditScore={creditScore}
-                  factorScores={factorScores}
                 />
 
                 <FinancialHealthPanel
@@ -390,7 +386,7 @@ export const CreditDashboard: React.FC = () => {
               <div className="lg:col-span-2 space-y-6">
                 <CreditScoreBreakdownPanel 
                   factors={factors} 
-                  creditScore={creditScore}
+                  creditScore={finalCreditScore}
                   plaidData={plaidData}
                   privacyProofs={privacyProofs}
                 />
@@ -403,8 +399,8 @@ export const CreditDashboard: React.FC = () => {
           </TabsContent>
           {/* Lending Tab */}
           <TabsContent value="lending" className="space-y-6">
-            <ProtocolComparison userCreditScore={creditScore} />
-            <P2PLending userCreditScore={creditScore} userAddress={address!} />
+            <ProtocolComparison userCreditScore={finalCreditScore} />
+            <P2PLending userCreditScore={finalCreditScore} userAddress={address!} />
           </TabsContent>
 
           {/* AI Agents Tab */}
@@ -435,5 +431,14 @@ export const CreditDashboard: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Export the wrapped dashboard
+export const CreditDashboard: React.FC = () => {
+  return (
+    <CreditScoreProvider>
+      <CreditDashboardContent />
+    </CreditScoreProvider>
   );
 };
