@@ -109,6 +109,11 @@ Frontend (.env):
 
 env
 VITE_PINATA_JWT=your_pinata_jwt
+VITE_PINATA_API_KEY=your_api_key_here
+VITE_PINATA_SECRET_KEY=your_secret_key_here
+
 VITE_BLOCKSCOUT_API_KEY=your_blockscout_key
+VITE_SEPOLIA_RPC_URL=your_alchemy_or_infura_url_here
+VITE_ETHERSCAN_API_KEY=your_etherscan_api_key_here
 
 
