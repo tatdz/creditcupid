@@ -21,7 +21,9 @@ import {
   Eye,
   Filter,
   Plus,
-  RefreshCw
+  RefreshCw,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 
 // Import hooks
@@ -37,95 +39,14 @@ console.log('🔧 Config:', {
   ETHERSCAN_API_KEY: ETHERSCAN_API_KEY ? 'configured' : 'missing'
 });
 
-interface P2PLendingProps {
-  userCreditScore: number;
-  userAddress: string;
-}
-
-const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
-
-const P2P_LENDING_ABI = [
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_loanAmount", "type": "uint256" },
-      { "internalType": "uint256", "name": "_duration", "type": "uint256" }
-    ],
-    "name": "createLoanRequest",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      { "internalType": "uint256", "name": "_maxAmount", "type": "uint256" },
-      { "internalType": "uint256", "name": "_minCreditScore", "type": "uint256" },
-      { "internalType": "uint256", "name": "_minCollateralRatio", "type": "uint256" },
-      { "internalType": "uint256", "name": "_interestRate", "type": "uint256" },
-      { "internalType": "uint256", "name": "_maxDuration", "type": "uint256" }
-    ],
-    "name": "createLenderOffer",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getActiveLoanRequests",
-    "outputs": [
-      {
-        "components": [
-          { "internalType": "address", "name": "borrower", "type": "address" },
-          { "internalType": "uint256", "name": "loanAmount", "type": "uint256" },
-          { "internalType": "uint256", "name": "collateralAmount", "type": "uint256" },
-          { "internalType": "uint256", "name": "duration", "type": "uint256" },
-          { "internalType": "uint256", "name": "interestRate", "type": "uint256" },
-          { "internalType": "uint256", "name": "createdAt", "type": "uint256" },
-          { "internalType": "bool", "name": "active", "type": "bool" },
-          { "internalType": "address", "name": "lender", "type": "address" },
-          { "internalType": "bool", "name": "funded", "type": "bool" },
-          { "internalType": "uint256", "name": "creditScore", "type": "uint256" },
-          { "internalType": "uint256", "name": "amountRepaid", "type": "uint256" }
-        ],
-        "internalType": "struct P2PLending.LoanRequest[]",
-        "name": "",
-        "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "getActiveLenderOffers",
-    "outputs": [
-      {
-        "components": [
-          { "internalType": "address", "name": "lender", "type": "address" },
-          { "internalType": "uint256", "name": "maxAmount", "type": "uint256" },
-          { "internalType": "uint256", "name": "minCreditScore", "type": "uint256" },
-          { "internalType": "uint256", "name": "minCollateralRatio", "type": "uint256" },
-          { "internalType": "uint256", "name": "interestRate", "type": "uint256" },
-          { "internalType": "uint256", "name": "maxDuration", "type": "uint256" },
-          { "internalType": "bool", "name": "active", "type": "bool" }
-        ],
-        "internalType": "struct P2PLending.LenderOffer[]",
-        "name": "",
-        "type": "tuple[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  }
-] as const;
-
 // Ultra-fast transaction checker with fallbacks
 const checkTransactionFast = async (txHash: string): Promise<boolean> => {
   console.log('🔍 Checking transaction status...');
   
-  // Method 1: Try Alchemy RPC first (fastest)
+  // Method 1: Try Sepolia RPC first (fastest)
   if (SEPOLIA_RPC_URL) {
     try {
-      console.log('🔄 Trying Alchemy RPC...');
+      console.log('🔄 Trying Sepolia RPC...');
       const rpcResponse = await fetch(SEPOLIA_RPC_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,10 +62,10 @@ const checkTransactionFast = async (txHash: string): Promise<boolean> => {
       
       if (rpcData.result) {
         const status = rpcData.result.status;
-        console.log('📊 Alchemy RPC status:', status);
+        console.log('📊 RPC status:', status);
         
         if (status === '0x1') {
-          console.log('✅ Transaction confirmed via Alchemy RPC!');
+          console.log('✅ Transaction confirmed via RPC!');
           return true;
         } else if (status === '0x0') {
           console.log('❌ Transaction failed on-chain');
@@ -152,10 +73,10 @@ const checkTransactionFast = async (txHash: string): Promise<boolean> => {
         }
       }
     } catch (error) {
-      console.log('⚠️ Alchemy RPC failed:', error);
+      console.log('⚠️ RPC failed:', error);
     }
   } else {
-    console.log('⚠️ No Alchemy RPC URL configured');
+    console.log('⚠️ No RPC URL configured');
   }
   
   // Method 2: Fallback to Etherscan API
@@ -179,6 +100,618 @@ const checkTransactionFast = async (txHash: string): Promise<boolean> => {
   console.log('⏳ Transaction not yet confirmed');
   return false;
 };
+
+interface P2PLendingProps {
+  userCreditScore: number;
+  userAddress: string;
+}
+
+const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
+
+// Types for the contract data
+interface LoanRequest {
+  borrower: string;
+  loanAmount: bigint;
+  collateralAmount: bigint;
+  duration: bigint;
+  interestRate: bigint;
+  createdAt: bigint;
+  active: boolean;
+  funded: boolean;
+  creditScore: number;
+  amountRepaid: bigint;
+  lender?: string;
+}
+
+interface LenderOffer {
+  lender: string;
+  maxAmount: bigint;
+  minCreditScore: bigint;
+  minCollateralRatio: bigint;
+  interestRate: bigint;
+  maxDuration: bigint;
+  active: boolean;
+}
+
+// Extended types for mock data
+interface MockLoanRequest extends LoanRequest {
+  loanId: number;
+}
+
+interface MockLenderOffer extends LenderOffer {
+  offerId: number;
+}
+
+const P2P_LENDING_ABI = [
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "loanId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "borrower",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "loanAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "collateralAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "duration",
+        "type": "uint256"
+      }
+    ],
+    "name": "LoanRequestCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "offerId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "maxAmount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minCreditScore",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minCollateralRatio",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "interestRate",
+        "type": "uint256"
+      }
+    ],
+    "name": "LenderOfferCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "loanId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "offerId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "lender",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "loanAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "LoanFunded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_loanAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_duration",
+        "type": "uint256"
+      }
+    ],
+    "name": "createLoanRequest",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_maxAmount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minCreditScore",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minCollateralRatio",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_interestRate",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_maxDuration",
+        "type": "uint256"
+      }
+    ],
+    "name": "createLenderOffer",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_loanId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_offerId",
+        "type": "uint256"
+      }
+    ],
+    "name": "fundLoan",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getActiveLoanRequests",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "borrower",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "loanAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "collateralAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "duration",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "interestRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "createdAt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "address",
+            "name": "lender",
+            "type": "address"
+          },
+          {
+            "internalType": "bool",
+            "name": "funded",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "creditScore",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "amountRepaid",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct P2PLending.LoanRequest[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getActiveLenderOffers",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "address",
+            "name": "lender",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxAmount",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCreditScore",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "minCollateralRatio",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "interestRate",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "maxDuration",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          }
+        ],
+        "internalType": "struct P2PLending.LenderOffer[]",
+        "name": "",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "creditScore",
+        "type": "uint256"
+      }
+    ],
+    "name": "setCreditScore",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_loanId",
+        "type": "uint256"
+      }
+    ],
+    "name": "repayLoan",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  }
+] as const;
+
+// Mock data for demonstration with proper typing
+const MOCK_LOAN_REQUESTS: MockLoanRequest[] = [
+  // 0.3 ETH Loans
+  {
+    loanId: 1,
+    borrower: '0x742E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c0d',
+    loanAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    collateralAmount: BigInt(0.255 * 1e18), // 0.255 ETH (85%)
+    duration: BigInt(60 * 24 * 60 * 60), // 60 days
+    interestRate: BigInt(750), // 7.5% (low score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 86400), // 1 day ago
+    active: true,
+    funded: false,
+    creditScore: 400,
+    amountRepaid: BigInt(0)
+  },
+  {
+    loanId: 2,
+    borrower: '0x893E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c1e',
+    loanAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    collateralAmount: BigInt(0.255 * 1e18), // 0.255 ETH (85%)
+    duration: BigInt(90 * 24 * 60 * 60), // 90 days
+    interestRate: BigInt(450), // 4.5% (medium score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 172800), // 2 days ago
+    active: true,
+    funded: false,
+    creditScore: 600,
+    amountRepaid: BigInt(0)
+  },
+  {
+    loanId: 3,
+    borrower: '0x945E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c2f',
+    loanAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    collateralAmount: BigInt(0.255 * 1e18), // 0.255 ETH (85%)
+    duration: BigInt(120 * 24 * 60 * 60), // 120 days
+    interestRate: BigInt(350), // 3.5% (high score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 259200), // 3 days ago
+    active: true,
+    funded: false,
+    creditScore: 800,
+    amountRepaid: BigInt(0)
+  },
+  // 0.5 ETH Loans
+  {
+    loanId: 4,
+    borrower: '0xa56E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c3g',
+    loanAmount: BigInt(0.5 * 1e18), // 0.5 ETH
+    collateralAmount: BigInt(0.425 * 1e18), // 0.425 ETH (85%)
+    duration: BigInt(75 * 24 * 60 * 60), // 75 days
+    interestRate: BigInt(750), // 7.5% (low score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 43200), // 12 hours ago
+    active: true,
+    funded: false,
+    creditScore: 400,
+    amountRepaid: BigInt(0)
+  },
+  {
+    loanId: 5,
+    borrower: '0xb67E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c4h',
+    loanAmount: BigInt(0.5 * 1e18), // 0.5 ETH
+    collateralAmount: BigInt(0.425 * 1e18), // 0.425 ETH (85%)
+    duration: BigInt(100 * 24 * 60 * 60), // 100 days
+    interestRate: BigInt(450), // 4.5% (medium score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 129600), // 1.5 days ago
+    active: true,
+    funded: false,
+    creditScore: 600,
+    amountRepaid: BigInt(0)
+  },
+  {
+    loanId: 6,
+    borrower: '0xc78E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c5i',
+    loanAmount: BigInt(0.5 * 1e18), // 0.5 ETH
+    collateralAmount: BigInt(0.425 * 1e18), // 0.425 ETH (85%)
+    duration: BigInt(150 * 24 * 60 * 60), // 150 days
+    interestRate: BigInt(350), // 3.5% (high score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 216000), // 2.5 days ago
+    active: true,
+    funded: false,
+    creditScore: 800,
+    amountRepaid: BigInt(0)
+  },
+  // 5 ETH Loans
+  {
+    loanId: 7,
+    borrower: '0xd89E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c6j',
+    loanAmount: BigInt(5 * 1e18), // 5 ETH
+    collateralAmount: BigInt(4.25 * 1e18), // 4.25 ETH (85%)
+    duration: BigInt(180 * 24 * 60 * 60), // 180 days
+    interestRate: BigInt(750), // 7.5% (low score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 345600), // 4 days ago
+    active: true,
+    funded: false,
+    creditScore: 400,
+    amountRepaid: BigInt(0)
+  },
+  {
+    loanId: 8,
+    borrower: '0xe90E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c7k',
+    loanAmount: BigInt(5 * 1e18), // 5 ETH
+    collateralAmount: BigInt(4.25 * 1e18), // 4.25 ETH (85%)
+    duration: BigInt(240 * 24 * 60 * 60), // 240 days
+    interestRate: BigInt(450), // 4.5% (medium score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 518400), // 6 days ago
+    active: true,
+    funded: false,
+    creditScore: 600,
+    amountRepaid: BigInt(0)
+  },
+  {
+    loanId: 9,
+    borrower: '0xfa1E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c8l',
+    loanAmount: BigInt(5 * 1e18), // 5 ETH
+    collateralAmount: BigInt(4.25 * 1e18), // 4.25 ETH (85%)
+    duration: BigInt(365 * 24 * 60 * 60), // 365 days
+    interestRate: BigInt(350), // 3.5% (high score)
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 691200), // 8 days ago
+    active: true,
+    funded: false,
+    creditScore: 800,
+    amountRepaid: BigInt(0)
+  }
+];
+
+const MOCK_LENDER_OFFERS: MockLenderOffer[] = [
+  // 0.3 ETH Offers
+  {
+    offerId: 1,
+    lender: '0x1234567890abcdef1234567890abcdef12345678',
+    maxAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    minCreditScore: BigInt(400),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(750), // 7.5% (high risk)
+    maxDuration: BigInt(60 * 24 * 60 * 60), // 60 days
+    active: true
+  },
+  {
+    offerId: 2,
+    lender: '0x2345678901bcdef2345678901bcdef2345678901',
+    maxAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    minCreditScore: BigInt(600),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(450), // 4.5% (medium risk)
+    maxDuration: BigInt(90 * 24 * 60 * 60), // 90 days
+    active: true
+  },
+  {
+    offerId: 3,
+    lender: '0x3456789012cdef3456789012cdef3456789012cd',
+    maxAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    minCreditScore: BigInt(800),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(350), // 3.5% (low risk)
+    maxDuration: BigInt(120 * 24 * 60 * 60), // 120 days
+    active: true
+  },
+  // 0.5 ETH Offers
+  {
+    offerId: 4,
+    lender: '0x4567890123def4567890123def4567890123def4',
+    maxAmount: BigInt(0.5 * 1e18), // 0.5 ETH
+    minCreditScore: BigInt(400),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(750), // 7.5% (high risk)
+    maxDuration: BigInt(75 * 24 * 60 * 60), // 75 days
+    active: true
+  },
+  {
+    offerId: 5,
+    lender: '0x5678901234ef5678901234ef5678901234ef5678',
+    maxAmount: BigInt(0.5 * 1e18), // 0.5 ETH
+    minCreditScore: BigInt(600),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(450), // 4.5% (medium risk)
+    maxDuration: BigInt(100 * 24 * 60 * 60), // 100 days
+    active: true
+  },
+  {
+    offerId: 6,
+    lender: '0x6789012345f6789012345f6789012345f6789012',
+    maxAmount: BigInt(0.5 * 1e18), // 0.5 ETH
+    minCreditScore: BigInt(800),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(350), // 3.5% (low risk)
+    maxDuration: BigInt(150 * 24 * 60 * 60), // 150 days
+    active: true
+  },
+  // 5 ETH Offers
+  {
+    offerId: 7,
+    lender: '0x7890123456f7890123456f7890123456f7890123',
+    maxAmount: BigInt(5 * 1e18), // 5 ETH
+    minCreditScore: BigInt(400),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(750), // 7.5% (high risk)
+    maxDuration: BigInt(180 * 24 * 60 * 60), // 180 days
+    active: true
+  },
+  {
+    offerId: 8,
+    lender: '0x8901234567f8901234567f8901234567f8901234',
+    maxAmount: BigInt(5 * 1e18), // 5 ETH
+    minCreditScore: BigInt(600),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(450), // 4.5% (medium risk)
+    maxDuration: BigInt(240 * 24 * 60 * 60), // 240 days
+    active: true
+  },
+  {
+    offerId: 9,
+    lender: '0x9012345678f9012345678f9012345678f9012345',
+    maxAmount: BigInt(5 * 1e18), // 5 ETH
+    minCreditScore: BigInt(800),
+    minCollateralRatio: BigInt(8500), // 85%
+    interestRate: BigInt(350), // 3.5% (low risk)
+    maxDuration: BigInt(365 * 24 * 60 * 60), // 365 days
+    active: true
+  }
+];
 
 // Input component
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
@@ -243,7 +776,7 @@ const TransactionStatus: React.FC<{
   isConfirming: boolean;
   isSuccess: boolean;
   error: string | null;
-  type: 'createLoan' | 'createOffer' | null;
+  type: 'createLoan' | 'createOffer' | 'fundLoan' | 'setScore' | null;
 }> = ({ transactionHash, isPending, isConfirming, isSuccess, error, type }) => {
   if (!transactionHash && !error && !isPending) return null;
 
@@ -251,6 +784,8 @@ const TransactionStatus: React.FC<{
     switch (type) {
       case 'createLoan': return 'Loan request';
       case 'createOffer': return 'Lender offer';
+      case 'fundLoan': return 'Loan funding';
+      case 'setScore': return 'Credit score';
       default: return 'Transaction';
     }
   };
@@ -280,14 +815,28 @@ const TransactionStatus: React.FC<{
           </p>
         </div>
         {transactionHash && (
-          <a 
-            href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 text-xs"
-          >
-            View
-          </a>
+          <div className="flex gap-2">
+            <a 
+              href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+            >
+              <ExternalLink className="h-3 w-3" />
+              View
+            </a>
+            {SEPOLIA_RPC_URL && (
+              <a 
+                href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-600 hover:text-purple-800 text-xs flex items-center gap-1"
+              >
+                <Zap className="h-3 w-3" />
+                Explorer
+              </a>
+            )}
+          </div>
         )}
       </div>
     </div>
@@ -314,7 +863,18 @@ const CreditScoreStatus: React.FC<{
             <CheckCircle className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium text-green-800">Credit Score Verified</span>
           </div>
-          <Badge variant="default" className="bg-green-600">{creditScore}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="bg-green-600">{creditScore}</Badge>
+            <a 
+              href={`https://sepolia.etherscan.io/address/${P2P_LENDING_ADDRESS}#readContract`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+            >
+              <ExternalLink className="h-3 w-3" />
+              View
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -351,7 +911,8 @@ const SwipeCard: React.FC<{
   type: 'loan' | 'offer';
   onSwipeRight: (item: any) => void;
   onSwipeLeft: (item: any) => void;
-}> = ({ item, type, onSwipeRight, onSwipeLeft }) => {
+  userAddress: string;
+}> = ({ item, type, onSwipeRight, onSwipeLeft, userAddress }) => {
   const [startX, setStartX] = useState(0);
   const [currentX, setCurrentX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -384,23 +945,34 @@ const SwipeCard: React.FC<{
 
   const getTypeDetails = () => {
     if (type === 'loan') {
+      const loanAmount = parseFloat(item.loanAmount?.toString() || '0') / 1e18;
+      const collateralAmount = parseFloat(item.collateralAmount?.toString() || '0') / 1e18;
+      const durationDays = Math.floor(parseFloat(item.duration?.toString() || '0') / (24 * 60 * 60));
+      const interestRate = parseFloat(item.interestRate?.toString() || '0') / 100;
+      
       return {
-        title: `${item.amount || parseFloat(item.loanAmount) / 1e18} ETH Loan`,
+        title: `${loanAmount.toFixed(2)} ETH Loan`,
         subtitle: `Credit Score: ${item.creditScore || 'N/A'}`,
+        address: item.borrower,
         details: [
-          { label: 'Collateral', value: `${item.collateral || parseFloat(item.collateralAmount) / 1e18} ETH` },
-          { label: 'Duration', value: `${Math.floor((item.duration || 0) / (24 * 60 * 60))} days` },
-          { label: 'Interest', value: `${(item.interestRate || 0) / 100}%` }
+          { label: 'Collateral', value: `${collateralAmount.toFixed(2)} ETH` },
+          { label: 'Duration', value: `${durationDays} days` },
+          { label: 'Interest', value: `${interestRate.toFixed(1)}%` }
         ]
       };
     } else {
+      const maxAmount = parseFloat(item.maxAmount?.toString() || '0') / 1e18;
+      const maxDurationDays = Math.floor(parseFloat(item.maxDuration?.toString() || '0') / (24 * 60 * 60));
+      const interestRate = parseFloat(item.interestRate?.toString() || '0') / 100;
+      
       return {
-        title: `${item.amount || parseFloat(item.maxAmount) / 1e18} ETH Offer`,
-        subtitle: `Min Score: ${item.minScore || item.minCreditScore || 'N/A'}`,
+        title: `${maxAmount.toFixed(2)} ETH Offer`,
+        subtitle: `Min Score: ${item.minCreditScore || 'N/A'}`,
+        address: item.lender,
         details: [
-          { label: 'Min Collateral', value: `${(item.minCollateralRatio || 0) / 100}%` },
-          { label: 'Max Duration', value: `${Math.floor((item.duration || item.maxDuration || 0) / (24 * 60 * 60))} days` },
-          { label: 'Rate', value: `${(item.interestRate || 0) / 100}%` }
+          { label: 'Min Collateral', value: `${(parseFloat(item.minCollateralRatio?.toString() || '0') / 100).toFixed(0)}%` },
+          { label: 'Max Duration', value: `${maxDurationDays} days` },
+          { label: 'Rate', value: `${interestRate.toFixed(1)}%` }
         ]
       };
     }
@@ -423,7 +995,18 @@ const SwipeCard: React.FC<{
         </Badge>
       </div>
       
-      <p className="text-sm text-gray-600 mb-3">{details.subtitle}</p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm text-gray-600">{details.subtitle}</p>
+        <a 
+          href={`https://sepolia.etherscan.io/address/${details.address}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+        >
+          <ExternalLink className="h-3 w-3" />
+          View
+        </a>
+      </div>
       
       <div className="grid grid-cols-3 gap-2 mb-4">
         {details.details.map((detail, index) => (
@@ -462,7 +1045,7 @@ const CreateForm: React.FC<{
 }> = ({ type, onCreate, isCreating, isCorrectNetwork, isScoreSet }) => {
   const [loanAmount, setLoanAmount] = useState('');
   const [duration, setDuration] = useState('90');
-  const [offerAmount, setOfferAmount] = useState('5.0');
+  const [offerAmount, setOfferAmount] = useState('1.0');
 
   const handleCreate = () => {
     if (type === 'loan') {
@@ -471,13 +1054,13 @@ const CreateForm: React.FC<{
         return;
       }
       
-      if (parseFloat(loanAmount) < 0.2) {
-        alert('Minimum loan amount is 0.2 ETH');
+      if (parseFloat(loanAmount) < 0.1) {
+        alert('Minimum loan amount is 0.1 ETH');
         return;
       }
       
-      if (parseFloat(loanAmount) > 100) {
-        alert('Loan amount too large. Maximum 100 ETH for demo.');
+      if (parseFloat(loanAmount) > 10) {
+        alert('Loan amount too large. Maximum 10 ETH for demo.');
         return;
       }
       
@@ -501,11 +1084,12 @@ const CreateForm: React.FC<{
           <Input
             id="loanAmount"
             type="number"
-            placeholder="0.2"
+            placeholder="0.5"
             value={loanAmount}
             onChange={(e) => setLoanAmount(e.target.value)}
             step="0.01"
-            min="0.01"
+            min="0.1"
+            max="10"
             className="h-8 text-sm"
           />
         </div>
@@ -569,11 +1153,12 @@ const CreateForm: React.FC<{
         <Input
           id="offerAmount"
           type="number"
-          placeholder="5.0"
+          placeholder="1.0"
           value={offerAmount}
           onChange={(e) => setOfferAmount(e.target.value)}
           step="0.1"
           min="0.1"
+          max="10"
           className="h-8 text-sm"
         />
       </div>
@@ -612,7 +1197,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     isConfirming: false,
     isSuccess: false,
     error: null as string | null,
-    type: null as 'createLoan' | 'createOffer' | null,
+    type: null as 'createLoan' | 'createOffer' | 'fundLoan' | 'setScore' | null,
   });
 
   const isCorrectNetwork = chain?.id === sepolia.id;
@@ -621,10 +1206,21 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   const creditScoreManager = useCreditScoreManager(userAddress, userCreditScore);
   const p2pData = useP2PData();
 
+  // Combine real data with mock data for demonstration - use type assertions
+  const availableLoanRequests = [
+    ...(p2pData.loanRequests || []),
+    ...MOCK_LOAN_REQUESTS
+  ] as (LoanRequest | MockLoanRequest)[];
+
+  const availableLenderOffers = [
+    ...(p2pData.loanOffers || []),
+    ...MOCK_LENDER_OFFERS
+  ] as (LenderOffer | MockLenderOffer)[];
+
   // Get available items based on current view
   const availableItems = activeView === 'borrow' 
-    ? p2pData.loanOffers
-    : p2pData.loanRequests;
+    ? availableLenderOffers
+    : availableLoanRequests;
 
   const currentItem = availableItems?.[currentIndex];
 
@@ -776,9 +1372,9 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
     try {
       const maxAmountWei = BigInt(Math.floor(parseFloat(maxAmount) * 1e18));
-      const minCreditScore = BigInt(700);
+      const minCreditScore = BigInt(650);
       const minCollateralRatio = BigInt(8500);
-      const interestRate = BigInt(500);
+      const interestRate = BigInt(450);
       const maxDuration = BigInt(90 * 24 * 60 * 60);
 
       console.log('🔍 Creating lender offer:', {
@@ -839,15 +1435,85 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
     }
   };
 
+  const fundLoan = async (item: any): Promise<boolean> => {
+    if (!isCorrectNetwork || !userAddress) return false;
+
+    try {
+      // For mock data, use the loanId if available, otherwise use a default
+      const loanId = item.loanId || 1;
+      const loanAmountWei = BigInt(parseFloat(item.loanAmount?.toString() || '0'));
+      
+      console.log('🔍 Funding loan:', {
+        loanId,
+        loanAmountWei: loanAmountWei.toString()
+      });
+
+      setTransactionState({
+        hash: null,
+        isPending: true,
+        isConfirming: false,
+        isSuccess: false,
+        error: null,
+        type: 'fundLoan'
+      });
+
+      return new Promise<boolean>((resolve) => {
+        writeContract({
+          address: P2P_LENDING_ADDRESS,
+          abi: P2P_LENDING_ABI,
+          functionName: 'fundLoan',
+          args: [BigInt(loanId), BigInt(1)], // Using first offer for simplicity
+          value: loanAmountWei,
+        }, {
+          onSuccess: (hash: string) => {
+            console.log('✅ Funding transaction submitted:', hash);
+            setTransactionState(prev => ({ 
+              ...prev, 
+              hash,
+              isConfirming: true 
+            }));
+            resolve(true);
+          },
+          onError: (error: any) => {
+            console.error('❌ Funding transaction failed:', error);
+            let errorMessage = error.message || 'Transaction failed';
+            
+            if (errorMessage.includes('user rejected')) {
+              errorMessage = 'Transaction was rejected';
+            } else if (errorMessage.includes('insufficient funds')) {
+              errorMessage = 'Insufficient ETH for funding + gas fees';
+            }
+            
+            setTransactionState(prev => ({ 
+              ...prev, 
+              isPending: false,
+              error: errorMessage
+            }));
+            resolve(false);
+          }
+        });
+      });
+    } catch (error: any) {
+      console.error('❌ Error funding loan:', error);
+      setTransactionState(prev => ({ 
+        ...prev, 
+        isPending: false,
+        error: error.message || 'Unknown error occurred'
+      }));
+      return false;
+    }
+  };
+
   const handleSwipeRight = async (item: any) => {
     if (activeView === 'borrow') {
+      // As a borrower, accept a lender offer - create loan request
       await createLoanRequest(
-        (item.amount || item.maxAmount / 1e18).toString(),
-        (item.duration || item.maxDuration / (24 * 60 * 60)).toString()
+        (parseFloat(item.maxAmount?.toString() || '0') / 1e18).toString(),
+        (parseFloat(item.maxDuration?.toString() || '0') / (24 * 60 * 60)).toString()
       );
     } else {
-      alert('As a lender, you create offers that borrowers can accept. Use the Create tab to make an offer.');
-      return;
+      // As a lender, fund a loan request
+      await fundLoan(item);
     }
     
     if (currentIndex < (availableItems?.length || 0) - 1) {
@@ -858,6 +1524,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   };
 
   const handleSwipeLeft = (item: any) => {
+    console.log('Skipped:', item);
     if (currentIndex < (availableItems?.length || 0) - 1) {
       setCurrentIndex(currentIndex + 1);
     } else {
@@ -875,6 +1542,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   const handleManualRefresh = () => {
     p2pData.refetchAll();
+    setCurrentIndex(0);
     console.log('🔄 Manual refresh triggered');
   };
 
@@ -1004,7 +1672,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
               <Filter className="h-4 w-4" />
               {activeView === 'borrow' ? 'Available Loan Offers' : 'Loan Requests'}
               <div className="flex items-center gap-2 ml-auto">
-                {availableItems && (
+                {availableItems && availableItems.length > 0 && (
                   <Badge variant="outline">
                     {currentIndex + 1} of {availableItems.length}
                   </Badge>
@@ -1019,6 +1687,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
                 type={activeView === 'borrow' ? 'offer' : 'loan'}
                 onSwipeRight={handleSwipeRight}
                 onSwipeLeft={handleSwipeLeft}
+                userAddress={userAddress}
               />
             ) : (
               <div className="text-center py-8">

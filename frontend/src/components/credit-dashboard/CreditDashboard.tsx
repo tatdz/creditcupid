@@ -336,7 +336,7 @@ const CreditDashboardContent: React.FC = () => {
               </div>
               <div className="flex-1">
                 <p className="text-sm text-blue-800">
-                  <strong>Privacy First:</strong> Your credit analysis happens locally using on-chain data. 
+                  <strong>Privacy First:</strong> Your credit analysis happens locally. 
                   No personal information is stored on our servers.
                 </p>
               </div>
