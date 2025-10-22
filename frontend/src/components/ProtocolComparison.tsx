@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/Card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/Card';
 import { Zap } from 'lucide-react';
 
 interface ProtocolComparisonProps {
@@ -25,31 +25,31 @@ export const ProtocolComparison: React.FC<ProtocolComparisonProps> = ({ userCred
   const userLendRate = calculateLendRate(userCreditScore);
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Zap className="h-5 w-5 text-blue-600" />
+    <Card className="w-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Zap className="h-4 w-4 text-blue-600" />
           Your Rates
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-xs">
           Personalized for your credit score
         </CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
+      <CardContent className="pt-0">
+        <div className="flex gap-2">
           {/* Borrowing Card */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+          <div className="flex-1 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200">
             <div className="text-center">
-              <div className="text-sm text-blue-600 font-medium mb-2">BORROW</div>
-              <div className="text-2xl font-bold text-blue-700">{userBorrowRate.toFixed(1)}%</div>
+              <div className="text-xs text-blue-600 font-medium mb-1">BORROW</div>
+              <div className="text-xl font-bold text-blue-700">{userBorrowRate.toFixed(1)}%</div>
             </div>
           </div>
 
           {/* Lending Card */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+          <div className="flex-1 bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200">
             <div className="text-center">
-              <div className="text-sm text-green-600 font-medium mb-2">LEND (LTV)</div>
-              <div className="text-2xl font-bold text-green-700">{userLendRate.toFixed(1)}%</div>
+              <div className="text-xs text-green-600 font-medium mb-1">LEND</div>
+              <div className="text-xl font-bold text-green-700">{userLendRate.toFixed(1)}%</div>
             </div>
           </div>
         </div>

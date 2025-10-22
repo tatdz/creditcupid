@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
 import { CreditData } from '../../types/credit';
-import { ProtocolComparison } from './components/ProtocolComparison';
 
 // Import new modular components
 import { useCreditData } from './hooks/useCreditData';
@@ -399,7 +398,6 @@ const CreditDashboardContent: React.FC = () => {
           </TabsContent>
           {/* Lending Tab */}
           <TabsContent value="lending" className="space-y-6">
-            <ProtocolComparison userCreditScore={finalCreditScore} />
             <P2PLending userCreditScore={finalCreditScore} userAddress={address!} />
           </TabsContent>
 

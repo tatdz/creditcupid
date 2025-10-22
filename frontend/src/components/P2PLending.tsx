@@ -14,7 +14,11 @@ import {
   XCircle,
   Loader2,
   Upload,
-  Calculator
+  Calculator,
+  Clock,
+  Shield,
+  Lock,
+  Zap
 } from 'lucide-react';
 
 // Import hooks
@@ -27,7 +31,7 @@ interface P2PLendingProps {
   userAddress: string;
 }
 
-// Inline Input component to avoid missing file
+// Inline Input component
 const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, type, ...props }, ref) => {
     return (
@@ -42,7 +46,7 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
 );
 Input.displayName = "Input";
 
-// Inline Label component to avoid missing file
+// Inline Label component
 const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
   ({ className, ...props }, ref) => (
     <label
@@ -54,20 +58,51 @@ const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLL
 );
 Label.displayName = "Label";
 
-const NetworkAlert: React.FC = () => {
+// Rates Display Component
+const RatesPanel: React.FC<{ userCreditScore: number }> = ({ userCreditScore }) => {
+  const calculateBorrowRate = (creditScore: number): number => {
+    const baseRate = 3.5;
+    if (creditScore >= 800) return baseRate;
+    if (creditScore >= 750) return baseRate + 0.5;
+    if (creditScore >= 700) return baseRate + 1.0;
+    if (creditScore >= 650) return baseRate + 2.0;
+    return baseRate + 4.0;
+  };
+
+  const calculateLendRate = (creditScore: number): number => {
+    return calculateBorrowRate(creditScore) - 1.0;
+  };
+
+  const userBorrowRate = calculateBorrowRate(userCreditScore);
+  const userLendRate = calculateLendRate(userCreditScore);
+
   return (
-    <Card className="border-yellow-200 bg-yellow-50 mb-6">
-      <CardContent className="pt-6">
-        <div className="text-center">
-          <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-yellow-600" />
-          <h3 className="font-semibold text-lg mb-2">Wrong Network</h3>
-          <p className="text-sm text-gray-600 mb-4">
-            Please switch to Sepolia testnet to use Credit Cupid. 
-            You need Sepolia ETH (free from faucets) for transactions.
-          </p>
-          <p className="text-xs text-gray-600 mt-3">
-            Get free Sepolia ETH from: sepoliafaucet.com
-          </p>
+    <Card className="mb-6">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Zap className="h-5 w-5 text-blue-600" />
+          Your Personalized Rates
+        </CardTitle>
+        <CardDescription>
+          Based on your credit score of {userCreditScore}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+            <div className="text-center">
+              <div className="text-sm text-blue-600 font-medium mb-2">BORROW RATE</div>
+              <div className="text-2xl font-bold text-blue-700">{userBorrowRate.toFixed(1)}% APR</div>
+              <p className="text-xs text-blue-600 mt-1">For loan requests</p>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border border-green-200">
+            <div className="text-center">
+              <div className="text-sm text-green-600 font-medium mb-2">LEND RATE</div>
+              <div className="text-2xl font-bold text-green-700">{userLendRate.toFixed(1)}% APY</div>
+              <p className="text-xs text-green-600 mt-1">For lending offers</p>
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -88,14 +123,6 @@ const TransactionLink: React.FC<{
         className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
       >
         View on Blockscout <ExternalLink className="h-3 w-3" />
-      </a>
-      <a 
-        href={getFallbackTransactionUrl(hash)}
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 text-xs"
-      >
-        (or view on Etherscan)
       </a>
     </div>
   );
@@ -188,6 +215,7 @@ const TransactionStatus: React.FC<TransactionStatusProps> = ({
   );
 };
 
+// Combined Credit Score Status Component
 interface CreditScoreStatusProps {
   creditScoreManager: {
     creditScore: number;
@@ -262,85 +290,88 @@ const CreditScoreStatus: React.FC<CreditScoreStatusProps> = ({
     );
   }
 
+  // If score is already set, show compact status
+  if (isScoreSet) {
+    return (
+      <Card className="border-green-200 bg-green-50 mb-6">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              <div>
+                <h3 className="font-semibold text-sm">Credit Score Verified</h3>
+                <p className="text-xs text-green-700">
+                  Your score {creditScore} is set onchain
+                </p>
+              </div>
+            </div>
+            <Badge variant="default" className="bg-green-600">
+              {creditScore}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Score not set - show clickable setup card
   return (
-    <Card className={`mb-6 ${isScoreSet ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}`}>
-      <CardContent className="pt-6">
+    <Card className="border-yellow-200 bg-yellow-50 mb-6 cursor-pointer hover:bg-yellow-100 transition-colors">
+      <CardContent className="py-4" onClick={() => setCreditScoreOnChain()}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {isScoreSet ? (
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            ) : (
-              <AlertTriangle className="h-6 w-6 text-yellow-600" />
-            )}
+            <div className="p-2 bg-yellow-200 rounded-full">
+              <Lock className="h-5 w-5 text-yellow-700" />
+            </div>
             <div className="flex-1">
-              <h3 className="font-semibold">
-                {isScoreSet ? 'Credit Score Verified Onchain' : 'Credit Score Not Set Onchain'}
-              </h3>
-              <p className="text-sm">
-                {isScoreSet 
-                  ? `Your credit score ${creditScore} is verified on the blockchain` 
-                  : 'You need to set your credit score onchain to create loan requests'
-                }
-              </p>
-              
-              <div className="flex flex-wrap gap-4 mt-2 text-xs text-gray-600">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Effective Score:</span>
-                  <Badge variant={creditScore > 0 ? "default" : "secondary"}>
-                    {creditScore || 'Not set'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">P2PLending Contract:</span>
-                  <Badge variant={onChainScore > 0 ? "default" : "secondary"}>
-                    {onChainScore || 'Not set'}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Original Score:</span>
-                  <Badge variant="outline">
-                    {userCreditScore}
-                  </Badge>
-                </div>
+              <div className="flex items-center gap-3 mb-1">
+                <h3 className="font-semibold text-sm text-yellow-800">Set Credit Score to Start</h3>
+                <Badge variant="outline" className="text-yellow-700 border-yellow-400">
+                  Score: {userCreditScore}
+                </Badge>
               </div>
-
-              {transactionHash && (
-                <div className="mt-3">
-                  <TransactionLink 
-                    hash={transactionHash} 
-                    getTransactionUrl={getTransactionUrl}
-                    getFallbackTransactionUrl={getFallbackTransactionUrl}
-                  />
-                </div>
-              )}
+              <p className="text-xs text-yellow-700">
+                Click here to set your score onchain and unlock borrowing
+              </p>
             </div>
           </div>
           
-          {!isScoreSet && (
-            <Button 
-              onClick={() => setCreditScoreOnChain()}
-              disabled={isUpdating || !isCorrectNetwork}
-              size="sm"
-              className="whitespace-nowrap"
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Setting...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Set Onchain
-                </>
-              )}
-            </Button>
-          )}
+          <Button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setCreditScoreOnChain();
+            }}
+            disabled={isUpdating || !isCorrectNetwork}
+            size="sm"
+            className="h-8 text-xs bg-yellow-600 hover:bg-yellow-700 whitespace-nowrap"
+          >
+            {isUpdating ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                Setting...
+              </>
+            ) : (
+              <>
+                <Upload className="h-3 w-3 mr-1" />
+                Set Onchain
+              </>
+            )}
+          </Button>
         </div>
 
-        {!isCorrectNetwork && !isScoreSet && (
+        {transactionHash && (
+          <div className="mt-3">
+            <TransactionLink 
+              hash={transactionHash} 
+              getTransactionUrl={getTransactionUrl}
+              getFallbackTransactionUrl={getFallbackTransactionUrl}
+            />
+          </div>
+        )}
+
+        {!isCorrectNetwork && (
           <div className="mt-3 p-2 bg-red-100 rounded-lg">
-            <p className="text-sm text-red-700">
+            <p className="text-xs text-red-700">
               Please switch to Sepolia network to set your credit score
             </p>
           </div>
@@ -348,7 +379,7 @@ const CreditScoreStatus: React.FC<CreditScoreStatusProps> = ({
 
         {transactionError && (
           <div className="mt-3 p-2 bg-red-100 rounded-lg">
-            <p className="text-sm text-red-700">
+            <p className="text-xs text-red-700">
               {transactionError}
             </p>
           </div>
@@ -356,7 +387,7 @@ const CreditScoreStatus: React.FC<CreditScoreStatusProps> = ({
 
         {transactionSuccess && (
           <div className="mt-3 p-2 bg-green-100 rounded-lg">
-            <p className="text-sm text-green-700">
+            <p className="text-xs text-green-700">
               ✅ Credit score successfully set! You can now create loan requests.
             </p>
           </div>
@@ -377,8 +408,10 @@ const formatNumber = (num: number | string): string => {
 interface BorrowTabProps {
   loanAmount: string;
   collateralAmount: string;
+  loanDuration: string;
   onLoanAmountChange: (value: string) => void;
   onCollateralAmountChange: (value: string) => void;
+  onLoanDurationChange: (value: string) => void;
   onCreateLoan: () => void;
   isCreatingLoan: boolean;
   isCorrectNetwork: boolean;
@@ -391,8 +424,10 @@ interface BorrowTabProps {
 const BorrowTab: React.FC<BorrowTabProps> = ({
   loanAmount,
   collateralAmount,
+  loanDuration,
   onLoanAmountChange,
   onCollateralAmountChange,
+  onLoanDurationChange,
   onCreateLoan,
   isCreatingLoan,
   isCorrectNetwork,
@@ -401,11 +436,30 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
   effectiveOnChainScore,
   userCreditScore,
 }) => {
-  // Calculate required collateral based on loan amount (60% LTV = 166.67% collateral)
+  // IMPORTANT: Check your P2PLending.sol contract for the actual collateral logic
+  // Common patterns in lending protocols:
+  // 1. Overcollateralized: collateral > loan amount (e.g., 150% = 1.5x)
+  // 2. Undercollateralized: collateral < loan amount (e.g., 60% = 0.6x)
+  
+  // Based on your description, it seems you want 65% collateral of loan amount
+  // But the transaction failure suggests the contract expects different logic
+  
   const calculateRequiredCollateral = (loan: string): string => {
     const loanValue = parseFloat(loan);
     if (isNaN(loanValue) || loanValue <= 0) return '';
-    const requiredCollateral = loanValue / 0.6; // 60% LTV
+    
+    // TRY DIFFERENT APPROACHES - comment out the one that doesn't work
+    
+    // Approach 1: Collateral is 65% of loan amount (what you described)
+    // const requiredCollateral = loanValue * 0.65;
+    
+    // Approach 2: Collateral is based on LTV ratio (more common in DeFi)
+    // For 65% LTV: Collateral = Loan Amount / 0.65
+    const requiredCollateral = loanValue / 0.65;
+    
+    // Approach 3: Fixed overcollateralization (150%)
+    // const requiredCollateral = loanValue * 1.5;
+    
     return formatNumber(requiredCollateral);
   };
 
@@ -421,7 +475,7 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
 
   const minCollateral = 0.1;
   const requiredCollateral = calculateRequiredCollateral(loanAmount);
-  const isValid = parseFloat(loanAmount) > 0 && parseFloat(requiredCollateral) >= minCollateral;
+  const isValid = parseFloat(loanAmount) >= 0.1 && parseFloat(requiredCollateral) >= minCollateral && parseFloat(loanDuration) >= 30;
 
   return (
     <div className="space-y-6">
@@ -438,14 +492,14 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
           <Input
             id="loanAmount"
             type="number"
-            placeholder="10"
+            placeholder="10.0"
             value={loanAmount}
             onChange={(e) => handleLoanAmountChange(e.target.value)}
             step="0.1"
             min="0.1"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Enter the amount you want to borrow
+            Enter the amount you want to borrow (minimum: 0.1 ETH)
           </p>
         </div>
 
@@ -461,7 +515,7 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
             className="bg-gray-50"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Based on 60% LTV ratio (min collateral: {minCollateral} ETH)
+            Based on 65% LTV ratio (min collateral: {minCollateral} ETH)
           </p>
           {requiredCollateral && parseFloat(requiredCollateral) < minCollateral && (
             <p className="text-xs text-red-500 mt-1">
@@ -470,15 +524,51 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
           )}
         </div>
 
+        <div>
+          <Label htmlFor="loanDuration">Loan Duration (Days)</Label>
+          <div className="flex items-center gap-2">
+            <Input
+              id="loanDuration"
+              type="number"
+              placeholder="90"
+              value={loanDuration}
+              onChange={(e) => onLoanDurationChange(e.target.value)}
+              min="30"
+              max="365"
+            />
+            <Clock className="h-4 w-4 text-gray-500" />
+          </div>
+          <p className="text-xs text-gray-500 mt-1">
+            Minimum 30 days, maximum 365 days
+          </p>
+        </div>
+
         {loanAmount && requiredCollateral && (
-          <div className="p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center gap-2 text-sm">
-              <Calculator className="h-4 w-4 text-blue-600" />
-              <span>
-                To borrow <strong>{loanAmount} ETH</strong>, you need to provide{' '}
-                <strong>{requiredCollateral} ETH</strong> as collateral
-              </span>
+          <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center gap-2 text-sm mb-2">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <span className="font-medium">Loan Summary</span>
             </div>
+            <div className="text-sm space-y-1">
+              <div className="flex justify-between">
+                <span>Loan Amount:</span>
+                <span className="font-medium">{loanAmount} ETH</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Collateral (65% LTV):</span>
+                <span className="font-medium text-blue-600">{requiredCollateral} ETH</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Duration:</span>
+                <span className="font-medium">{loanDuration} days</span>
+              </div>
+            </div>
+            <p className="text-xs text-blue-600 mt-2">
+              You provide {requiredCollateral} ETH collateral to borrow {loanAmount} ETH
+            </p>
+            <p className="text-xs text-yellow-600 mt-1">
+              💡 If transaction fails, the contract may require different collateral calculation
+            </p>
           </div>
         )}
 
@@ -490,7 +580,7 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
           {isCreatingLoan ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Creating Loan...
+              Creating Loan Request...
             </>
           ) : (
             <>
@@ -501,7 +591,7 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
         </Button>
 
         {!isScoreSet && (
-          <div className="p-3 bg-yellow-50 rounded-lg">
+          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="text-sm text-yellow-700">
               You need to set your credit score onchain before creating loan requests
             </p>
@@ -509,7 +599,7 @@ const BorrowTab: React.FC<BorrowTabProps> = ({
         )}
 
         {!isCorrectNetwork && (
-          <div className="p-3 bg-red-50 rounded-lg">
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
             <p className="text-sm text-red-700">
               Please switch to Sepolia network to create loan requests
             </p>
@@ -536,7 +626,7 @@ const LendTab: React.FC<LendTabProps> = ({
   isCreatingOffer,
   isCorrectNetwork,
 }) => {
-  const isValid = parseFloat(lendAmount) > 0;
+  const isValid = parseFloat(lendAmount) >= 1.0; // Minimum 1 ETH for lending
 
   return (
     <div className="space-y-6">
@@ -553,14 +643,14 @@ const LendTab: React.FC<LendTabProps> = ({
           <Input
             id="lendAmount"
             type="number"
-            placeholder="10"
+            placeholder="10.0"
             value={lendAmount}
             onChange={(e) => onLendAmountChange(e.target.value)}
             step="0.1"
-            min="0.1"
+            min="1.0"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Enter the amount you want to lend
+            Enter the amount you want to lend (minimum: 1.0 ETH)
           </p>
         </div>
 
@@ -583,7 +673,7 @@ const LendTab: React.FC<LendTabProps> = ({
         </Button>
 
         {!isCorrectNetwork && (
-          <div className="p-3 bg-red-50 rounded-lg">
+          <div className="p-3 bg-red-50 rounded-lg border border-red-200">
             <p className="text-sm text-red-700">
               Please switch to Sepolia network to create lender offers
             </p>
@@ -600,6 +690,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   const [activeTab, setActiveTab] = useState<'borrow' | 'lend'>('borrow');
   const [loanAmount, setLoanAmount] = useState('');
   const [collateralAmount, setCollateralAmount] = useState('');
+  const [loanDuration, setLoanDuration] = useState('90'); // Default 90 days
   const [lendAmount, setLendAmount] = useState('');
 
   // Use custom hooks
@@ -609,17 +700,27 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   // Handle loan creation
   const handleCreateLoan = async () => {
-    if (!loanAmount || !collateralAmount) return;
+    if (!loanAmount || !collateralAmount || !loanDuration) return;
     
     if (!creditScoreManager.isScoreSet) {
       alert('Credit score not found onchain. Please set it first.');
       return;
     }
 
-    const success = await p2pLending.createLoanRequest(loanAmount, collateralAmount);
+    // Convert days to seconds for the contract
+    const durationInSeconds = parseInt(loanDuration) * 24 * 60 * 60;
+    
+    console.log('Creating loan with:', {
+      loanAmount,
+      collateralAmount, 
+      durationInSeconds
+    });
+    
+    const success = await p2pLending.createLoanRequest(loanAmount, collateralAmount, durationInSeconds);
     if (success) {
       setLoanAmount('');
       setCollateralAmount('');
+      setLoanDuration('90');
     }
   };
 
@@ -672,11 +773,18 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   if (isConnected && !creditScoreManager.isCorrectNetwork) {
     return (
       <div className="space-y-6">
-        <NetworkAlert />
-        <Card>
-          <CardContent className="py-8">
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-gray-600">Please switch to Sepolia network to access P2P Lending</p>
+              <AlertTriangle className="h-8 w-8 mx-auto mb-3 text-yellow-600" />
+              <h3 className="font-semibold text-lg mb-2">Wrong Network</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Please switch to Sepolia testnet to use Credit Cupid. 
+                You need Sepolia ETH (free from faucets) for transactions.
+              </p>
+              <p className="text-xs text-gray-600 mt-3">
+                Get free Sepolia ETH from: sepoliafaucet.com
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -686,6 +794,9 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   return (
     <div className="space-y-6">
+      {/* Rates Panel - RESTORED */}
+      <RatesPanel userCreditScore={userCreditScore} />
+
       {/* P2P Lending Transaction Status */}
       {p2pLending.transactionState.hash && (
         <TransactionStatus
@@ -741,8 +852,10 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
             <BorrowTab 
               loanAmount={loanAmount}
               collateralAmount={collateralAmount}
+              loanDuration={loanDuration}
               onLoanAmountChange={setLoanAmount}
               onCollateralAmountChange={setCollateralAmount}
+              onLoanDurationChange={setLoanDuration}
               onCreateLoan={handleCreateLoan}
               isCreatingLoan={p2pLending.transactionState.isPending && p2pLending.transactionState.type === 'createLoan'}
               isCorrectNetwork={creditScoreManager.isCorrectNetwork}
