@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
 
-const P2P_LENDING_ADDRESS = '0xaF1847D02A5d235730c19f1aA5D95296D5EAE691' as `0x${string}`;
+const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
 
 const P2P_LENDING_ABI = [
   {

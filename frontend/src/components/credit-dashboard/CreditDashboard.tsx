@@ -4,7 +4,7 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { useTransactionPopup } from "@blockscout/app-sdk";
 import { DatingTab } from '../DatingTab';
-import { P2PLending } from '../P2PLending';
+
 import { AgentChat } from '../AgentChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
 import { CreditData } from '../../types/credit';
+import { P2PLending } from '../../components/P2PLending';
+
 
 // Import new modular components
 import { useCreditData } from './hooks/useCreditData';
@@ -397,9 +399,12 @@ const CreditDashboardContent: React.FC = () => {
            <DatingTab />
           </TabsContent>
           {/* Lending Tab */}
-          <TabsContent value="lending" className="space-y-6">
-            <P2PLending userCreditScore={finalCreditScore} userAddress={address!} />
-          </TabsContent>
+<TabsContent value="lending" className="space-y-6">
+  <P2PLending 
+    userCreditScore={finalCreditScore} 
+    userAddress={address!}
+  />
+</TabsContent>
 
           {/* AI Agents Tab */}
           <TabsContent value="agents">

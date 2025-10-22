@@ -194,7 +194,7 @@ export const BorrowTab: React.FC<BorrowTabProps> = ({
                   </div>
                   <div>
                     <div className="text-gray-600">Max LTV</div>
-                    <div className="font-medium">{offer.maxLtv}%</div>
+                    <div className="font-medium">{offer.minCollateralRatio}%</div>
                   </div>
                   <div>
                     <div className="text-gray-600">Duration</div>

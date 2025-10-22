@@ -1,8 +1,10 @@
+// hooks/useP2PData.ts
 import { useReadContract } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
 
-const P2P_LENDING_ADDRESS = '0xaF1847D02A5d235730c19f1aA5D95296D5EAE691' as `0x${string}`;
+const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
 
+// Use the SAME ABI as in P2PLending.tsx
 const P2P_LENDING_ABI = [
   {
     "inputs": [],
@@ -97,7 +99,7 @@ const P2P_LENDING_ABI = [
           },
           {
             "internalType": "uint256",
-            "name": "maxLtv",
+            "name": "minCollateralRatio", // ✅ CORRECT: This matches your contract
             "type": "uint256"
           },
           {
@@ -132,7 +134,7 @@ export interface LoanOffer {
   token: string;
   amount: number;
   minScore: number;
-  maxLtv: number;
+  minCollateralRatio: number; // ✅ Update this field name
   interestRate: number;
   duration: number;
   status: 'active' | 'filled' | 'cancelled';
@@ -148,37 +150,53 @@ export interface LoanRequest {
   interestRate: number;
   status: 'pending' | 'funded' | 'cancelled';
   createdAt: Date;
+  creditScore: number; // ✅ Add this field
 }
 
 export const useP2PData = () => {
   const { 
     data: activeLoanRequests,
     refetch: refetchLoanRequests,
-    isLoading: isLoadingRequests
+    isLoading: isLoadingRequests,
+    error: requestsError // ✅ Add error handling
   } = useReadContract({
     address: P2P_LENDING_ADDRESS,
     abi: P2P_LENDING_ABI,
     functionName: 'getActiveLoanRequests',
     query: {
-      refetchInterval: 15000,
+      refetchInterval: 10000, // Refetch every 10 seconds
     }
   });
 
   const { 
     data: activeLenderOffers,
     refetch: refetchLenderOffers,
-    isLoading: isLoadingOffers
+    isLoading: isLoadingOffers,
+    error: offersError // ✅ Add error handling
   } = useReadContract({
     address: P2P_LENDING_ADDRESS,
     abi: P2P_LENDING_ABI,
     functionName: 'getActiveLenderOffers',
     query: {
-      refetchInterval: 15000,
+      refetchInterval: 10000, // Refetch every 10 seconds
     }
   });
 
+  // Add debug logging
+  console.log('🔍 useP2PData Debug:', {
+    activeLoanRequests,
+    activeLenderOffers,
+    requestsError,
+    offersError
+  });
+
   const processLoanRequests = (): LoanRequest[] => {
-    if (!activeLoanRequests || !Array.isArray(activeLoanRequests)) return [];
+    if (!activeLoanRequests || !Array.isArray(activeLoanRequests)) {
+      console.log('❌ No loan requests data or not an array');
+      return [];
+    }
+    
+    console.log('📋 Processing loan requests:', activeLoanRequests.length);
     
     return activeLoanRequests.map((req: any, index: number) => ({
       id: index + 1,
@@ -188,13 +206,19 @@ export const useP2PData = () => {
       collateral: Number(req.collateralAmount) / 1e18,
       duration: Number(req.duration) / (24 * 60 * 60),
       interestRate: Number(req.interestRate) / 100,
-      status: req.funded ? 'funded' : 'pending',
-      createdAt: new Date(Number(req.createdAt) * 1000)
+      status: req.funded ? 'funded' : req.active ? 'pending' : 'cancelled',
+      createdAt: new Date(Number(req.createdAt) * 1000),
+      creditScore: Number(req.creditScore)
     }));
   };
 
   const processLoanOffers = (): LoanOffer[] => {
-    if (!activeLenderOffers || !Array.isArray(activeLenderOffers)) return [];
+    if (!activeLenderOffers || !Array.isArray(activeLenderOffers)) {
+      console.log('❌ No lender offers data or not an array');
+      return [];
+    }
+    
+    console.log('📋 Processing loan offers:', activeLenderOffers.length);
     
     return activeLenderOffers.map((offer: any, index: number) => ({
       id: index + 1,
@@ -202,20 +226,28 @@ export const useP2PData = () => {
       token: 'ETH',
       amount: Number(offer.maxAmount) / 1e18,
       minScore: Number(offer.minCreditScore),
-      maxLtv: Number(offer.maxLtv) / 100,
+      minCollateralRatio: Number(offer.minCollateralRatio) / 100, // ✅ Use correct field
       interestRate: Number(offer.interestRate) / 100,
       duration: Number(offer.maxDuration) / (24 * 60 * 60),
       status: offer.active ? 'active' : 'cancelled'
     }));
   };
 
+  const loanRequests = processLoanRequests();
+  const loanOffers = processLoanOffers();
+
   return {
-    loanRequests: processLoanRequests(),
-    loanOffers: processLoanOffers(),
+    loanRequests,
+    loanOffers,
     isLoading: isLoadingRequests || isLoadingOffers,
     refetchAll: () => {
+      console.log('🔄 Refetching P2P data...');
       refetchLoanRequests();
       refetchLenderOffers();
+    },
+    errors: {
+      requestsError,
+      offersError
     }
   };
 };

@@ -5,7 +5,7 @@ import { sepolia } from 'wagmi/chains';
 import { transactionService, TransactionStatus } from '../../../backend/src/services/transactionService';
 
 const CREDIT_SCORE_ADDRESS = '0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8' as `0x${string}`;
-const P2P_LENDING_ADDRESS = '0xaF1847D02A5d235730c19f1aA5D95296D5EAE691' as `0x${string}`;
+const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
 
 const CREDIT_SCORE_ABI = [
   {
