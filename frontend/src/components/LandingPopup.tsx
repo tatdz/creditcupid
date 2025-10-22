@@ -133,7 +133,7 @@ const LandingPopup: React.FC<LandingPopupProps> = ({ gifUrl, onComplete }) => {
             {/* Footer Note - Moved higher up */}
             <div className="mb-6 p-4 bg-white bg-opacity-10 border-2 border-white border-dashed rounded-lg">
               <p className="text-lg text-yellow-200 drop-shadow-[1px_1px_0px_rgba(0,0,0,0.3)]">
-                Build your credit score • Find financially stable partners • Get better DeFi terms
+                Build your credit score • Date on your financial frequency • Get better DeFi terms
               </p>
             </div>
 

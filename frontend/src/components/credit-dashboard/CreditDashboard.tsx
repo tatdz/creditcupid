@@ -19,7 +19,10 @@ import {
   BarChart3,
   Shield,
   Heart,
-  Zap
+  Zap,
+  Star,
+  Calendar,
+  Target
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
 import { CreditData } from '../../types/credit';
@@ -326,22 +329,21 @@ const CreditDashboardContent: React.FC = () => {
           </div>
         )}
 
-        {/* Data Quality Notice */}
-        {displayData && (
-          <div className="mb-4 p-4 bg-blue-100 border-4 border-blue-500 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0">
-                <Shield className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-lg text-blue-800">
-                  <strong>PRIVACY FIRST:</strong> Your credit analysis happens locally. 
-                  No personal information is stored on our servers.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Data Quality Notice - UPDATED TEXT */}
+{displayData && (
+  <div className="mb-4 p-4 bg-purple-100 border-4 border-purple-500 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+    <div className="flex items-center gap-3">
+      <div className="flex-shrink-0">
+        <Star className="h-6 w-6 text-purple-600" />
+      </div>
+      <div className="flex-1">
+        <p className="text-lg text-purple-800">
+          <strong>Build your credit score</strong> • <strong>Date on your financial frequency</strong> • <strong>Get better DeFi terms</strong>
+        </p>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
