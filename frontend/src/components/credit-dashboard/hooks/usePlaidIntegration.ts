@@ -1,5 +1,5 @@
 // src/hooks/usePlaidIntegration.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { PlaidData, StoredPrivacyProofs } from '../../../types/credit';
 import { privacyProofGenerator } from '../../../components/credit-dashboard/utils/PrivacyProofs';
 
@@ -13,28 +13,67 @@ export const usePlaidIntegration = () => {
     message: string;
   }>({ available: false, message: 'Checking Pinata credentials...' });
 
+  // Check Pinata status on component mount
+  useEffect(() => {
+    checkPinataStatus();
+  }, []);
+
+  const checkPinataStatus = useCallback(async () => {
+    try {
+      console.log('🔍 Checking Pinata credentials...');
+      
+      // Debug: Check if environment variables are available
+      const envVars = {
+        VITE_PINATA_API_KEY: import.meta.env.VITE_PINATA_API_KEY,
+        VITE_PINATA_API_SECRET: import.meta.env.VITE_PINATA_API_SECRET,
+        VITE_PINATA_JWT: import.meta.env.VITE_PINATA_JWT,
+      };
+      
+      console.log('🔧 Environment variables status:', {
+        hasApiKey: !!envVars.VITE_PINATA_API_KEY,
+        hasApiSecret: !!envVars.VITE_PINATA_API_SECRET,
+        hasJWT: !!envVars.VITE_PINATA_JWT,
+      });
+
+      const status = privacyProofGenerator.getPinataStatus();
+      setPinataStatus({
+        available: status.available,
+        message: status.message
+      });
+      
+      if (!status.available) {
+        console.warn('⚠️ Pinata not available:', status.message);
+        console.log('💡 Development mode active - mock CIDs will be used');
+      } else {
+        console.log('✅ Pinata Status:', status);
+      }
+    } catch (statusError: any) {
+      console.error('❌ Pinata status check failed:', statusError);
+      setPinataStatus({
+        available: false,
+        message: `Status check failed: ${statusError.message}`
+      });
+    }
+  }, []);
+
   const connectBank = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log('🏦 Starting Darma Bank Connection with REAL IPFS...');
+      console.log('🏦 Starting Darma Bank Connection...');
       
-      // Check Pinata status
-      try {
-        const status = privacyProofGenerator.getPinataStatus();
-        setPinataStatus({
-          available: status.available,
-          message: status.message
-        });
-        
-        if (!status.available) {
-          throw new Error('REAL IPFS storage is not available. Please check your Pinata credentials.');
-        }
-        
-        console.log('✅ Pinata Status:', status);
-      } catch (statusError: any) {
-        throw new Error(`Pinata configuration error: ${statusError.message}`);
+      // Check Pinata status but don't block connection if unavailable
+      const currentStatus = privacyProofGenerator.getPinataStatus();
+      setPinataStatus({
+        available: currentStatus.available,
+        message: currentStatus.message
+      });
+
+      if (!currentStatus.available) {
+        console.warn('⚠️ Development Mode: Using mock CIDs for privacy proofs');
+        console.log('💡 Add Pinata credentials to enable real IPFS storage');
+        // Don't throw error - continue with development mode
       }
 
       // Simulate Plaid connection
@@ -44,12 +83,17 @@ export const usePlaidIntegration = () => {
       
       console.log('✅ Bank data received, generating cryptographic proofs...');
 
-      // Generate cryptographic proofs - this will throw if Pinata fails
+      // Generate cryptographic proofs - this will work in both real and development mode
       const proofs = await privacyProofGenerator.generatePrivacyProofs(mockPlaidData);
       setPrivacyProofs(proofs);
       
-      console.log('🎉 REAL cryptographic proofs Generated Successfully!');
-      console.log('🔗 All proofs are now publicly accessible on IPFS');
+      if (currentStatus.available) {
+        console.log('🎉 REAL cryptographic proofs Generated Successfully!');
+        console.log('🔗 All proofs are now publicly accessible on IPFS');
+      } else {
+        console.log('🎉 Development cryptographic proofs generated!');
+        console.log('💡 Mock CIDs created - add Pinata credentials for real IPFS storage');
+      }
 
     } catch (err: any) {
       console.error('❌ Bank connection failed:', err);
@@ -69,6 +113,21 @@ export const usePlaidIntegration = () => {
     }
   }, []);
 
+  // Method to retry with real IPFS if credentials become available
+  const retryWithRealIPFS = useCallback(async () => {
+    await checkPinataStatus();
+    if (plaidData && pinataStatus.available) {
+      console.log('🔄 Regenerating proofs with real IPFS...');
+      try {
+        const newProofs = await privacyProofGenerator.generatePrivacyProofs(plaidData);
+        setPrivacyProofs(newProofs);
+        console.log('✅ Proofs regenerated with real IPFS!');
+      } catch (error) {
+        console.error('❌ Failed to regenerate proofs:', error);
+      }
+    }
+  }, [plaidData, pinataStatus.available, checkPinataStatus]);
+
   return {
     plaidData,
     privacyProofs,
@@ -76,7 +135,9 @@ export const usePlaidIntegration = () => {
     error,
     pinataStatus,
     connectBank,
-    verifyCID
+    verifyCID,
+    checkPinataStatus,
+    retryWithRealIPFS
   };
 };
 
