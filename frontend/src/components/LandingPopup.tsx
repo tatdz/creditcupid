@@ -109,107 +109,67 @@ const LandingPopup: React.FC<LandingPopupProps> = ({ gifUrl, onComplete }) => {
         href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
         rel="stylesheet"
       />
-      <div
-        className="fixed inset-0 flex items-center justify-center z-50"
-        style={{
-          background: 'linear-gradient(135deg, rgb(72,144,255) 0%, rgb(160,200,255) 100%)',
-        }}
-      >
-        <div className="text-center">
+      <div className="fixed inset-0 flex items-center justify-center z-50 font-vt323 min-h-screen bg-gradient-to-br from-blue-400 to-red-500">
+        <div className="text-center p-8">
           <img
             src={gifUrl}
             alt="Cupid Animation"
+            className="mx-auto border-4 border-white rounded-lg shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)] mb-6"
             style={{
               width: 400,
               height: 400,
-              margin: '0 auto',
-              borderRadius: 12,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
             }}
           />
-          <div
-            className="text-white drop-shadow-lg"
-            style={{
-              fontFamily: "'VT323', monospace",
-              marginTop: '2rem',
-              maxWidth: '600px',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-            }}
-          >
-            <h1
-              style={{
-                fontSize: '3rem',
-                marginBottom: '1rem',
-                fontWeight: 'normal',
-                whiteSpace: 'pre-line',
-              }}
-            >
-              Welcome to CreditCupid!
+          
+          <div className="text-white max-w-4xl mx-auto">
+            <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-[4px_4px_0px_rgba(0,0,0,0.3)]">
+              CREDITCUPID
             </h1>
-            <p
-              style={{
-                fontSize: '1.5rem',
-                lineHeight: 1.5,
-                marginTop: 0,
-                marginBottom: '2rem',
-                fontWeight: 'normal',
-              }}
-            >
-              The first onchain credit oracle to spark authentic bonds in romance and P2P lending💘
+            
+            <p className="text-2xl text-yellow-200 mb-6 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+              The first onchain credit oracle to spark authentic bonds in romance and P2P lending
             </p>
 
+            {/* Footer Note - Moved higher up */}
+            <div className="mb-6 p-4 bg-white bg-opacity-10 border-2 border-white border-dashed rounded-lg">
+              <p className="text-lg text-yellow-200 drop-shadow-[1px_1px_0px_rgba(0,0,0,0.3)]">
+                Build your credit score • Find financially stable partners • Get better DeFi terms
+              </p>
+            </div>
+
             {/* Connection Section */}
-            <div className="mt-6">
+            <div className="mt-4">
               {isConnecting ? (
                 <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-2"></div>
-                  <p style={{ fontSize: '1.2rem' }}>Connecting to your wallet...</p>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-yellow-400 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]"></div>
+                  <p className="text-2xl text-yellow-200 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                    ANALYZING ON-CHAIN ACTIVITY...
+                  </p>
                 </div>
               ) : hasEthereum ? (
                 <div className="flex flex-col items-center gap-4">
                   <button
                     onClick={handleManualConnect}
                     disabled={isConnecting}
-                    style={{
-                      fontFamily: "'VT323', monospace",
-                      fontSize: '1.5rem',
-                      padding: '12px 24px',
-                      backgroundColor: 'rgba(255,255,255,0.2)',
-                      color: 'white',
-                      border: '2px solid white',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                    }}
+                    className="text-2xl px-8 py-4 bg-green-500 hover:bg-green-600 text-white border-4 border-green-700 rounded-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,0.3)] transition-all duration-200 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:translate-y-1"
                   >
-                    Connect Wallet
+                    CONNECT WALLET
                   </button>
-                  <p style={{ fontSize: '1.2rem', opacity: 0.8 }}>
+                  <p className="text-xl text-yellow-200 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
                     Click to connect your wallet and continue
                   </p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <p style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>
-                    No wallet detected
+                  <p className="text-2xl text-yellow-200 mb-4 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
+                    NO WALLET DETECTED
                   </p>
-                  <div className="flex gap-4 justify-center">
+                  <div className="flex gap-6 justify-center">
                     <a 
                       href="https://metamask.io/download/" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      style={{
-                        color: 'white',
-                        textDecoration: 'underline',
-                        fontSize: '1.1rem',
-                      }}
+                      className="text-xl text-white hover:text-yellow-200 underline drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)] transition-colors duration-200"
                     >
                       Install MetaMask
                     </a>
@@ -217,11 +177,7 @@ const LandingPopup: React.FC<LandingPopupProps> = ({ gifUrl, onComplete }) => {
                       href="https://talisman.xyz/download" 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      style={{
-                        color: 'white',
-                        textDecoration: 'underline',
-                        fontSize: '1.1rem',
-                      }}
+                      className="text-xl text-white hover:text-yellow-200 underline drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)] transition-colors duration-200"
                     >
                       Install Talisman
                     </a>
@@ -230,8 +186,8 @@ const LandingPopup: React.FC<LandingPopupProps> = ({ gifUrl, onComplete }) => {
               )}
 
               {connectionError && (
-                <div className="mt-4 p-3 bg-red-500 bg-opacity-20 border border-red-300 rounded max-w-md mx-auto">
-                  <p style={{ color: 'white', fontSize: '1.1rem' }}>
+                <div className="mt-4 p-4 bg-red-500 bg-opacity-80 border-4 border-red-700 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] max-w-md mx-auto">
+                  <p className="text-lg text-white text-center drop-shadow-[1px_1px_0px_rgba(0,0,0,0.3)]">
                     {connectionError}
                   </p>
                 </div>

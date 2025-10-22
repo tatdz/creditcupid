@@ -754,15 +754,15 @@ const QuickStats: React.FC<{ userCreditScore: number }> = ({ userCreditScore }) 
 
   return (
     <div className="grid grid-cols-3 gap-3 mb-4">
-      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 text-center">
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border-2 border-blue-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="text-xs text-blue-600 font-medium mb-1">SCORE</div>
         <div className="text-lg font-bold text-blue-700">{userCreditScore}</div>
       </div>
-      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border border-green-200 text-center">
+      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border-2 border-green-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="text-xs text-green-600 font-medium mb-1">BORROW</div>
         <div className="text-lg font-bold text-green-700">{userBorrowRate.toFixed(1)}%</div>
       </div>
-      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border border-purple-200 text-center">
+      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border-2 border-purple-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="text-xs text-purple-600 font-medium mb-1">LEND</div>
         <div className="text-lg font-bold text-purple-700">{userLendRate.toFixed(1)}%</div>
       </div>
@@ -793,11 +793,11 @@ const TransactionStatus: React.FC<{
   const message = getMessage();
 
   return (
-    <div className={`p-3 rounded-lg border mb-4 ${
-      isSuccess ? 'bg-green-50 border-green-200' :
-      error ? 'bg-red-50 border-red-200' :
-      'bg-blue-50 border-blue-200'
-    }`}>
+    <div className={`p-3 rounded-lg border-2 mb-4 ${
+      isSuccess ? 'bg-green-50 border-green-400' :
+      error ? 'bg-red-50 border-red-400' :
+      'bg-blue-50 border-blue-400'
+    } shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]`}>
       <div className="flex items-center gap-2">
         {isSuccess ? (
           <CheckCircle className="h-4 w-4 text-green-600" />
@@ -857,7 +857,7 @@ const CreditScoreStatus: React.FC<{
 
   if (isScoreSet) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+      <div className="bg-green-50 border-2 border-green-400 rounded-lg p-3 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -881,7 +881,7 @@ const CreditScoreStatus: React.FC<{
   }
 
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+    <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-yellow-600" />
@@ -894,7 +894,7 @@ const CreditScoreStatus: React.FC<{
           onClick={setCreditScoreOnChain}
           disabled={isUpdating || !isCorrectNetwork}
           size="sm"
-          className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700"
+          className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 border-2 border-yellow-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
         >
           {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
         </Button>
@@ -982,20 +982,20 @@ const SwipeCard: React.FC<{
 
   return (
     <div 
-      className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm cursor-grab active:cursor-grabbing"
+      className="bg-white rounded-lg border-2 border-gray-400 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] cursor-grab active:cursor-grabbing"
       style={{ transform: `translateX(${currentX}px)`, transition: isDragging ? 'none' : 'transform 0.3s ease' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-gray-900">{details.title}</h3>
-        <Badge variant={type === 'loan' ? 'default' : 'secondary'}>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-semibold text-blue-800 text-base">{details.title}</h3>
+        <Badge variant={type === 'loan' ? 'default' : 'secondary'} className="border-2">
           {type === 'loan' ? 'Borrow' : 'Lend'}
         </Badge>
       </div>
       
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-gray-600">{details.subtitle}</p>
         <a 
           href={`https://sepolia.etherscan.io/address/${details.address}`}
@@ -1008,11 +1008,11 @@ const SwipeCard: React.FC<{
         </a>
       </div>
       
-      <div className="grid grid-cols-3 gap-2 mb-4">
+      <div className="grid grid-cols-3 gap-2 mb-3">
         {details.details.map((detail, index) => (
-          <div key={index} className="text-center">
-            <div className="text-xs text-gray-500">{detail.label}</div>
-            <div className="text-sm font-semibold text-gray-900">{detail.value}</div>
+          <div key={index} className="text-center bg-blue-50 rounded border border-blue-200 p-1">
+            <div className="text-xs text-blue-600">{detail.label}</div>
+            <div className="text-sm font-semibold text-blue-800">{detail.value}</div>
           </div>
         ))}
       </div>
@@ -1020,16 +1020,16 @@ const SwipeCard: React.FC<{
       <div className="flex justify-between items-center">
         <button 
           onClick={() => onSwipeLeft(item)}
-          className="p-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+          className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors border border-red-300"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
         <span className="text-xs text-gray-500">Swipe or click</span>
         <button 
           onClick={() => onSwipeRight(item)}
-          className="p-2 rounded-full bg-green-50 text-green-600 hover:bg-green-100 transition-colors"
+          className="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors border border-green-300"
         >
-          <Heart className="h-5 w-5" />
+          <Heart className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -1090,7 +1090,7 @@ const CreateForm: React.FC<{
             step="0.01"
             min="0.1"
             max="10"
-            className="h-8 text-sm"
+            className="h-8 text-sm border-2"
           />
         </div>
 
@@ -1101,7 +1101,7 @@ const CreateForm: React.FC<{
             type="text"
             value={`${collateralAmount} ETH (85%)`}
             readOnly
-            className="h-8 text-sm bg-gray-50"
+            className="h-8 text-sm bg-blue-50 border-2 border-blue-300"
           />
         </div>
 
@@ -1115,11 +1115,11 @@ const CreateForm: React.FC<{
             onChange={(e) => setDuration(e.target.value)}
             min="30"
             max="365"
-            className="h-8 text-sm"
+            className="h-8 text-sm border-2"
           />
         </div>
 
-        <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <div className="p-3 bg-blue-100 rounded-lg border-2 border-blue-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-2 mb-1">
             <Shield className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-800">Transaction Details</span>
@@ -1132,7 +1132,7 @@ const CreateForm: React.FC<{
         <Button
           onClick={handleCreate}
           disabled={!loanAmount || isCreating || !isCorrectNetwork || !isScoreSet}
-          className="w-full h-8 text-sm"
+          className="w-full h-8 text-sm border-2 border-blue-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]"
         >
           {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create Loan'}
         </Button>
@@ -1159,11 +1159,11 @@ const CreateForm: React.FC<{
           step="0.1"
           min="0.1"
           max="10"
-          className="h-8 text-sm"
+          className="h-8 text-sm border-2"
         />
       </div>
 
-      <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+      <div className="p-3 bg-blue-100 rounded-lg border-2 border-blue-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-2 mb-1">
           <Shield className="h-4 w-4 text-blue-600" />
           <span className="text-sm font-medium text-blue-800">Auto-Matching</span>
@@ -1176,7 +1176,7 @@ const CreateForm: React.FC<{
       <Button
         onClick={handleCreate}
         disabled={!offerAmount || isCreating || !isCorrectNetwork}
-        className="w-full h-8 text-sm"
+        className="w-full h-8 text-sm border-2 border-blue-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]"
       >
         {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create Offer'}
       </Button>
@@ -1548,10 +1548,10 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   if (!isConnected) {
     return (
-      <Card>
+      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">P2P Lending</CardTitle>
-          <CardDescription>Connect your wallet to start</CardDescription>
+          <CardTitle className="text-xl text-blue-800">P2P LENDING</CardTitle>
+          <CardDescription className="text-base text-gray-700">CONNECT YOUR WALLET TO START</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6">
@@ -1565,9 +1565,9 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   if (isConnected && !isCorrectNetwork) {
     return (
-      <Card>
+      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Wrong Network</CardTitle>
+          <CardTitle className="text-xl text-blue-800">WRONG NETWORK</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-4">
@@ -1586,19 +1586,19 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
+          <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
             <Target className="h-5 w-5" />
-            Credit Cupid
+            SWIPE RIGHT TO MATCH WITH PERFECT LENDING OPPORTUNITIES
           </CardTitle>
-          <CardDescription className="flex items-center justify-between">
-            <span>Swipe right to match with perfect lending opportunities</span>
+          <CardDescription className="flex items-center justify-between text-base text-gray-700">
+            <span></span>
             <Button
               onClick={handleManualRefresh}
               variant="outline"
               size="sm"
-              className="h-6 text-xs"
+              className="h-6 text-xs border-2 border-gray-400 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <RefreshCw className="h-3 w-3 mr-1" />
               Refresh
@@ -1608,14 +1608,14 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
         <CardContent>
           <QuickStats userCreditScore={userCreditScore} />
           
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-3">
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-3 border-2 border-gray-300">
             <Button
               variant={activeView === 'borrow' ? 'default' : 'ghost'}
               onClick={() => {
                 setActiveView('borrow');
                 setCurrentIndex(0);
               }}
-              className="flex-1 h-8 text-xs"
+              className="flex-1 h-8 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <TrendingUp className="h-3 w-3 mr-1" />
               Borrow
@@ -1626,18 +1626,18 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
                 setActiveView('lend');
                 setCurrentIndex(0);
               }}
-              className="flex-1 h-8 text-xs"
+              className="flex-1 h-8 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <DollarSign className="h-3 w-3 mr-1" />
               Lend
             </Button>
           </div>
 
-          <div className="flex space-x-1 bg-gray-50 p-1 rounded-lg mb-4">
+          <div className="flex space-x-1 bg-gray-50 p-1 rounded-lg mb-4 border-2 border-gray-300">
             <Button
               variant={activeTab === 'swipe' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('swipe')}
-              className="flex-1 h-7 text-xs"
+              className="flex-1 h-7 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <Eye className="h-3 w-3 mr-1" />
               Browse
@@ -1645,7 +1645,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
             <Button
               variant={activeTab === 'create' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('create')}
-              className="flex-1 h-7 text-xs"
+              className="flex-1 h-7 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <Plus className="h-3 w-3 mr-1" />
               Create
@@ -1666,14 +1666,14 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
       <CreditScoreStatus creditScoreManager={creditScoreManager} />
 
       {activeTab === 'swipe' ? (
-        <Card>
+        <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
+            <CardTitle className="text-base flex items-center gap-2 text-blue-800">
               <Filter className="h-4 w-4" />
-              {activeView === 'borrow' ? 'Available Loan Offers' : 'Loan Requests'}
+              {activeView === 'borrow' ? 'AVAILABLE LOAN OFFERS' : 'LOAN REQUESTS'}
               <div className="flex items-center gap-2 ml-auto">
                 {availableItems && availableItems.length > 0 && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="border-2">
                     {currentIndex + 1} of {availableItems.length}
                   </Badge>
                 )}
@@ -1699,10 +1699,10 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">
-              Create {activeView === 'borrow' ? 'Loan Request' : 'Lender Offer'}
+            <CardTitle className="text-base text-blue-800">
+              CREATE {activeView === 'borrow' ? 'LOAN REQUEST' : 'LENDER OFFER'}
             </CardTitle>
           </CardHeader>
           <CardContent>

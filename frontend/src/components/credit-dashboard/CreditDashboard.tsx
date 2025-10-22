@@ -25,7 +25,6 @@ import { CreditScore } from '../ui/CreditScore';
 import { CreditData } from '../../types/credit';
 import { P2PLending } from '../../components/P2PLending';
 
-
 // Import new modular components
 import { useCreditData } from './hooks/useCreditData';
 import { usePlaidIntegration } from './hooks/usePlaidIntegration';
@@ -81,27 +80,27 @@ const CreditDashboardContent: React.FC = () => {
   // Not connected state
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <Wallet className="h-6 w-6" />
-              Connect Your Wallet
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 to-red-500 flex items-center justify-center p-4 font-vt323">
+        <Card className="w-full max-w-md border-4 border-yellow-400 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardHeader className="text-center border-b-4 border-yellow-400">
+            <CardTitle className="flex items-center justify-center gap-2 text-3xl text-blue-800">
+              <Wallet className="h-8 w-8" />
+              CONNECT WALLET
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-lg text-gray-700">
               Connect your wallet to analyze your on-chain history and build your credit score
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent className="flex flex-col gap-4 p-6">
             <Button
               onClick={() => connect({ connector: injected() })}
               size="lg"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white border-4 border-green-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
             >
-              <Wallet className="h-5 w-5" />
-              Connect Wallet
+              <Wallet className="h-6 w-6" />
+              CONNECT WALLET
             </Button>
-            <div className="text-xs text-gray-600 text-center">
+            <div className="text-sm text-gray-600 text-center border-2 border-dashed border-gray-300 p-3 bg-gray-50">
               <p>We'll analyze your on-chain activity to build your credit profile</p>
               <p className="mt-1 text-gray-500">No data will be stored - everything stays in your browser</p>
             </div>
@@ -114,15 +113,15 @@ const CreditDashboardContent: React.FC = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 to-red-500 flex items-center justify-center font-vt323">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Analyzing your on-chain activity...</p>
-          <p className="text-sm text-gray-500">Scanning transactions and protocol interactions</p>
-          <div className="mt-4 flex justify-center space-x-2">
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-yellow-400 mx-auto mb-4"></div>
+          <p className="text-2xl text-white mb-2">ANALYZING ON-CHAIN ACTIVITY...</p>
+          <p className="text-lg text-yellow-200">Scanning transactions and protocol interactions</p>
+          <div className="mt-6 flex justify-center space-x-3">
+            <div className="w-3 h-3 bg-red-500 rounded-full animate-bounce shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-full animate-bounce shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]" style={{ animationDelay: '0.2s' }}></div>
           </div>
         </div>
       </div>
@@ -132,19 +131,19 @@ const CreditDashboardContent: React.FC = () => {
   // No data state (API unavailable or no data returned)
   if (!displayData && !loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <AlertCircle className="h-6 w-6" />
-              Unable to Load Data
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 to-red-500 flex items-center justify-center p-4 font-vt323">
+        <Card className="w-full max-w-md border-4 border-red-500 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardHeader className="text-center border-b-4 border-red-500">
+            <CardTitle className="flex items-center justify-center gap-2 text-3xl text-red-700">
+              <AlertCircle className="h-8 w-8" />
+              UNABLE TO LOAD DATA
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-lg text-gray-700">
               {error || 'We could not fetch your on-chain data. This might be because:'}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="text-sm text-gray-600 space-y-2">
+          <CardContent className="flex flex-col gap-4 p-6">
+            <div className="text-lg text-gray-700 space-y-2 bg-yellow-50 border-2 border-yellow-300 p-3">
               <p>• Backend service is unavailable</p>
               <p>• Network connection issues</p>
               <p>• Wallet has no on-chain activity</p>
@@ -153,22 +152,22 @@ const CreditDashboardContent: React.FC = () => {
             <Button 
               onClick={retry} 
               size="lg" 
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white border-4 border-blue-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
             >
-              <RefreshCw className="h-5 w-5" />
-              Try Again
+              <RefreshCw className="h-6 w-6" />
+              TRY AGAIN
             </Button>
             
             <Button 
               onClick={handleViewTransactions} 
               variant="outline" 
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 border-4 border-gray-400 bg-gray-100 hover:bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
             >
-              <BarChart3 className="h-4 w-4" />
-              View Transactions on Blockscout
+              <BarChart3 className="h-5 w-5" />
+              VIEW ON BLOCKSCOUT
             </Button>
             
-            <div className="text-xs text-gray-500 text-center">
+            <div className="text-sm text-gray-500 text-center border-2 border-dashed border-gray-300 p-2 bg-gray-50">
               <p>Your data is processed locally and never stored on our servers</p>
             </div>
           </CardContent>
@@ -180,20 +179,20 @@ const CreditDashboardContent: React.FC = () => {
   // Empty wallet state (connected but no activity)
   if (displayData && !hasWalletActivity(displayData)) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-400 to-red-500 font-vt323">
+        <div className="container mx-auto px-4 py-6">
           {/* Header */}
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900">CreditCupid</h1>
-              <p className="text-gray-600 mt-2">
+              <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-[4px_4px_0px_rgba(0,0,0,0.3)]">CREDITCUPID</h1>
+              <p className="text-xl text-yellow-200 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
                 Privacy-preserving credit scoring powered by on-chain data
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="bg-white rounded-lg px-3 py-2 border">
-                <div className="text-sm text-gray-600">Network</div>
-                <div className="text-sm font-semibold capitalize">
+              <div className="bg-white rounded-lg px-4 py-2 border-4 border-green-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                <div className="text-sm text-gray-600">NETWORK</div>
+                <div className="text-lg font-semibold capitalize text-green-700">
                   {chain?.name || 'Ethereum'}
                 </div>
               </div>
@@ -201,40 +200,40 @@ const CreditDashboardContent: React.FC = () => {
               <Button
                 onClick={() => disconnect()}
                 variant="outline"
-                className="border-red-200 text-red-600 hover:bg-red-50"
+                className="border-4 border-red-500 bg-white text-red-600 hover:bg-red-50 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]"
               >
-                Disconnect
+                DISCONNECT
               </Button>
             </div>
           </div>
 
           {/* Welcome Card for New Users */}
           <div className="max-w-4xl mx-auto">
-            <Card className="border-2 border-dashed border-blue-200 bg-blue-50">
-              <CardHeader className="text-center">
-                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <Zap className="h-8 w-8 text-blue-600" />
+            <Card className="border-4 border-yellow-400 bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.3)]">
+              <CardHeader className="text-center border-b-4 border-yellow-400 pb-4">
+                <div className="mx-auto w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mb-4 border-4 border-yellow-400">
+                  <Zap className="h-10 w-10 text-yellow-600" />
                 </div>
-                <CardTitle className="text-2xl text-blue-900">Welcome to On-Chain Credit!</CardTitle>
-                <CardDescription className="text-blue-700 text-lg">
+                <CardTitle className="text-3xl text-blue-800 mb-2">WELCOME TO ON-CHAIN CREDIT!</CardTitle>
+                <CardDescription className="text-xl text-blue-600">
                   Start building your credit score with on-chain activity
                 </CardDescription>
               </CardHeader>
-              <CardContent className="text-center space-y-6">
-                <div className="grid md:grid-cols-3 gap-4 text-sm">
-                  <div className="bg-white p-4 rounded-lg border border-blue-100">
-                    <BarChart3 className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                    <h3 className="font-semibold text-blue-900 mb-1">Make Transactions</h3>
+              <CardContent className="text-center space-y-6 p-6">
+                <div className="grid md:grid-cols-3 gap-4 text-lg">
+                  <div className="bg-white p-4 rounded-lg border-4 border-blue-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                    <BarChart3 className="h-10 w-10 text-blue-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-blue-900 text-xl mb-2">MAKE TRANSACTIONS</h3>
                     <p className="text-blue-700">Start with simple ETH transfers or token swaps</p>
                   </div>
-                  <div className="bg-white p-4 rounded-lg border border-blue-100">
-                    <Shield className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                    <h3 className="font-semibold text-green-900 mb-1">Build Portfolio</h3>
+                  <div className="bg-white p-4 rounded-lg border-4 border-green-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                    <Shield className="h-10 w-10 text-green-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-green-900 text-xl mb-2">BUILD PORTFOLIO</h3>
                     <p className="text-green-700">Hold diverse assets like ETH, USDC, or WBTC</p>
                   </div>
-                  <div className="bg-white p-4 rounded-lg border border-blue-100">
-                    <TrendingUp className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                    <h3 className="font-semibold text-purple-900 mb-1">Use DeFi Protocols</h3>
+                  <div className="bg-white p-4 rounded-lg border-4 border-purple-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+                    <TrendingUp className="h-10 w-10 text-purple-600 mx-auto mb-3" />
+                    <h3 className="font-semibold text-purple-900 text-xl mb-2">USE DEFI PROTOCOLS</h3>
                     <p className="text-purple-700">Interact with Aave, Morpho, or other lending protocols</p>
                   </div>
                 </div>
@@ -243,23 +242,23 @@ const CreditDashboardContent: React.FC = () => {
                   <Button 
                     onClick={handleViewTransactions} 
                     size="lg"
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                    className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white border-4 border-blue-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
                   >
-                    <BarChart3 className="h-5 w-5" />
-                    View Wallet on Explorer
+                    <BarChart3 className="h-6 w-6" />
+                    VIEW WALLET ON EXPLORER
                   </Button>
                   <Button 
                     onClick={() => setActiveTab('lending')} 
                     variant="outline"
                     size="lg"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 border-4 border-gray-400 bg-white hover:bg-gray-100 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
                   >
-                    <DollarSign className="h-5 w-5" />
-                    Explore Lending Protocols
+                    <DollarSign className="h-6 w-6" />
+                    EXPLORE LENDING
                   </Button>
                 </div>
 
-                <div className="text-xs text-blue-600">
+                <div className="text-lg text-blue-600 border-2 border-dashed border-blue-300 p-3 bg-blue-50">
                   <p>Your credit score will update automatically as you use your wallet</p>
                   <p>All analysis happens locally - your data never leaves your browser</p>
                 </div>
@@ -275,20 +274,20 @@ const CreditDashboardContent: React.FC = () => {
   const safeDisplayData = displayData!;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-400 to-red-500 font-vt323">
+      <div className="container mx-auto px-4 py-6">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 gap-4">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900">CreditCupid</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-5xl font-bold text-white mb-2 drop-shadow-[4px_4px_0px_rgba(0,0,0,0.3)]">CREDITCUPID</h1>
+            <p className="text-xl text-yellow-200 drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
               The first onchain credit oracle to spark authentic bonds in romance and P2P lending
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="bg-white rounded-lg px-3 py-2 border">
-              <div className="text-sm text-gray-600">Network</div>
-              <div className="text-sm font-semibold capitalize">
+            <div className="bg-white rounded-lg px-4 py-2 border-4 border-green-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+              <div className="text-sm text-gray-600">NETWORK</div>
+              <div className="text-lg font-semibold capitalize text-green-700">
                 {chain?.name || 'Ethereum'}
               </div>
             </div>
@@ -296,32 +295,32 @@ const CreditDashboardContent: React.FC = () => {
             <Button
               onClick={() => disconnect()}
               variant="outline"
-              className="border-red-200 text-red-600 hover:bg-red-50"
+              className="border-4 border-red-500 bg-white text-red-600 hover:bg-red-50 text-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]"
             >
-              Disconnect
+              DISCONNECT
             </Button>
           </div>
         </div>
 
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-4 p-4 bg-yellow-100 border-4 border-yellow-500 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-red-800">
-                <AlertCircle className="h-5 w-5" />
+              <div className="flex items-center gap-3 text-yellow-800">
+                <AlertCircle className="h-6 w-6" />
                 <div>
-                  <p className="font-medium">Limited Data Available</p>
-                  <p className="text-sm">{error}</p>
+                  <p className="font-medium text-xl">LIMITED DATA AVAILABLE</p>
+                  <p className="text-lg">{error}</p>
                 </div>
               </div>
               <Button
                 onClick={retry}
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2 border-red-300 text-red-700"
+                className="flex items-center gap-2 border-4 border-yellow-500 bg-white text-yellow-700 hover:bg-yellow-50 text-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]"
               >
-                <RefreshCw className="h-4 w-4" />
-                Retry
+                <RefreshCw className="h-5 w-5" />
+                RETRY
               </Button>
             </div>
           </div>
@@ -329,14 +328,14 @@ const CreditDashboardContent: React.FC = () => {
 
         {/* Data Quality Notice */}
         {displayData && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-4 p-4 bg-blue-100 border-4 border-blue-500 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
             <div className="flex items-center gap-3">
               <div className="flex-shrink-0">
-                <Shield className="h-5 w-5 text-blue-600" />
+                <Shield className="h-6 w-6 text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="text-sm text-blue-800">
-                  <strong>Privacy First:</strong> Your credit analysis happens locally. 
+                <p className="text-lg text-blue-800">
+                  <strong>PRIVACY FIRST:</strong> Your credit analysis happens locally. 
                   No personal information is stored on our servers.
                 </p>
               </div>
@@ -346,22 +345,22 @@ const CreditDashboardContent: React.FC = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full bg-white p-1 rounded-lg border">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Overview
+          <TabsList className="grid grid-cols-4 w-full bg-white p-2 rounded-lg border-4 border-gray-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+            <TabsTrigger value="overview" className="flex items-center gap-2 text-xl border-2 border-transparent data-[state=active]:border-4 data-[state=active]:border-blue-500 data-[state=active]:bg-blue-100 data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+              <TrendingUp className="h-5 w-5" />
+              OVERVIEW
             </TabsTrigger>
-            <TabsTrigger value="dating" className="flex items-center gap-2">
-              <Heart className="h-4 w-4 text-pink-500" />
-              Dating
+            <TabsTrigger value="dating" className="flex items-center gap-2 text-xl border-2 border-transparent data-[state=active]:border-4 data-[state=active]:border-pink-500 data-[state=active]:bg-pink-100 data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+              <Heart className="h-5 w-5 text-pink-500" />
+              DATING
             </TabsTrigger>
-            <TabsTrigger value="lending" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              P2P Lending
+            <TabsTrigger value="lending" className="flex items-center gap-2 text-xl border-2 border-transparent data-[state=active]:border-4 data-[state=active]:border-green-500 data-[state=active]:bg-green-100 data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+              <DollarSign className="h-5 w-5" />
+              P2P LENDING
             </TabsTrigger>
-            <TabsTrigger value="agents" className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              AI Agents
+            <TabsTrigger value="agents" className="flex items-center gap-2 text-xl border-2 border-transparent data-[state=active]:border-4 data-[state=active]:border-purple-500 data-[state=active]:bg-purple-100 data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
+              <MessageCircle className="h-5 w-5" />
+              AI AGENTS
             </TabsTrigger>
           </TabsList>
 
@@ -416,18 +415,18 @@ const CreditDashboardContent: React.FC = () => {
         </Tabs>
 
         {/* Footer */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
-          <div className="text-center text-sm text-gray-600">
+        <div className="mt-8 pt-6 border-t-4 border-white">
+          <div className="text-center text-lg text-white drop-shadow-[2px_2px_0px_rgba(0,0,0,0.3)]">
             <p>
-              CreditCupid • The first onchain credit oracle to spark authentic bonds in romance and P2P lending •{' '}
+              CREDITCUPID • The first onchain credit oracle to spark authentic bonds in romance and P2P lending •{' '}
               <button 
                 onClick={handleViewTransactions}
-                className="text-blue-600 hover:text-blue-800 underline"
+                className="text-yellow-300 hover:text-yellow-200 underline drop-shadow-[1px_1px_0px_rgba(0,0,0,0.3)]"
               >
-                Verify your data on Blockscout
+                VERIFY YOUR DATA ON BLOCKSCOUT
               </button>
             </p>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-yellow-200">
               All analysis performed locally in your browser. No data stored on our servers.
             </p>
           </div>

@@ -70,53 +70,53 @@ export const CreditScore: React.FC<CreditScoreProps> = ({ score, address, riskFa
   };
 
   const getScoreLabel = (score: number) => {
-    if (score >= 800) return 'Excellent';
-    if (score >= 700) return 'Good';
-    if (score >= 600) return 'Fair';
-    return 'Poor';
+    if (score >= 800) return 'EXCELLENT';
+    if (score >= 700) return 'GOOD';
+    if (score >= 600) return 'FAIR';
+    return 'POOR';
   };
 
   const getScoreDescription = () => {
     if (isRealScore && isValidScore) {
   
     }
-    return 'Based on your on-chain activity and financial health';
+    return 'BASED ON YOUR ON-CHAIN ACTIVITY AND FINANCIAL HEALTH';
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Credit Score</CardTitle>
-        <CardDescription>
+    <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl text-blue-800">CREDIT SCORE</CardTitle>
+        <CardDescription className="text-base text-gray-700">
           {getScoreDescription()}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4">
         <div className="text-center">
           {!isValidScore && (
-            <div className="text-yellow-600 bg-yellow-50 p-2 rounded-lg mb-4 text-sm">
-              ⚠️ Calculating your credit score...
+            <div className="text-yellow-700 bg-yellow-100 p-2 rounded-lg mb-3 text-sm border-2 border-yellow-500">
+              ⚠️ CALCULATING YOUR CREDIT SCORE...
             </div>
           )}
           
-          <div className={`text-6xl font-bold ${getScoreColor(finalScore)} mb-2`}>
+          <div className={`text-5xl font-bold ${getScoreColor(finalScore)} mb-2`}>
             {isValidScore ? finalScore : '--'}
           </div>
-          <div className="text-lg font-semibold text-gray-700 mb-4">
-            {isValidScore ? getScoreLabel(finalScore) : 'Calculating...'}
+          <div className="text-lg font-semibold text-gray-700 mb-3">
+            {isValidScore ? getScoreLabel(finalScore) : 'CALCULATING...'}
           </div>
           
           {isValidScore && (
-            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-4 border-2 border-gray-400">
               <div 
-                className="h-3 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
+                className="h-2 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
                 style={{ width: `${(finalScore - 300) / 5.5}%` }}
               />
             </div>
           )}
 
           <div className="text-left">
-            <h4 className="font-semibold text-gray-900 mb-2">Credit Profile</h4>
+            <h4 className="font-semibold text-gray-900 mb-2 text-lg">CREDIT PROFILE</h4>
             <ul className="text-sm text-gray-600 space-y-1">
               {displayRiskFactors.map((factor, index) => (
                 <li key={index} className="flex items-start">
@@ -131,7 +131,6 @@ export const CreditScore: React.FC<CreditScoreProps> = ({ score, address, riskFa
                 </li>
               ))}
             </ul>
-            
           </div>
         </div>
       </CardContent>

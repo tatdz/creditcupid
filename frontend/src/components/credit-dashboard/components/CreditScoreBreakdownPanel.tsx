@@ -274,14 +274,11 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
 
   if (!isConnected) {
     return (
-      <Card className="w-full">
+      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calculator className="h-4 w-4" />
-            Credit Score Breakdown
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Connect your wallet to view your credit score breakdown
+          <CardTitle className="text-xl text-blue-800">CREDIT SCORE BREAKDOWN</CardTitle>
+          <CardDescription className="text-base text-gray-700">
+            CONNECT YOUR WALLET TO VIEW YOUR CREDIT SCORE BREAKDOWN
           </CardDescription>
         </CardHeader>
       </Card>
@@ -290,19 +287,16 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
 
   if (loading) {
     return (
-      <Card className="w-full">
+      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calculator className="h-4 w-4" />
-            Credit Score Breakdown
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Analyzing your onchain activity via Blockscout...
+          <CardTitle className="text-xl text-blue-800">CREDIT SCORE BREAKDOWN</CardTitle>
+          <CardDescription className="text-base text-gray-700">
+            ANALYZING YOUR ONCHAIN ACTIVITY VIA BLOCKSCOUT...
           </CardDescription>
         </CardHeader>
-        <CardContent className="py-4">
+        <CardContent className="p-4">
           <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-4 border-yellow-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]"></div>
           </div>
         </CardContent>
       </Card>
@@ -311,20 +305,17 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
 
   if (error) {
     return (
-      <Card className="w-full">
+      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Calculator className="h-4 w-4" />
-            Credit Score Breakdown
-          </CardTitle>
-          <CardDescription className="text-sm">
-            Unable to fetch onchain data
+          <CardTitle className="text-xl text-blue-800">CREDIT SCORE BREAKDOWN</CardTitle>
+          <CardDescription className="text-base text-gray-700">
+            UNABLE TO FETCH ONCHAIN DATA
           </CardDescription>
         </CardHeader>
-        <CardContent className="py-4">
+        <CardContent className="p-4">
           <div className="text-center text-red-600">
-            <AlertCircle className="h-6 w-6 mx-auto mb-1" />
-            <p className="text-sm">{error}</p>
+            <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+            <p className="text-base">{error}</p>
           </div>
         </CardContent>
       </Card>
@@ -332,18 +323,15 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
   }
 
   return (
-    <Card className="w-full">
+    <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Calculator className="h-4 w-4" />
-          Credit Score Breakdown
-        </CardTitle>
-        <CardDescription className="text-sm">
-          How your credit score is calculated across different factors
+        <CardTitle className="text-xl text-blue-800">CREDIT SCORE BREAKDOWN</CardTitle>
+        <CardDescription className="text-base text-gray-700">
+          HOW YOUR CREDIT SCORE IS CALCULATED ACROSS DIFFERENT FACTORS
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-4">
+      <CardContent className="p-4 pt-0">
+        <div className="space-y-2">
           {enhancedFactors.map((factor, index) => (
             <CreditFactorCard 
               key={factor.key} 
@@ -354,13 +342,13 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
           ))}
         </div>
 
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <h4 className="font-semibold text-blue-900 mb-1 text-sm">Scoring Formula</h4>
-          <p className="text-xs text-blue-700 mb-1">
-            Credit score = 300 + (Onchain Activity × 35% + Lending Protocol Usage × 15% + Financial Health × 35% + Repayment History × 15%) × 5.5
+        <div className="mt-4 p-3 bg-blue-100 rounded-lg border-4 border-blue-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+          <h4 className="font-semibold text-blue-900 mb-1 text-lg">SCORING FORMULA</h4>
+          <p className="text-sm text-blue-700 mb-1">
+            CREDIT SCORE = 300 + (ONCHAIN ACTIVITY × 35% + LENDING PROTOCOL USAGE × 15% + FINANCIAL HEALTH × 35% + REPAYMENT HISTORY × 15%) × 5.5
           </p>
-          <p className="text-xs text-blue-600">
-            Current calculated score: <strong>{realCreditScore}</strong> (based on real Sepolia data)
+          <p className="text-sm text-blue-600">
+            CURRENT CALCULATED SCORE: <strong>{realCreditScore}</strong> (BASED ON REAL SEPOLIA DATA)
           </p>
         </div>
       </CardContent>
@@ -393,15 +381,15 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({
   const getFactorIcon = (key: string) => {
     switch (key) {
       case 'ON_CHAIN_HISTORY':
-        return <History className="h-3 w-3" />;
+        return <History className="h-4 w-4" />;
       case 'PROTOCOL_USAGE':
-        return <Cpu className="h-3 w-3" />;
+        return <Cpu className="h-4 w-4" />;
       case 'REPAYMENT_HISTORY':
-        return <Layers className="h-3 w-3" />;
+        return <Layers className="h-4 w-4" />;
       case 'FINANCIAL_HEALTH':
-        return <Calculator className="h-3 w-3" />;
+        return <Calculator className="h-4 w-4" />;
       default:
-        return <Calculator className="h-3 w-3" />;
+        return <Calculator className="h-4 w-4" />;
     }
   };
 
@@ -452,15 +440,15 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({
   const infoContent = getInfoDialogContent(factor.key);
 
   return (
-    <div className="p-3 border rounded-lg bg-white hover:bg-gray-50 transition-colors">
-      <div className="flex justify-between items-start mb-2">
+    <div className="p-2 border-4 border-gray-300 rounded-lg bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] hover:bg-gray-50 transition-colors">
+      <div className="flex justify-between items-start">
         <div className="flex items-start gap-2 flex-1">
-          <div className="p-1.5 bg-blue-100 rounded-lg">
+          <div className="p-2 bg-blue-100 rounded-lg border-2 border-blue-400">
             {getFactorIcon(factor.key)}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-1 mb-1">
-              <h4 className="font-semibold text-sm">{factor.factor}</h4>
+              <h4 className="font-semibold text-base text-blue-800">{factor.factor}</h4>
               
               {factor.showInfoDialog ? (
                 <InfoDialog title={infoContent.title} content={infoContent.content} />
@@ -476,42 +464,41 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
                     >
-                      View TX <ExternalLink className="h-2.5 w-2.5" />
+                      VIEW TX <ExternalLink className="h-2.5 w-2.5" />
                     </a>
                   ))}
                   {factor.transactionHashes.length > 2 && (
-                    <span className="text-xs text-gray-500">+{factor.transactionHashes.length - 2} more</span>
+                    <span className="text-xs text-gray-500">+{factor.transactionHashes.length - 2} MORE</span>
                   )}
                 </div>
               ) : null}
             </div>
-            <p className="text-xs text-gray-600">{factor.description}</p>
+            
+            {/* Progress bar - same size as before */}
+            <div className="w-full bg-gray-200 rounded-full h-2 mb-1 border-2 border-gray-400">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${color.bg}`}
+                style={{ width: `${factor.score}%` }}
+              />
+            </div>
+            
+            {/* Compact metrics */}
+            <div className="flex flex-wrap gap-1">
+              {factor.metrics.map((metric: string, idx: number) => (
+                <span key={idx} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded border-2 border-blue-400">
+                  {metric}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
         <div className="text-right">
-          <div className={`text-base font-bold ${color.text}`}>
+          <div className={`text-lg font-bold ${color.text}`}>
             {factor.score}/100
           </div>
-          <div className="text-xs text-gray-500">{weight} weight</div>
-          <div className="text-xs text-gray-400 capitalize">{factor.impact} impact</div>
+          <div className="text-sm text-gray-500">{weight} WEIGHT</div>
+          <div className="text-xs text-gray-400 capitalize">{factor.impact} IMPACT</div>
         </div>
-      </div>
-      
-      {/* Progress bar */}
-      <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
-        <div 
-          className={`h-1.5 rounded-full transition-all duration-500 ${color.bg}`}
-          style={{ width: `${factor.score}%` }}
-        />
-      </div>
-      
-      {/* Metrics */}
-      <div className="flex flex-wrap gap-1">
-        {factor.metrics.map((metric: string, idx: number) => (
-          <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-200">
-            {metric}
-          </span>
-        ))}
       </div>
     </div>
   );
