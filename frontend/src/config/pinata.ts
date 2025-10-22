@@ -7,15 +7,21 @@ export interface PinataConfig {
 }
 
 export const getPinataConfig = (): PinataConfig => {
-  // For Vite environment
-  const env = typeof process !== 'undefined' ? process.env : (import.meta as any).env || {};
-  
+  // Direct Vite environment variable access
   const config: PinataConfig = {
-    jwt: env.VITE_PINATA_JWT || env.PINATA_JWT || '',
-    apiKey: env.VITE_PINATA_API_KEY || env.PINATA_API_KEY || '',
-    apiSecret: env.VITE_PINATA_SECRET_KEY || env.PINATA_SECRET_KEY || '',
+    jwt: import.meta.env.VITE_PINATA_JWT || '',
+    apiKey: import.meta.env.VITE_PINATA_API_KEY || '',
+    apiSecret: import.meta.env.VITE_PINATA_API_SECRET || '',
     gateway: 'https://gateway.pinata.cloud/ipfs'
   };
+
+  // Debug logging
+  console.log('🔍 Direct Vite Env Check:', {
+    VITE_PINATA_API_KEY: import.meta.env.VITE_PINATA_API_KEY ? 'SET' : 'MISSING',
+    VITE_PINATA_API_SECRET: import.meta.env.VITE_PINATA_API_SECRET ? 'SET' : 'MISSING',
+    VITE_PINATA_JWT: import.meta.env.VITE_PINATA_JWT ? 'SET' : 'MISSING',
+    allViteKeys: Object.keys(import.meta.env).filter(key => key.includes('PINATA'))
+  });
 
   const hasValidCredentials = !!(config.jwt || (config.apiKey && config.apiSecret));
   
@@ -29,11 +35,18 @@ export const getPinataConfig = (): PinataConfig => {
 
   if (!hasValidCredentials) {
     console.error('❌ MISSING PINATA CREDENTIALS:');
-    console.error('Add to your .env file:');
+    console.error('Add to your .env file in the root directory:');
     console.error('VITE_PINATA_JWT=your_jwt_token_here');
     console.error('OR');
     console.error('VITE_PINATA_API_KEY=your_api_key_here');
-    console.error('VITE_PINATA_SECRET_KEY=your_secret_key_here');
+    console.error('VITE_PINATA_API_SECRET=your_secret_key_here');
+    
+    console.error('🔍 Current environment status:');
+    console.error('   VITE_PINATA_API_KEY:', config.apiKey ? 'SET' : 'NOT SET');
+    console.error('   VITE_PINATA_API_SECRET:', config.apiSecret ? 'SET' : 'NOT SET');
+    console.error('   VITE_PINATA_JWT:', config.jwt ? 'SET' : 'NOT SET');
+  } else {
+    console.log('✅ Pinata credentials loaded successfully!');
   }
 
   return config;

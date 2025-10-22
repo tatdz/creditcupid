@@ -15,6 +15,7 @@ export const PlaidIntegration: React.FC<PlaidIntegrationProps> = ({
 }) => {
   return (
     <div className="space-y-4">
+      {/* COMMENTED OUT: Plaid Sandbox Demo block
       <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
         <h4 className="font-semibold text-blue-900 mb-2">Plaid Sandbox Demo</h4>
         <p className="text-sm text-blue-800 mb-3">
@@ -38,6 +39,7 @@ export const PlaidIntegration: React.FC<PlaidIntegrationProps> = ({
           </div>
         </div>
       </div>
+      */}
       
       <Button
         onClick={onConnect}

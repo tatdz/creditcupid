@@ -25,14 +25,19 @@ export const usePlaidIntegration = () => {
       // Debug: Check if environment variables are available
       const envVars = {
         VITE_PINATA_API_KEY: import.meta.env.VITE_PINATA_API_KEY,
-        VITE_PINATA_API_SECRET: import.meta.env.VITE_PINATA_API_SECRET,
+        VITE_PINATA_SECRET_KEY: import.meta.env.VITE_PINATA_API_SECRET, // Fixed: Map to your actual env var name
         VITE_PINATA_JWT: import.meta.env.VITE_PINATA_JWT,
       };
       
       console.log('🔧 Environment variables status:', {
         hasApiKey: !!envVars.VITE_PINATA_API_KEY,
-        hasApiSecret: !!envVars.VITE_PINATA_API_SECRET,
+        hasApiSecret: !!envVars.VITE_PINATA_SECRET_KEY,
         hasJWT: !!envVars.VITE_PINATA_JWT,
+        actualValues: {
+          apiKey: envVars.VITE_PINATA_API_KEY ? '***' + envVars.VITE_PINATA_API_KEY.slice(-4) : 'missing',
+          apiSecret: envVars.VITE_PINATA_SECRET_KEY ? '***' + envVars.VITE_PINATA_SECRET_KEY.slice(-4) : 'missing',
+          jwt: envVars.VITE_PINATA_JWT ? '***' + envVars.VITE_PINATA_JWT.slice(-4) : 'missing',
+        }
       });
 
       const status = privacyProofGenerator.getPinataStatus();
@@ -41,11 +46,12 @@ export const usePlaidIntegration = () => {
         message: status.message
       });
       
-      if (!status.available) {
+      if (status.available) {
+        console.log('✅ Pinata credentials found and validated!');
+        console.log('🔗 Real IPFS storage enabled');
+      } else {
         console.warn('⚠️ Pinata not available:', status.message);
         console.log('💡 Development mode active - mock CIDs will be used');
-      } else {
-        console.log('✅ Pinata Status:', status);
       }
     } catch (statusError: any) {
       console.error('❌ Pinata status check failed:', statusError);
@@ -74,6 +80,8 @@ export const usePlaidIntegration = () => {
         console.warn('⚠️ Development Mode: Using mock CIDs for privacy proofs');
         console.log('💡 Add Pinata credentials to enable real IPFS storage');
         // Don't throw error - continue with development mode
+      } else {
+        console.log('✅ Real IPFS storage enabled with Pinata');
       }
 
       // Simulate Plaid connection

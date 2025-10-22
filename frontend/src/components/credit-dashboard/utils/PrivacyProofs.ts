@@ -45,7 +45,7 @@ class RealPinataService {
       console.log('✅ Pinata credentials found - IPFS enabled');
     } else {
       console.warn('⚠️ Pinata credentials missing - IPFS functionality limited');
-      console.warn('   Add VITE_PINATA_JWT or VITE_PINATA_API_KEY + VITE_PINATA_SECRET_KEY to your .env file');
+      console.warn('   Add VITE_PINATA_JWT or VITE_PINATA_API_KEY + VITE_PINATA_API_SECRET to your .env file'); // Fixed variable name
     }
   }
 
