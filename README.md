@@ -1,6 +1,6 @@
-# 😇 CreditCupid
+# 😇 creditcupid 
 
-**Privacy-Preserving Onchain Credit Oracle with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
+**Privacy-Preserving Onchain Credit Oracle creating web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
 
 ---
 
@@ -8,11 +8,11 @@
 
 In today’s lonely Web3 world, over 17 million DeFi users transact openly onchain but struggle to find trustworthy, verified partners for love and finance.  
 $4.2 trillion is locked in overcollateralized loans—wasting capital and hurting adoption. Meanwhile, scams like the Tinder Swindler have defrauded victims of over $100 million, showing how traditional dating apps fail to protect users.  
-Users see wallet addresses and transactions but lack social trust mechanisms. CreditCupid solves this by merging privacy-first credit scores with a new social matchmaking experience—building genuine connections backed by financial credibility and cryptographic proofs.
+Users see wallet addresses and transactions but lack social trust mechanisms. Creditcupid solves this by merging privacy-first credit scores with a new social matchmaking experience—building genuine connections backed by financial credibility and cryptographic proofs.
 
 ---
 
-## ✨ What is CreditCupid?
+## ✨ What is creditcupid?
 
 - 🔄 **Cross-Chain Credit Oracle:** Aggregates your DeFi activity and verified Web2 income and identity into a dynamic, privacy-first credit score (300-850 that follows FICO scoring).  
 - 🤖 **AI-Powered Credit Analysis Agents:** Transparent credit score breakdowns and actionable recommendations verified by Blockscout MCP data—helping you improve your creditworthiness and attract better matches.  
@@ -20,14 +20,14 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
   - **Dating Flow:** Find life partners filtered by verified credit score, age, and gender—pseudonymous and privacy-first.  
   - **Finance Flow:** Discover trusted peers for undercollateralized peer-to-peer lending and borrowing opportunities.  
 - 🔐 **Privacy-Preserving Verification:** Cryptographic proofs confirm creditworthiness without leaking sensitive data. Wallet addresses remain private by default, revealed only with consent.  
-- 💰 **UnderCollateralized Lending:** Access loans at 60-80% LTV based on your credit profile, eliminating the need to over-collateralize.
+- 💰 **UnderCollateralized Lending:** Access loans starting at 85% collateral requirement based on your credit profile, eliminating the need to over-collateralize.
 
 ---
 
 ## 🎯 How It Works
 
-1. **Connect & Analyze:** Connect your wallet. CreditCupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) plus off-chain bank verification with Plaid.  
-2. **Get Score & Recommendations:** AI Agents analyze risks, explain your score, and guide you to build better credit and social appeal.  
+1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK & MCP plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance.
+2. **Get Score & Recommendations:** AI Agents analyze risks, explain your score and guide you to build better credit and social appeal.  
 3. **Match & Borrow:** Use separate, intuitive flows to find romantic or finance partners based purely on verified, privacy-protected credit identities.  
 4. **Stay Private & Secure:** Your financial details stay confidential. Wallets shown as pseudonyms with optional explorer links.
 
