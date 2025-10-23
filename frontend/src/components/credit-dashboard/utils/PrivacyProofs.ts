@@ -94,17 +94,17 @@ class RealPinataService {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.config.jwt}`,
-            'User-Agent': 'Darma-Credit/1.0'
+            'User-Agent': 'Creditcupid-Credit/1.0'
           },
           body: JSON.stringify({
             pinataContent: data,
             pinataMetadata: {
-              name: `Darma-${name}-${Date.now()}`,
+              name: `Creditcupid-${name}-${Date.now()}`,
               keyvalues: {
                 type: 'privacy-proof',
-                protocol: 'darma-credit',
+                protocol: 'creditcupid-credit',
                 timestamp: new Date().toISOString(),
-                source: 'darma-frontend',
+                source: 'creditcupid-frontend',
                 version: '1.0.0'
               }
             }
@@ -142,17 +142,17 @@ class RealPinataService {
             'Content-Type': 'application/json',
             'pinata_api_key': this.config.apiKey,
             'pinata_secret_api_key': this.config.apiSecret,
-            'User-Agent': 'Darma-Credit/1.0'
+            'User-Agent': 'Creditcupid-Credit/1.0'
           },
           body: JSON.stringify({
             pinataContent: data,
             pinataMetadata: {
-              name: `Darma-${name}-${Date.now()}`,
+              name: `Creditcupid-${name}-${Date.now()}`,
               keyvalues: {
                 type: 'privacy-proof',
-                protocol: 'darma-credit',
+                protocol: 'creditcupid-credit',
                 timestamp: new Date().toISOString(),
-                source: 'darma-frontend'
+                source: 'creditcupid-frontend'
               }
             }
           })
@@ -472,10 +472,10 @@ export class PrivacyProofGenerator {
         
         _metadata: {
           proofType: proofType,
-          protocol: 'darma-credit',
+          protocol: 'creditcupid-credit',
           version: '1.0.0',
           timestamp: new Date().toISOString(),
-          generatedBy: 'Darma Credit Protocol',
+          generatedBy: 'Creditcupid Credit Protocol',
           storage: this.isAvailable ? 'ipfs' : 'local',
           privacy: 'zk-proofs',
           hashing: this.poseidonInitialized ? 'poseidon-zk' : 'sha-256-fallback',
@@ -610,7 +610,7 @@ export class PrivacyProofGenerator {
       hashingAlgorithm: this.poseidonInitialized ? 'poseidon' : 'sha-256',
       
       _metadata: {
-        protocol: 'darma-credit',
+        protocol: 'creditcupid-credit',
         version: '1.0.0',
         generatedAt: new Date().toISOString(),
         proofCount: 4,
