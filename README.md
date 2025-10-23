@@ -26,7 +26,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 ## 🎯 How It Works
 
-1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance.
+1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance. Based on that we calculate a score that you can set onchain or use to share with potential matches.
 2. **Match & Borrow:** Use separate, intuitive flows to find romantic or finance partners based purely on verified, privacy-protected credit identities.  
 3. **Stay Private & Secure:** Your financial details remain confidential through **cryptographic commitments**—only verification results are accessible
 ---
