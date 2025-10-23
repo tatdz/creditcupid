@@ -3,6 +3,18 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Heart, MessageCircle, User, X, Check, Star, Zap, Upload } from "lucide-react";
 import { useCreditScoreContext } from '../hooks/useCreditScoreContext';
+import alexMale from '../assets/alex-male.jpg';
+import charlieMale from '../assets/charlie-male.jpg';
+import frankMale from '../assets/frank-male.jpg';
+import sophiaFemale from '../assets/sophia-female.jpg';
+import emmaFemale from '../assets/emma-female.jpg';
+import dianaFemale from '../assets/diana-female.jpg';
+import ryanMale from '../assets/ryan-male.jpg';
+import jordanMale from '../assets/jordan-male.jpg';
+import taylorMale from '../assets/taylor-male.jpg';
+import rileyFemale from '../assets/riley-female.jpg';
+import caseyFemale from '../assets/casey-female.jpg';
+import morganFemale from '../assets/morgan-female.jpg';
 
 interface Profile {
   name: string;
@@ -66,7 +78,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Morpho",
       gender: "male",
       preference: "female",
-      photo: "/assets/alex-male.jpg",
+      photo: alexMale,
       creditScore: 812,
       messages: []
     },
@@ -78,7 +90,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Curve Finance",
       gender: "male",
       preference: "female",
-      photo: "/assets/charlie-male.jpg",
+      photo: charlieMale,
       creditScore: 783,
       messages: []
     },
@@ -90,7 +102,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Lido Finance",
       gender: "male",
       preference: "female",
-      photo: "/assets/frank-male.jpg",
+      photo: frankMale,
       creditScore: 856,
       messages: []
     },
@@ -104,7 +116,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Aave",
       gender: "female",
       preference: "male",
-      photo: "/assets/sophia-female.jpg",
+      photo: sophiaFemale,
       creditScore: 745,
       messages: []
     },
@@ -116,7 +128,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Uniswap V3",
       gender: "female",
       preference: "male",
-      photo: "/assets/emma-female.jpg",
+      photo: emmaFemale,
       creditScore: 698,
       messages: []
     },
@@ -128,7 +140,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Compound",
       gender: "female",
       preference: "male",
-      photo: "/assets/diana-female.jpg",
+      photo: dianaFemale,
       creditScore: 721,
       messages: []
     },
@@ -142,7 +154,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Synthetix",
       gender: "male",
       preference: "male",
-      photo: "/assets/ryan-male.jpg",
+      photo: ryanMale,
       creditScore: 801,
       messages: []
     },
@@ -154,7 +166,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "LayerZero",
       gender: "male",
       preference: "male",
-      photo: "/assets/jordan-male.jpg",
+      photo: jordanMale,
       creditScore: 732,
       messages: []
     },
@@ -166,7 +178,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Yearn Finance",
       gender: "male",
       preference: "male",
-      photo: "/assets/taylor-male.jpg",
+      photo: taylorMale,
       creditScore: 789,
       messages: []
     },
@@ -180,7 +192,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Compound Governance",
       gender: "female",
       preference: "female",
-      photo: "/assets/riley-female.jpg",
+      photo: rileyFemale,
       creditScore: 768,
       messages: []
     },
@@ -192,7 +204,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Aave V3",
       gender: "female",
       preference: "female",
-      photo: "/assets/casey-female.jpg",
+      photo: caseyFemale,
       creditScore: 815,
       messages: []
     },
@@ -204,7 +216,7 @@ export const DatingTab: React.FC = () => {
       favoriteApp: "Uniswap",
       gender: "female",
       preference: "female",
-      photo: "/assets/morgan-female.jpg",
+      photo: morganFemale,
       creditScore: 694,
       messages: []
     }
