@@ -1,0 +1,21 @@
+pragma circom 2.1.6;
+
+include "circomlib/circuits/poseidon.circom";
+
+// This template checks that the public input `hash` is the
+// result of hashing the private input `preimage`.
+template PoseidonHasher() {
+    // Inputs
+    signal private input preimage;
+    signal public input hash;
+    
+    // Components
+    component poseidon = Poseidon(1);
+    
+    // Constraints
+    poseidon.inputs[0] <== preimage;
+    hash === poseidon.out;
+}
+
+// Instantiate the main component
+component main { public [hash] } = PoseidonHasher();

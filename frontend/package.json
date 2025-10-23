@@ -30,18 +30,22 @@
     "@tanstack/react-query-devtools": "^5.0.0",
     "@types/lodash": "^4.14.202",
     "axios": "^1.6.0",
+    "circomlib": "^2.0.5",
+    "circomlibjs": "^0.1.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "copy-to-clipboard": "^3.3.3",
     "date-fns": "^2.30.0",
     "debounce": "^1.2.1",
     "ethers": "^6.8.0",
+    "ffjavascript": "^0.2.57",
     "framer-motion": "^10.16.0",
     "immer": "^10.0.3",
     "js-cookie": "^3.0.5",
     "lodash": "^4.17.21",
     "lucide-react": "^0.294.0",
     "next": "^14.0.0",
+    "poseidon-lite": "^0.3.0",
     "qrcode.react": "^3.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -51,6 +55,7 @@
     "react-router-dom": "^6.18.0",
     "react-tooltip": "^5.21.0",
     "recharts": "^2.8.0",
+    "snarkjs": "^0.7.5",
     "socket.io-client": "^4.7.4",
     "tailwind-merge": "^2.6.0",
     "uuid": "^9.0.1",
@@ -64,6 +69,7 @@
     "@testing-library/jest-dom": "^6.1.4",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^14.5.1",
+    "@types/circomlibjs": "^0.1.6",
     "@types/debounce": "^1.2.1",
     "@types/js-cookie": "^3.0.6",
     "@types/lodash": "^4.14.202",
@@ -108,7 +114,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/darma-protocol/frontend.git"
+    "url": "git+https://github.com/darma-protocol/frontend.git"
   },
   "keywords": [
     "defi",
@@ -129,5 +135,6 @@
   "bugs": {
     "url": "https://github.com/darma-protocol/frontend/issues"
   },
-  "homepage": "https://darma.io"
+  "homepage": "https://darma.io",
+  "main": "next.config.js"
 }
