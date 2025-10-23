@@ -23,7 +23,8 @@ import {
   Plus,
   RefreshCw,
   ExternalLink,
-  Zap
+  Zap,
+  ArrowLeftRight
 } from 'lucide-react';
 
 // Import hooks
@@ -495,15 +496,14 @@ const P2P_LENDING_ABI = [
 
 // Mock data for demonstration with proper typing
 const MOCK_LOAN_REQUESTS: MockLoanRequest[] = [
-  // 0.3 ETH Loans
   {
     loanId: 1,
     borrower: '0x742E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c0d',
-    loanAmount: BigInt(0.3 * 1e18), // 0.3 ETH
-    collateralAmount: BigInt(0.255 * 1e18), // 0.255 ETH (85%)
-    duration: BigInt(60 * 24 * 60 * 60), // 60 days
-    interestRate: BigInt(750), // 7.5% (low score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 86400), // 1 day ago
+    loanAmount: BigInt(0.3 * 1e18),
+    collateralAmount: BigInt(0.255 * 1e18),
+    duration: BigInt(60 * 24 * 60 * 60),
+    interestRate: BigInt(750),
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 86400),
     active: true,
     funded: false,
     creditScore: 400,
@@ -512,11 +512,11 @@ const MOCK_LOAN_REQUESTS: MockLoanRequest[] = [
   {
     loanId: 2,
     borrower: '0x893E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c1e',
-    loanAmount: BigInt(0.3 * 1e18), // 0.3 ETH
-    collateralAmount: BigInt(0.255 * 1e18), // 0.255 ETH (85%)
-    duration: BigInt(90 * 24 * 60 * 60), // 90 days
-    interestRate: BigInt(450), // 4.5% (medium score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 172800), // 2 days ago
+    loanAmount: BigInt(0.3 * 1e18),
+    collateralAmount: BigInt(0.255 * 1e18),
+    duration: BigInt(90 * 24 * 60 * 60),
+    interestRate: BigInt(450),
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 172800),
     active: true,
     funded: false,
     creditScore: 600,
@@ -525,91 +525,11 @@ const MOCK_LOAN_REQUESTS: MockLoanRequest[] = [
   {
     loanId: 3,
     borrower: '0x945E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c2f',
-    loanAmount: BigInt(0.3 * 1e18), // 0.3 ETH
-    collateralAmount: BigInt(0.255 * 1e18), // 0.255 ETH (85%)
-    duration: BigInt(120 * 24 * 60 * 60), // 120 days
-    interestRate: BigInt(350), // 3.5% (high score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 259200), // 3 days ago
-    active: true,
-    funded: false,
-    creditScore: 800,
-    amountRepaid: BigInt(0)
-  },
-  // 0.5 ETH Loans
-  {
-    loanId: 4,
-    borrower: '0xa56E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c3g',
-    loanAmount: BigInt(0.5 * 1e18), // 0.5 ETH
-    collateralAmount: BigInt(0.425 * 1e18), // 0.425 ETH (85%)
-    duration: BigInt(75 * 24 * 60 * 60), // 75 days
-    interestRate: BigInt(750), // 7.5% (low score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 43200), // 12 hours ago
-    active: true,
-    funded: false,
-    creditScore: 400,
-    amountRepaid: BigInt(0)
-  },
-  {
-    loanId: 5,
-    borrower: '0xb67E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c4h',
-    loanAmount: BigInt(0.5 * 1e18), // 0.5 ETH
-    collateralAmount: BigInt(0.425 * 1e18), // 0.425 ETH (85%)
-    duration: BigInt(100 * 24 * 60 * 60), // 100 days
-    interestRate: BigInt(450), // 4.5% (medium score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 129600), // 1.5 days ago
-    active: true,
-    funded: false,
-    creditScore: 600,
-    amountRepaid: BigInt(0)
-  },
-  {
-    loanId: 6,
-    borrower: '0xc78E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c5i',
-    loanAmount: BigInt(0.5 * 1e18), // 0.5 ETH
-    collateralAmount: BigInt(0.425 * 1e18), // 0.425 ETH (85%)
-    duration: BigInt(150 * 24 * 60 * 60), // 150 days
-    interestRate: BigInt(350), // 3.5% (high score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 216000), // 2.5 days ago
-    active: true,
-    funded: false,
-    creditScore: 800,
-    amountRepaid: BigInt(0)
-  },
-  // 5 ETH Loans
-  {
-    loanId: 7,
-    borrower: '0xd89E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c6j',
-    loanAmount: BigInt(5 * 1e18), // 5 ETH
-    collateralAmount: BigInt(4.25 * 1e18), // 4.25 ETH (85%)
-    duration: BigInt(180 * 24 * 60 * 60), // 180 days
-    interestRate: BigInt(750), // 7.5% (low score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 345600), // 4 days ago
-    active: true,
-    funded: false,
-    creditScore: 400,
-    amountRepaid: BigInt(0)
-  },
-  {
-    loanId: 8,
-    borrower: '0xe90E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c7k',
-    loanAmount: BigInt(5 * 1e18), // 5 ETH
-    collateralAmount: BigInt(4.25 * 1e18), // 4.25 ETH (85%)
-    duration: BigInt(240 * 24 * 60 * 60), // 240 days
-    interestRate: BigInt(450), // 4.5% (medium score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 518400), // 6 days ago
-    active: true,
-    funded: false,
-    creditScore: 600,
-    amountRepaid: BigInt(0)
-  },
-  {
-    loanId: 9,
-    borrower: '0xfa1E4C2C5Dc7Eb6B6C6D2b1c8C3a3D5F7a8B9c8l',
-    loanAmount: BigInt(5 * 1e18), // 5 ETH
-    collateralAmount: BigInt(4.25 * 1e18), // 4.25 ETH (85%)
-    duration: BigInt(365 * 24 * 60 * 60), // 365 days
-    interestRate: BigInt(350), // 3.5% (high score)
-    createdAt: BigInt(Math.floor(Date.now() / 1000) - 691200), // 8 days ago
+    loanAmount: BigInt(0.3 * 1e18),
+    collateralAmount: BigInt(0.255 * 1e18),
+    duration: BigInt(120 * 24 * 60 * 60),
+    interestRate: BigInt(350),
+    createdAt: BigInt(Math.floor(Date.now() / 1000) - 259200),
     active: true,
     funded: false,
     creditScore: 800,
@@ -618,97 +538,34 @@ const MOCK_LOAN_REQUESTS: MockLoanRequest[] = [
 ];
 
 const MOCK_LENDER_OFFERS: MockLenderOffer[] = [
-  // 0.3 ETH Offers
   {
     offerId: 1,
     lender: '0x1234567890abcdef1234567890abcdef12345678',
-    maxAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    maxAmount: BigInt(0.3 * 1e18),
     minCreditScore: BigInt(400),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(750), // 7.5% (high risk)
-    maxDuration: BigInt(60 * 24 * 60 * 60), // 60 days
+    minCollateralRatio: BigInt(8500),
+    interestRate: BigInt(750),
+    maxDuration: BigInt(60 * 24 * 60 * 60),
     active: true
   },
   {
     offerId: 2,
     lender: '0x2345678901bcdef2345678901bcdef2345678901',
-    maxAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    maxAmount: BigInt(0.3 * 1e18),
     minCreditScore: BigInt(600),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(450), // 4.5% (medium risk)
-    maxDuration: BigInt(90 * 24 * 60 * 60), // 90 days
+    minCollateralRatio: BigInt(8500),
+    interestRate: BigInt(450),
+    maxDuration: BigInt(90 * 24 * 60 * 60),
     active: true
   },
   {
     offerId: 3,
     lender: '0x3456789012cdef3456789012cdef3456789012cd',
-    maxAmount: BigInt(0.3 * 1e18), // 0.3 ETH
+    maxAmount: BigInt(0.3 * 1e18),
     minCreditScore: BigInt(800),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(350), // 3.5% (low risk)
-    maxDuration: BigInt(120 * 24 * 60 * 60), // 120 days
-    active: true
-  },
-  // 0.5 ETH Offers
-  {
-    offerId: 4,
-    lender: '0x4567890123def4567890123def4567890123def4',
-    maxAmount: BigInt(0.5 * 1e18), // 0.5 ETH
-    minCreditScore: BigInt(400),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(750), // 7.5% (high risk)
-    maxDuration: BigInt(75 * 24 * 60 * 60), // 75 days
-    active: true
-  },
-  {
-    offerId: 5,
-    lender: '0x5678901234ef5678901234ef5678901234ef5678',
-    maxAmount: BigInt(0.5 * 1e18), // 0.5 ETH
-    minCreditScore: BigInt(600),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(450), // 4.5% (medium risk)
-    maxDuration: BigInt(100 * 24 * 60 * 60), // 100 days
-    active: true
-  },
-  {
-    offerId: 6,
-    lender: '0x6789012345f6789012345f6789012345f6789012',
-    maxAmount: BigInt(0.5 * 1e18), // 0.5 ETH
-    minCreditScore: BigInt(800),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(350), // 3.5% (low risk)
-    maxDuration: BigInt(150 * 24 * 60 * 60), // 150 days
-    active: true
-  },
-  // 5 ETH Offers
-  {
-    offerId: 7,
-    lender: '0x7890123456f7890123456f7890123456f7890123',
-    maxAmount: BigInt(5 * 1e18), // 5 ETH
-    minCreditScore: BigInt(400),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(750), // 7.5% (high risk)
-    maxDuration: BigInt(180 * 24 * 60 * 60), // 180 days
-    active: true
-  },
-  {
-    offerId: 8,
-    lender: '0x8901234567f8901234567f8901234567f8901234',
-    maxAmount: BigInt(5 * 1e18), // 5 ETH
-    minCreditScore: BigInt(600),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(450), // 4.5% (medium risk)
-    maxDuration: BigInt(240 * 24 * 60 * 60), // 240 days
-    active: true
-  },
-  {
-    offerId: 9,
-    lender: '0x9012345678f9012345678f9012345678f9012345',
-    maxAmount: BigInt(5 * 1e18), // 5 ETH
-    minCreditScore: BigInt(800),
-    minCollateralRatio: BigInt(8500), // 85%
-    interestRate: BigInt(350), // 3.5% (low risk)
-    maxDuration: BigInt(365 * 24 * 60 * 60), // 365 days
+    minCollateralRatio: BigInt(8500),
+    interestRate: BigInt(350),
+    maxDuration: BigInt(120 * 24 * 60 * 60),
     active: true
   }
 ];
@@ -719,7 +576,7 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
     return (
       <input
         type={type}
-        className={`flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
+        className={`flex h-8 w-full rounded-lg border-2 border-gray-400 bg-white/90 px-3 py-1 text-sm focus:outline-none focus:border-blue-500 focus:bg-white ${className}`}
         ref={ref}
         {...props}
       />
@@ -732,7 +589,7 @@ const Label = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLL
   ({ className, ...props }, ref) => (
     <label
       ref={ref}
-      className={`text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
+      className={`text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 ${className}`}
       {...props}
     />
   )
@@ -753,18 +610,18 @@ const QuickStats: React.FC<{ userCreditScore: number }> = ({ userCreditScore }) 
   const userLendRate = userBorrowRate - 1.0;
 
   return (
-    <div className="grid grid-cols-3 gap-3 mb-4">
-      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-3 border-2 border-blue-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+    <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-2 border-2 border-blue-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="text-xs text-blue-600 font-medium mb-1">SCORE</div>
-        <div className="text-lg font-bold text-blue-700">{userCreditScore}</div>
+        <div className="text-base font-bold text-blue-700">{userCreditScore}</div>
       </div>
-      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-3 border-2 border-green-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-2 border-2 border-green-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="text-xs text-green-600 font-medium mb-1">BORROW</div>
-        <div className="text-lg font-bold text-green-700">{userBorrowRate.toFixed(1)}%</div>
+        <div className="text-base font-bold text-green-700">{userBorrowRate.toFixed(1)}%</div>
       </div>
-      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3 border-2 border-purple-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-2 border-2 border-purple-400 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="text-xs text-purple-600 font-medium mb-1">LEND</div>
-        <div className="text-lg font-bold text-purple-700">{userLendRate.toFixed(1)}%</div>
+        <div className="text-base font-bold text-purple-700">{userLendRate.toFixed(1)}%</div>
       </div>
     </div>
   );
@@ -793,7 +650,7 @@ const TransactionStatus: React.FC<{
   const message = getMessage();
 
   return (
-    <div className={`p-3 rounded-lg border-2 mb-4 ${
+    <div className={`p-3 rounded-xl border-2 mb-3 ${
       isSuccess ? 'bg-green-50 border-green-400' :
       error ? 'bg-red-50 border-red-400' :
       'bg-blue-50 border-blue-400'
@@ -815,28 +672,15 @@ const TransactionStatus: React.FC<{
           </p>
         </div>
         {transactionHash && (
-          <div className="flex gap-2">
-            <a 
-              href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
-            >
-              <ExternalLink className="h-3 w-3" />
-              View
-            </a>
-            {SEPOLIA_RPC_URL && (
-              <a 
-                href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-purple-600 hover:text-purple-800 text-xs flex items-center gap-1"
-              >
-                <Zap className="h-3 w-3" />
-                Explorer
-              </a>
-            )}
-          </div>
+          <a 
+            href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+          >
+            <ExternalLink className="h-3 w-3" />
+            View
+          </a>
         )}
       </div>
     </div>
@@ -857,23 +701,14 @@ const CreditScoreStatus: React.FC<{
 
   if (isScoreSet) {
     return (
-      <div className="bg-green-50 border-2 border-green-400 rounded-lg p-3 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-400 rounded-xl p-3 mb-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <span className="text-sm font-medium text-green-800">Credit Score Verified</span>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="default" className="bg-green-600">{creditScore}</Badge>
-            <a 
-              href={`https://sepolia.etherscan.io/address/${P2P_LENDING_ADDRESS}#readContract`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
-            >
-              <ExternalLink className="h-3 w-3" />
-              View
-            </a>
+            <Badge variant="default" className="bg-green-600 border-2 border-green-700">{creditScore}</Badge>
           </div>
         </div>
       </div>
@@ -881,7 +716,7 @@ const CreditScoreStatus: React.FC<{
   }
 
   return (
-    <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3 mb-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+    <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-400 rounded-xl p-3 mb-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Lock className="h-4 w-4 text-yellow-600" />
@@ -894,7 +729,7 @@ const CreditScoreStatus: React.FC<{
           onClick={setCreditScoreOnChain}
           disabled={isUpdating || !isCorrectNetwork}
           size="sm"
-          className="h-7 text-xs bg-yellow-600 hover:bg-yellow-700 border-2 border-yellow-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+          className="h-7 text-xs bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-2 border-yellow-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
         >
           {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Set'}
         </Button>
@@ -913,36 +748,6 @@ const SwipeCard: React.FC<{
   onSwipeLeft: (item: any) => void;
   userAddress: string;
 }> = ({ item, type, onSwipeRight, onSwipeLeft, userAddress }) => {
-  const [startX, setStartX] = useState(0);
-  const [currentX, setCurrentX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setStartX(e.touches[0].clientX);
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    setCurrentX(e.touches[0].clientX - startX);
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging) return;
-    
-    const swipeDistance = currentX;
-    if (Math.abs(swipeDistance) > 50) {
-      if (swipeDistance > 0) {
-        onSwipeRight(item);
-      } else {
-        onSwipeLeft(item);
-      }
-    }
-    
-    setCurrentX(0);
-    setIsDragging(false);
-  };
-
   const getTypeDetails = () => {
     if (type === 'loan') {
       const loanAmount = parseFloat(item.loanAmount?.toString() || '0') / 1e18;
@@ -981,13 +786,7 @@ const SwipeCard: React.FC<{
   const details = getTypeDetails();
 
   return (
-    <div 
-      className="bg-white rounded-lg border-2 border-gray-400 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] cursor-grab active:cursor-grabbing"
-      style={{ transform: `translateX(${currentX}px)`, transition: isDragging ? 'none' : 'transform 0.3s ease' }}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="bg-white rounded-xl border-2 border-gray-400 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-blue-800 text-base">{details.title}</h3>
         <Badge variant={type === 'loan' ? 'default' : 'secondary'} className="border-2">
@@ -1010,7 +809,7 @@ const SwipeCard: React.FC<{
       
       <div className="grid grid-cols-3 gap-2 mb-3">
         {details.details.map((detail, index) => (
-          <div key={index} className="text-center bg-blue-50 rounded border border-blue-200 p-1">
+          <div key={index} className="text-center bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 p-1">
             <div className="text-xs text-blue-600">{detail.label}</div>
             <div className="text-sm font-semibold text-blue-800">{detail.value}</div>
           </div>
@@ -1020,16 +819,16 @@ const SwipeCard: React.FC<{
       <div className="flex justify-between items-center">
         <button 
           onClick={() => onSwipeLeft(item)}
-          className="p-2 rounded-full bg-red-100 text-red-600 hover:bg-red-200 transition-colors border border-red-300"
+          className="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg hover:scale-110 transition-transform"
         >
-          <X className="h-4 w-4" />
+          <X className="h-5 w-5 text-white" />
         </button>
-        <span className="text-xs text-gray-500">Swipe or click</span>
+        <span className="text-xs text-gray-500">Swipe to match</span>
         <button 
           onClick={() => onSwipeRight(item)}
-          className="p-2 rounded-full bg-green-100 text-green-600 hover:bg-green-200 transition-colors border border-green-300"
+          className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg hover:scale-110 transition-transform"
         >
-          <Heart className="h-4 w-4" />
+          <Heart className="h-5 w-5 text-white" />
         </button>
       </div>
     </div>
@@ -1090,7 +889,7 @@ const CreateForm: React.FC<{
             step="0.01"
             min="0.1"
             max="10"
-            className="h-8 text-sm border-2"
+            className="h-8 text-sm"
           />
         </div>
 
@@ -1101,7 +900,7 @@ const CreateForm: React.FC<{
             type="text"
             value={`${collateralAmount} ETH (85%)`}
             readOnly
-            className="h-8 text-sm bg-blue-50 border-2 border-blue-300"
+            className="h-8 text-sm bg-blue-50 border-blue-300"
           />
         </div>
 
@@ -1115,11 +914,11 @@ const CreateForm: React.FC<{
             onChange={(e) => setDuration(e.target.value)}
             min="30"
             max="365"
-            className="h-8 text-sm border-2"
+            className="h-8 text-sm"
           />
         </div>
 
-        <div className="p-3 bg-blue-100 rounded-lg border-2 border-blue-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+        <div className="p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-2 border-blue-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
           <div className="flex items-center gap-2 mb-1">
             <Shield className="h-4 w-4 text-blue-600" />
             <span className="text-sm font-medium text-blue-800">Transaction Details</span>
@@ -1132,7 +931,7 @@ const CreateForm: React.FC<{
         <Button
           onClick={handleCreate}
           disabled={!loanAmount || isCreating || !isCorrectNetwork || !isScoreSet}
-          className="w-full h-8 text-sm border-2 border-blue-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]"
+          className="w-full h-8 text-sm bg-gradient-to-r from-blue-500 to-purple-500 text-white border-2 border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:scale-105 transition-transform"
         >
           {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create Loan'}
         </Button>
@@ -1159,16 +958,16 @@ const CreateForm: React.FC<{
           step="0.1"
           min="0.1"
           max="10"
-          className="h-8 text-sm border-2"
+          className="h-8 text-sm"
         />
       </div>
 
-      <div className="p-3 bg-blue-100 rounded-lg border-2 border-blue-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
+      <div className="p-3 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-400 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]">
         <div className="flex items-center gap-2 mb-1">
-          <Shield className="h-4 w-4 text-blue-600" />
-          <span className="text-sm font-medium text-blue-800">Auto-Matching</span>
+          <Shield className="h-4 w-4 text-green-600" />
+          <span className="text-sm font-medium text-green-800">Auto-Matching</span>
         </div>
-        <p className="text-xs text-blue-700">
+        <p className="text-xs text-green-700">
           Your offer will automatically match with borrowers based on their credit scores and requirements
         </p>
       </div>
@@ -1176,7 +975,7 @@ const CreateForm: React.FC<{
       <Button
         onClick={handleCreate}
         disabled={!offerAmount || isCreating || !isCorrectNetwork}
-        className="w-full h-8 text-sm border-2 border-blue-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)]"
+        className="w-full h-8 text-sm bg-gradient-to-r from-green-500 to-blue-500 text-white border-2 border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] hover:scale-105 transition-transform"
       >
         {isCreating ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Create Offer'}
       </Button>
@@ -1227,11 +1026,10 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   // Ultra-fast transaction confirmation with timeout
   const confirmTransaction = useCallback(async (txHash: string) => {
     console.log('🚀 Starting ultra-fast transaction confirmation...');
-    console.log('🔗 Using RPC:', SEPOLIA_RPC_URL);
     
     let confirmed = false;
     let attempts = 0;
-    const maxAttempts = 30; // 30 seconds max
+    const maxAttempts = 30;
     
     const pollInterval = setInterval(async () => {
       attempts++;
@@ -1282,7 +1080,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
           error: 'Transaction confirmation timeout. Check Etherscan manually.'
         }));
       }
-    }, 1000); // Check every 1 second
+    }, 1000);
     
   }, [p2pData]);
 
@@ -1548,14 +1346,16 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   if (!isConnected) {
     return (
-      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl text-blue-800">P2P LENDING</CardTitle>
-          <CardDescription className="text-base text-gray-700">CONNECT YOUR WALLET TO START</CardDescription>
+      <Card className="border-4 border-white bg-gradient-to-br from-blue-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
+        <CardHeader className="pb-2 text-center">
+          <CardTitle className="text-lg text-blue-800 bg-white/80 rounded-lg py-1 px-3 border-2 border-blue-300 inline-block">
+            P2P LENDING
+          </CardTitle>
+          <CardDescription className="text-sm text-gray-700">CONNECT YOUR WALLET TO START</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6">
-            <Users className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+          <div className="text-center py-4">
+            <Users className="h-12 w-12 mx-auto text-gray-400 mb-2" />
             <p className="text-gray-600 text-sm">Connect your wallet to access credit-based lending</p>
           </div>
         </CardContent>
@@ -1565,14 +1365,14 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
 
   if (isConnected && !isCorrectNetwork) {
     return (
-      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl text-blue-800">WRONG NETWORK</CardTitle>
+      <Card className="border-4 border-white bg-gradient-to-br from-yellow-50 to-orange-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
+        <CardHeader className="pb-2 text-center">
+          <CardTitle className="text-lg text-blue-800">WRONG NETWORK</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-4">
+          <div className="text-center py-3">
             <AlertTriangle className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-gray-600 mb-2">
               Please switch to Sepolia testnet to use Credit Cupid
             </p>
             <p className="text-xs text-gray-500">
@@ -1585,20 +1385,23 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   }
 
   return (
-    <div className="space-y-4">
-      <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
-            <Target className="h-5 w-5" />
-            SWIPE RIGHT TO MATCH WITH PERFECT LENDING OPPORTUNITIES
+    <div className="p-3 space-y-3 font-vt323 max-w-4xl mx-auto">
+      {/* Header Card */}
+  <Card className="border-4 border-white bg-gradient-to-br from-blue-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+    <CardHeader className="pb-2 text-center">
+      <div className="flex justify-center items-center gap-2 mb-2">
+        <ArrowLeftRight className="h-6 w-6 text-blue-600" />
+      </div>
+      <CardTitle className="text-xl text-blue-800 bg-white/80 rounded-lg py-1 px-3 border-2 border-blue-300 inline-block">
+            SWIPE TO MATCH LENDING OPPORTUNITIES
           </CardTitle>
-          <CardDescription className="flex items-center justify-between text-base text-gray-700">
+          <CardDescription className="flex items-center justify-between text-sm text-gray-700 mt-2">
             <span></span>
             <Button
               onClick={handleManualRefresh}
               variant="outline"
               size="sm"
-              className="h-6 text-xs border-2 border-gray-400 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+              className="h-6 text-xs border-2 border-gray-400 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)] bg-white"
             >
               <RefreshCw className="h-3 w-3 mr-1" />
               Refresh
@@ -1608,14 +1411,15 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
         <CardContent>
           <QuickStats userCreditScore={userCreditScore} />
           
-          <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg mb-3 border-2 border-gray-300">
+          {/* View Toggle */}
+          <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl mb-3 border-2 border-gray-300">
             <Button
               variant={activeView === 'borrow' ? 'default' : 'ghost'}
               onClick={() => {
                 setActiveView('borrow');
                 setCurrentIndex(0);
               }}
-              className="flex-1 h-8 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+              className="flex-1 h-8 text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white border-2 border-white shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <TrendingUp className="h-3 w-3 mr-1" />
               Borrow
@@ -1626,18 +1430,19 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
                 setActiveView('lend');
                 setCurrentIndex(0);
               }}
-              className="flex-1 h-8 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+              className="flex-1 h-8 text-xs bg-gradient-to-r from-green-500 to-blue-500 text-white border-2 border-white shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <DollarSign className="h-3 w-3 mr-1" />
               Lend
             </Button>
           </div>
 
-          <div className="flex space-x-1 bg-gray-50 p-1 rounded-lg mb-4 border-2 border-gray-300">
+          {/* Tab Toggle */}
+          <div className="flex space-x-1 bg-gray-50 p-1 rounded-xl mb-2 border-2 border-gray-300">
             <Button
               variant={activeTab === 'swipe' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('swipe')}
-              className="flex-1 h-7 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+              className="flex-1 h-7 text-xs bg-gradient-to-r from-pink-500 to-blue-500 text-white border-2 border-white shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <Eye className="h-3 w-3 mr-1" />
               Browse
@@ -1645,7 +1450,7 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
             <Button
               variant={activeTab === 'create' ? 'default' : 'ghost'}
               onClick={() => setActiveTab('create')}
-              className="flex-1 h-7 text-xs border-2 border-blue-700 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+              className="flex-1 h-7 text-xs bg-gradient-to-r from-green-500 to-blue-500 text-white border-2 border-white shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
             >
               <Plus className="h-3 w-3 mr-1" />
               Create
@@ -1666,14 +1471,14 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
       <CreditScoreStatus creditScoreManager={creditScoreManager} />
 
       {activeTab === 'swipe' ? (
-        <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2 text-blue-800">
+        <Card className="border-4 border-white bg-gradient-to-br from-white to-blue-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2 text-blue-800">
               <Filter className="h-4 w-4" />
               {activeView === 'borrow' ? 'AVAILABLE LOAN OFFERS' : 'LOAN REQUESTS'}
               <div className="flex items-center gap-2 ml-auto">
                 {availableItems && availableItems.length > 0 && (
-                  <Badge variant="outline" className="border-2">
+                  <Badge variant="outline" className="border-2 bg-white">
                     {currentIndex + 1} of {availableItems.length}
                   </Badge>
                 )}
@@ -1690,8 +1495,8 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
                 userAddress={userAddress}
               />
             ) : (
-              <div className="text-center py-8">
-                <Users className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+              <div className="text-center py-6">
+                <Users className="h-12 w-12 mx-auto text-gray-400 mb-2" />
                 <p className="text-gray-600 text-sm">No {activeView === 'borrow' ? 'offers' : 'requests'} available</p>
                 <p className="text-xs text-gray-500 mt-1">Check back later or create one</p>
               </div>
@@ -1699,9 +1504,9 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
           </CardContent>
         </Card>
       ) : (
-        <Card className="border-4 border-white bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)] font-vt323">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base text-blue-800">
+        <Card className="border-4 border-white bg-gradient-to-br from-green-50 to-blue-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-blue-800">
               CREATE {activeView === 'borrow' ? 'LOAN REQUEST' : 'LENDER OFFER'}
             </CardTitle>
           </CardHeader>

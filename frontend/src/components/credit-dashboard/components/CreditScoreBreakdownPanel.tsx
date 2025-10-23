@@ -341,16 +341,15 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
             />
           ))}
         </div>
-
-        <div className="mt-4 p-3 bg-blue-100 rounded-lg border-4 border-blue-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-          <h4 className="font-semibold text-blue-900 mb-1 text-lg">SCORING FORMULA</h4>
-          <p className="text-sm text-blue-700 mb-1">
-            CREDIT SCORE = 300 + (ONCHAIN ACTIVITY × 35% + LENDING PROTOCOL USAGE × 15% + FINANCIAL HEALTH × 35% + REPAYMENT HISTORY × 15%) × 5.5
-          </p>
-          <p className="text-sm text-blue-600">
-            CURRENT CALCULATED SCORE: <strong>{realCreditScore}</strong> (BASED ON REAL SEPOLIA DATA)
-          </p>
-        </div>
+<div className="mt-4 p-3 bg-purple-100 rounded-lg border-4 border-purple-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+  <h4 className="font-semibold text-purple-900 mb-1 text-lg">SCORING FORMULA</h4>
+  <p className="text-sm text-purple-700 mb-1">
+    CREDIT SCORE = 300 + (ONCHAIN ACTIVITY × 35% + LENDING PROTOCOL USAGE × 15% + FINANCIAL HEALTH × 35% + REPAYMENT HISTORY × 15%) × 5.5
+  </p>
+  <p className="text-sm text-purple-600">
+    CURRENT CALCULATED SCORE: <strong>{realCreditScore}</strong> (BASED ON REAL SEPOLIA DATA)
+  </p>
+</div>
       </CardContent>
     </Card>
   );

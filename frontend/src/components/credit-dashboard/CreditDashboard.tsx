@@ -329,16 +329,16 @@ const CreditDashboardContent: React.FC = () => {
           </div>
         )}
 
-        {/* Data Quality Notice - UPDATED TEXT */}
+{/* Data Quality Notice - UPDATED TEXT */}
 {displayData && (
-  <div className="mb-4 p-4 bg-purple-100 border-4 border-purple-500 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+  <div className="mb-4 p-4 bg-blue-200 border-4 border-blue-400 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
     <div className="flex items-center gap-3">
       <div className="flex-shrink-0">
-        <Star className="h-6 w-6 text-purple-600" />
+        <Star className="h-6 w-6 text-blue-600" />
       </div>
       <div className="flex-1">
-        <p className="text-lg text-purple-800">
-          <strong>Build your credit score</strong> • <strong>Date on your financial frequency</strong> • <strong>Get better DeFi terms</strong>
+        <p className="text-lg text-blue-900 font-bold">
+          Build your credit score • Date on your financial frequency • Get better DeFi terms
         </p>
       </div>
     </div>
