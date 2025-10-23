@@ -14,8 +14,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 ## ✨ What is creditcupid?
 
-- 🔄 **Cross-Chain Credit Oracle:** Aggregates your DeFi activity and verified Web2 income and identity into a dynamic, privacy-first credit score (300-850 that follows FICO scoring).  
-- 🤖 **AI-Powered Credit Analysis Agents:** Transparent credit score breakdowns and actionable recommendations verified by Blockscout MCP data—helping you improve your creditworthiness and attract better matches.  
+- 🔄 **Cross-Chain Credit Oracle:** Aggregates your DeFi activity and verified Web2 income and identity into a dynamic, privacy-first credit score (300-850 that follows FICO scoring).   
 - 💘 **Dual Matchmaking Experiences:**  
   - **Dating Flow:** Find life partners filtered by verified credit score, age, and gender—pseudonymous and privacy-first.  
   - **Finance Flow:** Discover trusted peers for undercollateralized peer-to-peer lending and borrowing opportunities.  
@@ -26,7 +25,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 ## 🎯 How It Works
 
-1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK & MCP plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance.
+1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance.
 2. **Get Score & Recommendations:** AI Agents analyze risks, explain your score and guide you to build better credit and social appeal.  
 3. **Match & Borrow:** Use separate, intuitive flows to find romantic or finance partners based purely on verified, privacy-protected credit identities.  
 4. **Stay Private & Secure:** Your financial details stay confidential. Wallets shown as pseudonyms with optional explorer links.
@@ -42,14 +41,13 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
     Handles ETH-based peer-to-peer lending using credit-based terms and undercollateralized logic.
 - **Backend & API:** Node.js + TypeScript; Blockscout MCP & API & SDK integration, Plaid bank verification, AI agent system, and privacy proof services.  
 - **Frontend:** React 18 + TypeScript, Vite, Wagmi & Viem for wallet interactions, Tailwind CSS + Shadcn/ui for UI.  
-- **AI Agents:** Fetch.ai uAgents employing MeTTa reasoning for credit insights.  
 - **Privacy:** Cryptographic commitments, IPFS decentralized metadata storage, local proof generation ensuring zero user data is stored on servers.
 
 ---
 
 ## 🚀 Quick Start Guide
 
-Prerequisites: Node.js v20+, Foundry, Python 3.10.9, Sepolia ETH wallet
+Prerequisites: Node.js v20+, Foundry, Sepolia ETH wallet
 ```bash
 git clone https://github.com/tatdz/darma.git
 cd darma
@@ -65,35 +63,7 @@ cd ../frontend
 npm install
 npm run dev
 
-# AI Agents setup
-cd ../agents
-# Setup python environment & dependencies
-brew install pyenv
-pyenv install 3.10.9
-pyenv local 3.10.9
-
-# Install OpenSSL and set environment variables
-brew install openssl@3
-
-# Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
-echo 'export GRPC_PYTHON_BUILD_SYSTEM_OPENSSL=1' >> ~/.bashrc
-echo 'export GRPC_PYTHON_BUILD_SYSTEM_ZLIB=1' >> ~/.bashrc
-echo 'export LDFLAGS="-L/opt/homebrew/opt/openssl@3/lib"' >> ~/.bashrc
-echo 'export CPPFLAGS="-I/opt/homebrew/opt/openssl@3/include"' >> ~/.bashrc
-
-# Reload your shell
-source ~/.bashrc
-
-# Upgrade pip and install dependencies
-python3 -m pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
-
-# Start the analyst agent first
-python3 analyst.py
-
-Important: Save the address output from analyst.py to use when running other agent files.
-
-#### 5. Environment Configuration
+#### Environment Configuration
 Backend (.env):
 
 env
