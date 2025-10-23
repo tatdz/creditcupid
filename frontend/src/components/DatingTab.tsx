@@ -442,7 +442,7 @@ export const DatingTab: React.FC = () => {
                   className="w-4 h-4 text-blue-600 border-2 border-gray-400 rounded focus:ring-blue-500 mt-0.5"
                 />
                 <label className="text-xs text-blue-800 leading-tight">
-                  Accept CreditCupid Ethics: Respect & Kindness
+                  Accept CREDITCUPID Ethics: Respect & Kindness
                 </label>
               </div>
 <Button
