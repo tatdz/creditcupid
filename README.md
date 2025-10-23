@@ -40,7 +40,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
     Handles ETH-based peer-to-peer lending using credit-based terms and undercollateralized logic.
 - **Backend & API:** Node.js + TypeScript; Blockscout API & SDK integration, Plaid bank verification, zk proof services.  
 - **Frontend:** React 18 + TypeScript, Vite, Wagmi & Viem for wallet interactions, Tailwind CSS + Shadcn/ui for UI.  
-- **Privacy:** Poseidon zk-Hashing, zk-SNARK cryptographic commitments, IPFS decentralized metadata storage, local proof generation ensuring zero user data is stored on servers.
+- **Privacy:** Poseidon zk-Hashing, zk-SNARK friendly cryptographic commitments, IPFS decentralized metadata storage, local proof generation ensuring zero user data is stored on servers.
 
 ---
 
