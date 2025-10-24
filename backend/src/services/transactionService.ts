@@ -1,5 +1,5 @@
 // services/transactionService.ts
-const BLOCKSCOUT_API_URL = 'https://eth-sepolia.blockscout.com/api';
+const BLOCKSCOUT_API_URL = '/api/proxy/blockscout'; // Now using backend proxy
 
 export interface TransactionStatus {
   isConfirmed: boolean;
@@ -12,21 +12,8 @@ export interface TransactionStatus {
 export class TransactionService {
   private static instance: TransactionService;
 
-  private blockscoutApiKey: string;
-  private etherscanApiKey: string;
-
   constructor() {
-    // Set API keys from environment (works in both frontend and backend)
-    this.blockscoutApiKey = '';
-    this.etherscanApiKey = '';
-    
-    // Try to get from different environment sources
-    if (typeof process !== 'undefined' && process.env) {
-      this.blockscoutApiKey = process.env.VITE_BLOCKSCOUT_API_KEY || process.env.BLOCKSCOUT_API_KEY || '';
-      this.etherscanApiKey = process.env.VITE_ETHERSCAN_API_KEY || process.env.ETHERSCAN_API_KEY || '';
-    }
-    
-    // For Vite frontend, we'll set these via a separate method
+    // No API keys stored in frontend anymore - all handled by backend
   }
 
   public static getInstance(): TransactionService {
@@ -36,28 +23,17 @@ export class TransactionService {
     return TransactionService.instance;
   }
 
-  // Method to set API keys from frontend
-  setApiKeys(blockscoutKey: string, etherscanKey: string) {
-    this.blockscoutApiKey = blockscoutKey;
-    this.etherscanApiKey = etherscanKey;
-  }
-
-  // Primary method: Blockscout with API key
+  // Primary method: Backend Blockscout proxy
   async checkTransactionStatusBlockscout(txHash: string): Promise<TransactionStatus> {
     try {
       const url = `${BLOCKSCOUT_API_URL}?module=transaction&action=gettxinfo&txhash=${txHash}`;
       
-      const headers: HeadersInit = {};
-      if (this.blockscoutApiKey) {
-        headers['Authorization'] = `Bearer ${this.blockscoutApiKey}`;
-      }
+      console.log('🔍 Checking transaction status via backend Blockscout proxy:', { txHash });
 
-      console.log('🔍 Checking transaction status via Blockscout:', { txHash, hasApiKey: !!this.blockscoutApiKey });
-
-      const response = await fetch(url, { headers });
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error(`Blockscout API error: ${response.status}`);
+        throw new Error(`Blockscout proxy error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -79,26 +55,22 @@ export class TransactionService {
       return status;
 
     } catch (error) {
-      console.warn('❌ Blockscout API failed, falling back to Etherscan:', error);
+      console.warn('❌ Blockscout proxy failed, falling back to Etherscan proxy:', error);
       return await this.checkTransactionStatusEtherscan(txHash);
     }
   }
 
-  // Fallback method: Etherscan
+  // Fallback method: Backend Etherscan proxy
   async checkTransactionStatusEtherscan(txHash: string): Promise<TransactionStatus> {
     try {
-      if (!this.etherscanApiKey) {
-        throw new Error('Etherscan API key not available');
-      }
-
-      const url = `https://api-sepolia.etherscan.io/api?module=transaction&action=gettxreceiptstatus&txhash=${txHash}&apikey=${this.etherscanApiKey}`;
+      const url = `/api/proxy/etherscan?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`;
       
-      console.log('🔍 Checking transaction status via Etherscan:', { txHash });
+      console.log('🔍 Checking transaction status via backend Etherscan proxy:', { txHash });
 
       const response = await fetch(url);
       
       if (!response.ok) {
-        throw new Error(`Etherscan API error: ${response.status}`);
+        throw new Error(`Etherscan proxy error: ${response.status}`);
       }
 
       const data = await response.json();
@@ -119,15 +91,61 @@ export class TransactionService {
       return status;
 
     } catch (error) {
-      console.warn('❌ Etherscan API failed, using basic confirmation:', error);
+      console.warn('❌ Etherscan proxy failed, using backend RPC proxy:', error);
+      return await this.checkTransactionStatusRpc(txHash);
+    }
+  }
+
+  // RPC proxy method: Uses backend RPC proxy with secure Alchemy URL
+  async checkTransactionStatusRpc(txHash: string): Promise<TransactionStatus> {
+    try {
+      console.log('🔍 Checking transaction status via backend RPC proxy:', { txHash });
+
+      const response = await fetch('/api/proxy/rpc/11155111', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'eth_getTransactionReceipt',
+          params: [txHash],
+          id: 1
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.result) {
+        const status: TransactionStatus = {
+          isConfirmed: true,
+          confirmations: 1,
+          blockNumber: parseInt(data.result.blockNumber, 16),
+          status: data.result.status === '0x1' ? 'success' : 'failed'
+        };
+        console.log('✅ Backend RPC transaction status:', status);
+        return status;
+      }
+
+      const pendingStatus: TransactionStatus = {
+        isConfirmed: false,
+        confirmations: 0,
+        blockNumber: null,
+        status: 'pending'
+      };
+      console.log('⏳ Transaction still pending via backend RPC');
+      return pendingStatus;
+
+    } catch (error) {
+      console.error('❌ Backend RPC proxy failed:', error);
       return await this.checkTransactionStatusBasic(txHash);
     }
   }
 
-  // Last fallback: Basic RPC confirmation
+  // Last fallback: Basic public RPC confirmation (no API keys)
   async checkTransactionStatusBasic(txHash: string): Promise<TransactionStatus> {
     try {
-      console.log('🔍 Checking transaction status via basic RPC:', { txHash });
+      console.log('🔍 Checking transaction status via public RPC:', { txHash });
 
       const response = await fetch('https://ethereum-sepolia-rpc.publicnode.com', {
         method: 'POST',
@@ -151,7 +169,7 @@ export class TransactionService {
           blockNumber: parseInt(data.result.blockNumber, 16),
           status: data.result.status === '0x1' ? 'success' : 'failed'
         };
-        console.log('✅ Basic RPC transaction status:', status);
+        console.log('✅ Public RPC transaction status:', status);
         return status;
       }
 
@@ -161,7 +179,7 @@ export class TransactionService {
         blockNumber: null,
         status: 'pending'
       };
-      console.log('⏳ Transaction still pending via basic RPC');
+      console.log('⏳ Transaction still pending via public RPC');
       return pendingStatus;
 
     } catch (error) {

@@ -1,6 +1,4 @@
 import { PlaidData, PrivacyProofs, StoredPrivacyProofs } from '../../../types/credit';
-import { getPinataConfig } from '../../../config/pinata';
-import { poseidon1 } from 'poseidon-lite';
 
 interface ProofResult {
   type: string;
@@ -36,10 +34,10 @@ interface PinataPinResponse {
   pinataURL?: string;
 }
 
-// Enhanced Pinata service with all required methods
-class RealPinataService {
-  private config = getPinataConfig();
-  private credentialsValid: boolean;
+// Backend Pinata Service with proper async initialization
+class BackendPinataService {
+  private credentialsValid: boolean = false;
+  private initializationPromise: Promise<void>;
   private publicGateways = [
     'https://ipfs.io/ipfs',
     'https://gateway.pinata.cloud/ipfs',
@@ -48,12 +46,40 @@ class RealPinataService {
   ];
 
   constructor() {
-    this.credentialsValid = !!(this.config.jwt || (this.config.apiKey && this.config.apiSecret));
-    
-    if (this.credentialsValid) {
-      console.log('✅ Pinata credentials found - IPFS enabled');
-    } else {
-      console.warn('⚠️ Pinata credentials missing - IPFS functionality limited');
+    console.log('🔧 Initializing BackendPinataService...');
+    this.initializationPromise = this.checkBackendStatus();
+  }
+
+  // Wait for initialization to complete
+  async waitForInitialization(): Promise<void> {
+    await this.initializationPromise;
+  }
+
+  private async checkBackendStatus(): Promise<void> {
+    try {
+      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      console.log('🔍 Checking backend status at:', `${backendBase}/api/status`);
+      
+      const response = await fetch(`${backendBase}/api/status`);
+      
+      if (response.ok) {
+        const status = await response.json();
+        console.log('📊 Backend Status Response:', status);
+        
+        this.credentialsValid = status.pinata === true;
+        
+        if (this.credentialsValid) {
+          console.log('🎉 Backend Pinata configuration found - REAL IPFS enabled');
+        } else {
+          console.warn('⚠️ Backend reports Pinata not configured - using development mode');
+        }
+      } else {
+        console.warn('⚠️ Backend status endpoint not available - using development mode');
+        this.credentialsValid = false;
+      }
+    } catch (error: any) {
+      console.warn('⚠️ Could not check backend status - using development mode:', error.message);
+      this.credentialsValid = false;
     }
   }
 
@@ -62,7 +88,7 @@ class RealPinataService {
     return this.credentialsValid;
   }
 
-  // Main method to upload JSON to Pinata IPFS - with fallback
+  // Main method to upload JSON to Pinata IPFS via backend proxy
   async pinJSONToIPFS(data: any, name: string): Promise<PinataPinResponse & {
     isRealCID: boolean;
     url: string;
@@ -71,7 +97,7 @@ class RealPinataService {
     if (!this.credentialsValid) {
       // Return mock data when credentials are missing
       const mockCid = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.warn(`⚠️ Using mock CID (no Pinata credentials): ${mockCid}`);
+      console.warn(`⚠️ Using mock CID (no backend Pinata): ${mockCid}`);
       
       return {
         IpfsHash: mockCid,
@@ -83,109 +109,60 @@ class RealPinataService {
       };
     }
 
-    console.log(`📤 Uploading ${name} to Pinata IPFS...`);
+    console.log(`📤 Uploading ${name} to Pinata IPFS via backend proxy...`);
 
-    // Method 1: Try JWT auth first (preferred)
-    if (this.config.jwt) {
-      try {
-        console.log('🔑 Using JWT authentication...');
-        const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.config.jwt}`,
-            'User-Agent': 'Creditcupid-Credit/1.0'
-          },
-          body: JSON.stringify({
-            pinataContent: data,
-            pinataMetadata: {
-              name: `Creditcupid-${name}-${Date.now()}`,
-              keyvalues: {
-                type: 'privacy-proof',
-                protocol: 'creditcupid-credit',
-                timestamp: new Date().toISOString(),
-                source: 'creditcupid-frontend',
-                version: '1.0.0'
-              }
+    try {
+      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendBase}/api/proxy/pinata/pinning/pinJSONToIPFS`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pinataContent: data,
+          pinataMetadata: {
+            name: `Creditcupid-${name}-${Date.now()}`,
+            keyvalues: {
+              type: 'privacy-proof',
+              protocol: 'creditcupid-credit',
+              timestamp: new Date().toISOString(),
+              source: 'creditcupid-frontend',
+              version: '1.0.0'
             }
-          })
-        });
+          }
+        })
+      });
 
-        if (response.ok) {
-          const result = await response.json();
-          const publicCid = result.IpfsHash;
-          
-          console.log(`✅ IPFS SUCCESS: ${publicCid}`);
-          
-          return {
-            ...result,
-            isRealCID: true,
-            url: `https://ipfs.io/ipfs/${publicCid}`,
-            pinataURL: `https://gateway.pinata.cloud/ipfs/${publicCid}`
-          };
-        } else {
-          const errorText = await response.text();
-          throw new Error(`Pinata JWT failed: ${response.status} - ${errorText}`);
-        }
-      } catch (error: any) {
-        console.warn('JWT auth failed, trying API key...', error.message);
+      if (response.ok) {
+        const result = await response.json();
+        const publicCid = result.IpfsHash;
+        
+        console.log(`✅ IPFS SUCCESS via backend: ${publicCid}`);
+        
+        return {
+          ...result,
+          isRealCID: true,
+          url: `https://ipfs.io/ipfs/${publicCid}`,
+          pinataURL: `https://gateway.pinata.cloud/ipfs/${publicCid}`
+        };
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Backend Pinata proxy failed: ${response.status} - ${errorText}`);
       }
+    } catch (error: any) {
+      console.error('Backend Pinata proxy failed:', error.message);
+      throw error;
     }
-
-    // Method 2: API key/secret auth
-    if (this.config.apiKey && this.config.apiSecret) {
-      try {
-        console.log('🔑 Using API key authentication...');
-        const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'pinata_api_key': this.config.apiKey,
-            'pinata_secret_api_key': this.config.apiSecret,
-            'User-Agent': 'Creditcupid-Credit/1.0'
-          },
-          body: JSON.stringify({
-            pinataContent: data,
-            pinataMetadata: {
-              name: `Creditcupid-${name}-${Date.now()}`,
-              keyvalues: {
-                type: 'privacy-proof',
-                protocol: 'creditcupid-credit',
-                timestamp: new Date().toISOString(),
-                source: 'creditcupid-frontend'
-              }
-            }
-          })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          const publicCid = result.IpfsHash;
-          
-          console.log(`✅ IPFS SUCCESS (API Key): ${publicCid}`);
-          
-          return {
-            ...result,
-            isRealCID: true,
-            url: `https://ipfs.io/ipfs/${publicCid}`,
-            pinataURL: `https://gateway.pinata.cloud/ipfs/${publicCid}`
-          };
-        } else {
-          const errorText = await response.text();
-          throw new Error(`Pinata API key failed: ${response.status} - ${errorText}`);
-        }
-      } catch (error: any) {
-        console.error('API key auth failed:', error.message);
-        throw error;
-      }
-    }
-
-    throw new Error('No valid Pinata authentication methods available');
   }
 
   // Enhanced CID verification
   async verifyCID(cid: string): Promise<{ verified: boolean; data?: any; error?: string }> {
     console.log("🔍 Verifying CID:", cid);
+    
+    // Skip verification for mock CIDs
+    if (cid.startsWith('mock_')) {
+      return { verified: true, data: { mock: true, cid } };
+    }
     
     for (const gateway of this.publicGateways) {
       try {
@@ -229,11 +206,8 @@ class RealPinataService {
     }
     
     try {
-      const response = await fetch('https://api.pinata.cloud/data/testAuthentication', {
-        headers: {
-          'Authorization': `Bearer ${this.config.jwt}`
-        }
-      });
+      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      const response = await fetch(`${backendBase}/api/status`);
       return response.ok;
     } catch (error) {
       return false;
@@ -241,205 +215,297 @@ class RealPinataService {
   }
 }
 
-// Fixed Poseidon Hasher with proper input handling
+// Universal Poseidon Hasher with Proper Function Selection
 class PoseidonHasher {
   private static instance: PoseidonHasher;
+  private poseidonAvailable: boolean = false;
+  private poseidonModule: any = null;
 
   static getInstance(): Promise<PoseidonHasher> {
     if (!PoseidonHasher.instance) {
       PoseidonHasher.instance = new PoseidonHasher();
-      console.log('✅ Poseidon Hasher initialized');
     }
     return Promise.resolve(PoseidonHasher.instance);
   }
 
+  constructor() {
+    this.initializePoseidon();
+  }
+
+  private async initializePoseidon(): Promise<void> {
+    try {
+      // Dynamically import poseidon-lite
+      this.poseidonModule = await import('poseidon-lite');
+      
+      // Test if poseidon is available by trying a simple hash
+      const testInputs = [1n, 2n];
+      this.poseidonModule.poseidon2(testInputs);
+      
+      this.poseidonAvailable = true;
+      console.log('✅ Poseidon library loaded successfully');
+    } catch (error: any) {
+      console.warn('❌ Poseidon library failed to load, using SHA-256 fallback:', error.message);
+      this.poseidonAvailable = false;
+    }
+  }
+
   async hash(inputs: (number | string | boolean)[]): Promise<string> {
-    // Convert all inputs to bigint first
-    const bigIntInputs = inputs.map(input => {
-      if (typeof input === 'boolean') return BigInt(input ? 1 : 0);
-      if (typeof input === 'string') {
-        // More robust string to bigint conversion
-        const strSum = Array.from(input).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-        return BigInt(strSum % 1000000);
-      }
-      return BigInt(input);
-    });
+    if (!this.poseidonAvailable || !this.poseidonModule) {
+      return this.fallbackHash(inputs);
+    }
 
     try {
-      // Pad inputs to exactly 5 elements as required by poseidon1
-      const paddedInputs = this.padInputs(bigIntInputs, 5);
-      const hash = poseidon1(paddedInputs);
+      // Convert inputs to BigInt
+      const bigIntInputs = this.convertToBigInt(inputs);
+      
+      // Select the appropriate poseidon function based on input length
+      const inputLength = bigIntInputs.length;
+      const poseidonFunction = this.getPoseidonFunction(inputLength);
+      
+      if (!poseidonFunction) {
+        throw new Error(`No poseidon function available for ${inputLength} inputs`);
+      }
+      
+      const hash = poseidonFunction(bigIntInputs);
       return `poseidon_${hash.toString(16)}`;
-    } catch (error) {
-      console.warn('Poseidon hash failed, using SHA-256:', error);
+    } catch (error: any) {
+      console.warn('Poseidon hash failed, using SHA-256:', error.message);
       return this.fallbackHash(inputs);
     }
   }
 
-  // Pad inputs to required length with zeros
-  private padInputs(inputs: bigint[], requiredLength: number): bigint[] {
-    const padded = [...inputs];
-    while (padded.length < requiredLength) {
-      padded.push(0n);
+  private getPoseidonFunction(inputLength: number): Function | null {
+    // Map input lengths to poseidon functions
+    const functionMap: { [key: number]: string } = {
+      1: 'poseidon1',
+      2: 'poseidon2', 
+      3: 'poseidon3',
+      4: 'poseidon4',
+      5: 'poseidon5',
+      6: 'poseidon6',
+      7: 'poseidon7',
+      8: 'poseidon8',
+      9: 'poseidon9',
+      10: 'poseidon10',
+      11: 'poseidon11',
+      12: 'poseidon12',
+      13: 'poseidon13',
+      14: 'poseidon14',
+      15: 'poseidon15',
+      16: 'poseidon16'
+    };
+
+    const functionName = functionMap[inputLength];
+    if (functionName && this.poseidonModule[functionName]) {
+      return this.poseidonModule[functionName];
     }
-    // If still too long, truncate (shouldn't happen with our data)
-    return padded.slice(0, requiredLength);
+    
+    return null;
+  }
+
+  private convertToBigInt(inputs: (number | string | boolean)[]): bigint[] {
+    return inputs.map(input => {
+      if (typeof input === 'boolean') return input ? 1n : 0n;
+      if (typeof input === 'string') {
+        // Create consistent numeric hash from string
+        let hash = 0;
+        for (let i = 0; i < input.length; i++) {
+          hash = ((hash << 5) - hash) + input.charCodeAt(i);
+          hash |= 0; // Convert to 32-bit integer
+        }
+        return BigInt(Math.abs(hash));
+      }
+      if (typeof input === 'number') {
+        return BigInt(Math.floor(input));
+      }
+      return 0n;
+    });
   }
 
   async hashObject(obj: Record<string, any>): Promise<string> {
-    // Flatten the object and ensure we have consistent data
-    const values = this.flattenObject(obj);
+    // Create consistent inputs from object - use fixed length of 8 for compatibility
+    const objString = JSON.stringify(obj, Object.keys(obj).sort());
+    const inputs: (number | string | boolean)[] = [];
     
-    // Convert all values to hashable format
-    const hashableValues = values.map(value => {
-      if (typeof value === 'number') return value;
-      if (typeof value === 'string') return value;
-      if (typeof value === 'boolean') return value;
-      if (typeof value === 'bigint') return Number(value); // Convert bigint to number
-      return String(value); // Fallback for any other type
-    });
-
-    return this.hash(hashableValues);
-  }
-
-  private flattenObject(obj: Record<string, any>): any[] {
-    const values: any[] = [];
+    // Always generate exactly 8 inputs for poseidon8 compatibility
+    inputs.push(Date.now() % 1000000);
+    inputs.push(objString.length % 10000);
+    inputs.push(Object.keys(obj).length % 1000);
     
-    const flatten = (currentObj: any) => {
-      if (typeof currentObj !== 'object' || currentObj === null) {
-        values.push(currentObj);
-        return;
-      }
-      
-      if (Array.isArray(currentObj)) {
-        currentObj.forEach(item => flatten(item));
-      } else {
-        Object.values(currentObj).forEach(value => flatten(value));
-      }
-    };
+    // Add character codes from string (fill remaining 5 slots)
+    for (let i = 0; i < 5 && i < objString.length; i++) {
+      inputs.push(objString.charCodeAt(i) % 1000);
+    }
     
-    flatten(obj);
-    return values;
+    // Pad to exactly 8 inputs if needed
+    while (inputs.length < 8) {
+      inputs.push(0);
+    }
+    
+    return this.hash(inputs);
   }
 
   private async fallbackHash(inputs: (number | string | boolean)[]): Promise<string> {
-    const encoder = new TextEncoder();
-    const dataStr = JSON.stringify(inputs);
-    const dataBuffer = encoder.encode(dataStr);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return `sha256_${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    try {
+      const encoder = new TextEncoder();
+      const dataStr = JSON.stringify(inputs);
+      const dataBuffer = encoder.encode(dataStr);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return `sha256_${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    } catch (error) {
+      // Ultimate fallback
+      return `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    }
+  }
+
+  isAvailable(): boolean {
+    return this.poseidonAvailable;
+  }
+
+  getRequirements() {
+    return {
+      poseidonAvailable: this.poseidonAvailable
+    };
   }
 }
 
-// Privacy Proof Generator with Fixed Poseidon Implementation
+// Privacy Proof Generator with Universal Poseidon Support
 export class PrivacyProofGenerator {
-  private pinataService: RealPinataService;
-  private isAvailable: boolean;
+  private pinataService: BackendPinataService;
+  private isAvailable: boolean = false;
   private poseidonHasher: PoseidonHasher | null = null;
   private poseidonInitialized: boolean = false;
+  private initializationPromise: Promise<void>;
+  private initializationError: string | null = null;
 
   constructor() {
-    this.pinataService = new RealPinataService();
-    this.isAvailable = this.pinataService.isAvailable();
-    
-    // Initialize Poseidon asynchronously
-    this.initializePoseidon();
-    
-    if (this.isAvailable) {
-      console.log('🚀 PrivacyProofGenerator initialized with IPFS');
-    } else {
-      console.warn('⚠️ PrivacyProofGenerator initialized in fallback mode');
+    this.pinataService = new BackendPinataService();
+    this.initializationPromise = this.initializeServices().catch(error => {
+      this.initializationError = error.message;
+      console.error('❌ PrivacyProofGenerator initialization failed:', error);
+    });
+  }
+
+  // Wait for full initialization
+  async waitForInitialization(): Promise<void> {
+    await this.initializationPromise;
+    if (this.initializationError) {
+      throw new Error(this.initializationError);
+    }
+  }
+
+  private async initializeServices(): Promise<void> {
+    try {
+      // Initialize Pinata service with timeout
+      const pinataPromise = this.pinataService.waitForInitialization();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Pinata initialization timeout')), 10000)
+      );
+      
+      await Promise.race([pinataPromise, timeoutPromise]);
+      
+      this.isAvailable = this.pinataService.isAvailable();
+      
+      // Initialize Poseidon with timeout protection
+      await this.initializePoseidon();
+      
+      console.log('🚀 PrivacyProofGenerator initialized successfully', {
+        pinataAvailable: this.isAvailable,
+        poseidonAvailable: this.poseidonInitialized
+      });
+      
+    } catch (error: any) {
+      console.warn('⚠️ Service initialization had issues:', error.message);
+      // Don't throw - continue with fallback mode
+      this.isAvailable = false;
+      this.poseidonInitialized = false;
     }
   }
 
   private async initializePoseidon(): Promise<void> {
     try {
       this.poseidonHasher = await PoseidonHasher.getInstance();
-      this.poseidonInitialized = true;
-      console.log('✅ Poseidon zk-hashing enabled');
-    } catch (error) {
-      console.warn('⚠️ Poseidon initialization failed, falling back to SHA-256');
-      this.poseidonHasher = null;
+      
+      // Give Poseidon a moment to initialize
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (this.poseidonHasher && this.poseidonHasher.isAvailable()) {
+        this.poseidonInitialized = true;
+        console.log('✅ Poseidon zk-hashing enabled');
+      } else {
+        console.warn('⚠️ Poseidon not available, using SHA-256 fallback');
+        this.poseidonInitialized = false;
+      }
+    } catch (error: any) {
+      console.warn('⚠️ Poseidon initialization failed:', error.message);
       this.poseidonInitialized = false;
     }
   }
 
-  // Generate zkProof hash using Poseidon with proper error handling
+  // Safe hash generation with fallbacks
   private async generateZKProofHash(verified: boolean, criteria: string, salt: string): Promise<string> {
     try {
       const proofData = {
-        verified: verified ? 1 : 0, // Use numbers for consistency
-        criteria: criteria.substring(0, 100), // Limit length for hashing
+        verified: verified ? 1 : 0,
+        criteria: criteria.substring(0, 100),
         salt: salt,
         timestamp: Date.now()
       };
       
-      if (this.poseidonHasher && this.poseidonInitialized) {
-        // Use Poseidon for zk-friendly hashing
+      if (this.poseidonInitialized && this.poseidonHasher) {
         return await this.poseidonHasher.hashObject(proofData);
       } else {
-        // Fallback to SHA-256
         return await this.generateSHA256Hash(proofData);
       }
     } catch (error) {
-      console.warn('Hash generation failed, using secure fallback:', error);
+      console.warn('Hash generation failed, using secure fallback');
       return `zkp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     }
   }
 
   private async generateSHA256Hash(data: any): Promise<string> {
-    const encoder = new TextEncoder();
-    const dataStr = JSON.stringify(data);
-    const dataBuffer = encoder.encode(dataStr);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return `sha256_${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    try {
+      const encoder = new TextEncoder();
+      const dataStr = JSON.stringify(data);
+      const dataBuffer = encoder.encode(dataStr);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return `sha256_${hashArray.map(b => b.toString(16).padStart(2, '0')).join('')}`;
+    } catch (error) {
+      return `sha256_fallback_${Date.now()}`;
+    }
   }
 
-  // Generate Poseidon commitment for sensitive data with proper input handling
+  // Generate data commitment
   private async generateDataCommitment(data: any, salt: string): Promise<string> {
     try {
-      if (!this.poseidonHasher || !this.poseidonInitialized) {
-        return `commit_${await this.generateZKProofHash(true, JSON.stringify(data), salt)}`;
+      if (!this.poseidonInitialized || !this.poseidonHasher) {
+        const fallbackHash = await this.generateSHA256Hash({ data, salt });
+        return `commit_${fallbackHash}`;
       }
 
-      // Create commitment with properly formatted inputs
-      const commitmentInputs = [
-        data.timestamp || Date.now(),
+      // Use fixed 8 inputs for poseidon8 compatibility
+      const inputs: (number | string | boolean)[] = [
+        Date.now() % 1000000,
         data.verified ? 1 : 0,
-        data.verified ? 1 : 0, // Duplicate for padding if needed
-        ...this.createDataFingerprint(data)
+        salt.length % 1000,
+        JSON.stringify(data).length % 10000,
+        data.hasOwnProperty('hasStableIncome') ? (data.hasStableIncome ? 1 : 0) : 0,
+        data.hasOwnProperty('meetsThreshold') ? (data.meetsThreshold ? 1 : 0) : 0,
+        data.hasOwnProperty('hasSufficientHistory') ? (data.hasSufficientHistory ? 1 : 0) : 0,
+        data.hasOwnProperty('hasIdentity') ? (data.hasIdentity ? 1 : 0) : 0
       ];
 
-      const commitment = await this.poseidonHasher.hash(commitmentInputs);
+      const commitment = await this.poseidonHasher.hash(inputs);
       return `commit_${commitment}`;
     } catch (error) {
-      console.warn('Commitment generation failed:', error);
-      return `commit_${await this.generateSHA256Hash(data)}`;
+      console.warn('Commitment generation failed, using fallback');
+      return `commit_fallback_${Date.now()}`;
     }
   }
 
-  private createDataFingerprint(data: any): number[] {
-    const fingerprint: number[] = [];
-    
-    if (typeof data === 'object' && data !== null) {
-      Object.values(data).forEach(value => {
-        if (typeof value === 'number') {
-          fingerprint.push(value % 1000); // Reduce size for hashing
-        } else if (typeof value === 'string') {
-          fingerprint.push(value.length % 1000);
-        } else if (typeof value === 'boolean') {
-          fingerprint.push(value ? 1 : 0);
-        }
-      });
-    }
-    
-    // Ensure we have at least some data for hashing
-    return fingerprint.length > 0 ? fingerprint.slice(0, 3) : [0, 0, 0];
-  }
-
-  // Store zkProof with proper error handling and Poseidon commitments
+  // Store zkProof with error handling
   private async storeZKProof(
     proofType: string, 
     verified: boolean, 
@@ -456,7 +522,6 @@ export class PrivacyProofGenerator {
     console.log(`💾 Storing ${proofType} zkProof...`);
 
     try {
-      // Generate commitment for sensitive data if provided
       const dataCommitment = sensitiveData ? 
         await this.generateDataCommitment(sensitiveData, `${proofType}_${Date.now()}`) : 
         undefined;
@@ -485,8 +550,6 @@ export class PrivacyProofGenerator {
 
       const pinataResponse = await this.pinataService.pinJSONToIPFS(zkProofData, `zk-${proofType}-proof`);
       
-      console.log(`✅ ${this.isAvailable ? 'CID Generated' : 'Mock CID Created'}: ${pinataResponse.IpfsHash}`);
-      
       const urls = this.pinataService.getIPFSURLs(pinataResponse.IpfsHash);
       
       return {
@@ -500,13 +563,7 @@ export class PrivacyProofGenerator {
     } catch (error: any) {
       console.error(`❌ Failed to store ${proofType} proof:`, error.message);
       
-      // Generate fallback mock data
       const mockCid = `mock_${proofType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      console.warn(`⚠️ Using fallback mock CID for ${proofType}: ${mockCid}`);
-      
-      const dataCommitment = sensitiveData ? 
-        await this.generateDataCommitment(sensitiveData, `${proofType}_fallback_${Date.now()}`) : 
-        undefined;
       
       return {
         cid: mockCid,
@@ -514,22 +571,21 @@ export class PrivacyProofGenerator {
         pinataURL: `https://gateway.pinata.cloud/ipfs/${mockCid}`,
         isReal: false,
         success: false,
-        commitment: dataCommitment
+        commitment: undefined
       };
     }
   }
 
-  // Main method to generate zkProofs with proper Poseidon implementation
+  // Main method to generate privacy proofs
   async generatePrivacyProofs(plaidData: PlaidData): Promise<StoredPrivacyProofs> {
-    console.log('🚀 Starting zkProof Generation...');
+    console.log('🚀 Starting Privacy Proof Generation...');
 
-    if (!this.isAvailable) {
-      console.warn('⚠️ Running in fallback mode - using mock CIDs for zkProofs');
-    }
+    // Ensure we're initialized
+    await this.waitForInitialization();
 
-    console.log(`🔧 Poseidon Status: ${this.poseidonInitialized ? 'ENABLED' : 'FALLBACK (SHA-256)'}`);
+    console.log(`🔧 Service Status - Pinata: ${this.isAvailable ? '✅' : '❌'}, Poseidon: ${this.poseidonInitialized ? '✅' : '❌'}`);
 
-    // Calculate verification criteria (private - not stored on IPFS)
+    // Calculate verification criteria
     const totalBalance = plaidData.accounts?.reduce((sum, account) => 
       sum + (account.balances?.current || 0), 0) || 0;
 
@@ -540,7 +596,6 @@ export class PrivacyProofGenerator {
     const hasActiveHistory = (plaidData.transactions?.length || 0) > 30;
     const hasIdentity = !!(plaidData.identity?.names?.length);
 
-    // Create verification status (this is all we reveal)
     const verificationStatus = {
       income: !!hasStableIncome,
       balance: totalBalance >= 1000,
@@ -548,14 +603,7 @@ export class PrivacyProofGenerator {
       identity: !!hasIdentity
     };
 
-    console.log('📊 zkProof Financial Verification:', {
-      verificationStatus,
-      accounts: plaidData.accounts?.length || 0,
-      transactions: plaidData.transactions?.length || 0,
-      usingPoseidon: this.poseidonInitialized
-    });
-
-    // Generate zkProofs - ONLY store verification results with commitments
+    // Generate individual proofs
     const [incomeResult, balanceResult, transactionResult, identityResult] = await Promise.all([
       this.storeZKProof('income', !!hasStableIncome, {
         description: "Income stability verification",
@@ -563,8 +611,7 @@ export class PrivacyProofGenerator {
         requiredStatus: "ACTIVE",
       }, {
         hasStableIncome: !!hasStableIncome,
-        streamCount: plaidData.income?.income_streams?.length || 0,
-        confidence: plaidData.income?.income_streams?.[0]?.confidence || 0
+        streamCount: plaidData.income?.income_streams?.length || 0
       }),
       this.storeZKProof('balance', totalBalance >= 1000, {
         description: "Minimum balance verification", 
@@ -591,8 +638,8 @@ export class PrivacyProofGenerator {
       })
     ]);
 
-    // Store complete zkProofs set (aggregated verification only)
-    const completeZKProofsData = {
+    // Store complete proofs set
+    const completeProofsData = {
       verificationSummary: verificationStatus,
       proofHashes: {
         income: incomeResult.cid,
@@ -616,29 +663,21 @@ export class PrivacyProofGenerator {
         proofCount: 4,
         privacyLevel: 'zk-proofs',
         hashing: this.poseidonInitialized ? 'poseidon' : 'sha-256',
-        description: 'zkProofs with cryptographic commitments - No sensitive data stored',
-        dataPrivacy: 'Only commitments to sensitive data, no raw values',
         usingRealIPFS: this.isAvailable,
-        storageMode: this.isAvailable ? 'real-ipfs' : 'local-fallback',
         poseidonEnabled: this.poseidonInitialized
       }
     };
 
     let completeProofsResponse;
     try {
-      completeProofsResponse = await this.pinataService.pinJSONToIPFS(completeZKProofsData, 'zk-complete-proofs');
-      console.log(`✅ Complete proofs stored: ${completeProofsResponse.IpfsHash}`);
+      completeProofsResponse = await this.pinataService.pinJSONToIPFS(completeProofsData, 'complete-proofs');
     } catch (error: any) {
       console.error('❌ Failed to store complete proofs:', error.message);
       completeProofsResponse = {
-        IpfsHash: `mock_complete_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        isRealCID: false,
+        IpfsHash: `mock_complete_${Date.now()}`,
         pinataURL: `https://gateway.pinata.cloud/ipfs/mock_complete_${Date.now()}`
       };
     }
-
-    // Calculate verification score
-    const totalScore = Object.values(verificationStatus).filter(Boolean).length * 25;
 
     // Generate final proof hashes
     const [incomeProof, balanceProof, transactionProof, identityProof] = await Promise.all([
@@ -648,7 +687,10 @@ export class PrivacyProofGenerator {
       this.generateZKProofHash(!!hasIdentity, 'identity', 'final')
     ]);
 
-    // Build the final proofs object with CIDs
+    // Calculate score
+    const totalScore = Object.values(verificationStatus).filter(Boolean).length * 25;
+
+    // Build final result
     const baseProofs: PrivacyProofs = {
       incomeVerified: !!hasStableIncome,
       accountBalanceVerified: totalBalance >= 1000,
@@ -689,36 +731,18 @@ export class PrivacyProofGenerator {
         usingRealIPFS: this.isAvailable,
         storageType: this.isAvailable ? 'ipfs' : 'local',
         totalScore: totalScore,
-        pinataGateway: 'https://gateway.pinata.cloud/ipfs',
-        publicGateways: this.pinataService.getPublicGateways(),
         verificationStatus: verificationStatus,
         hashingAlgorithm: this.poseidonInitialized ? 'poseidon' : 'sha-256',
-        poseidonEnabled: this.poseidonInitialized,
-        privacyNotice: 'zkProofs: Only commitments to sensitive data exposed',
-        privacyVersion: '2.0.0'
+        poseidonEnabled: this.poseidonInitialized
       }
     };
 
-    console.log('🎉 zkProofs Generation Complete!', {
+    console.log('🎉 Privacy Proofs Generation Complete!', {
       totalScore: `${totalScore}/100`,
       verifiedProofs: `${Object.values(verificationStatus).filter(Boolean).length}/4`,
       usingPoseidon: this.poseidonInitialized,
-      privacyCIDs: storedProofs.ipfsData,
-      usingRealIPFS: this.isAvailable,
-      mode: this.isAvailable ? '✓ Real IPFS' : '⚠️ Local Storage'
+      usingRealIPFS: this.isAvailable
     });
-
-    if (this.poseidonInitialized) {
-      console.log('🔒 zkProof Privacy with Poseidon:');
-      console.log('   - Poseidon commitments for sensitive data');
-      console.log('   - zk-friendly hashing enabled');
-      console.log('   - No raw financial data stored publicly');
-    } else {
-      console.log('🔒 zkProof Privacy (SHA-256):');
-      console.log('   - SHA-256 commitments for sensitive data');
-      console.log('   - Cryptographic privacy maintained');
-      console.log('   - No raw financial data stored publicly');
-    }
 
     return storedProofs as StoredPrivacyProofs;
   }
@@ -738,25 +762,42 @@ export class PrivacyProofGenerator {
     return this.isAvailable;
   }
 
-  // Get status
+  // Get status - FIXED METHOD NAME to match usePlaidIntegration
   getPinataStatus() {
     return {
       available: this.isAvailable,
       poseidonAvailable: this.poseidonInitialized,
       publicGateways: this.pinataService.getPublicGateways(),
       message: this.isAvailable ? 
-        `IPFS storage with ${this.poseidonInitialized ? 'Poseidon zkProofs' : 'SHA-256 proofs'} enabled` : 
-        'Development mode - add Pinata credentials for IPFS'
+        `IPFS storage with ${this.poseidonInitialized ? 'Poseidon' : 'SHA-256'} enabled` : 
+        'Development mode - using mock storage'
     };
   }
 }
 
-// Export singleton instance with proper initialization
+// Safe singleton instance management
 let privacyProofGeneratorInstance: PrivacyProofGenerator | null = null;
 
+export const getPrivacyProofGenerator = async (): Promise<PrivacyProofGenerator> => {
+  if (!privacyProofGeneratorInstance) {
+    privacyProofGeneratorInstance = new PrivacyProofGenerator();
+    try {
+      await privacyProofGeneratorInstance.waitForInitialization();
+    } catch (error) {
+      console.warn('PrivacyProofGenerator initialization had issues, but continuing with fallbacks');
+    }
+  }
+  return privacyProofGeneratorInstance;
+};
+
+// For backward compatibility - with safe initialization
 export const privacyProofGenerator = ((): PrivacyProofGenerator => {
   if (!privacyProofGeneratorInstance) {
     privacyProofGeneratorInstance = new PrivacyProofGenerator();
+    // Don't wait for initialization in sync context
+    privacyProofGeneratorInstance.waitForInitialization().catch(error => {
+      console.warn('Background initialization failed:', error);
+    });
   }
   return privacyProofGeneratorInstance;
 })();

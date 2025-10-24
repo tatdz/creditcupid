@@ -62,6 +62,7 @@
     "multer": "^1.4.5-lts.1",
     "node-cron": "^3.0.3",
     "pinata": "^2.5.0",
+    "poseidon-lite": "^0.3.0",
     "rate-limiter-flexible": "^4.0.1",
     "redis": "^4.6.10",
     "uuid": "^9.0.1",

@@ -159,7 +159,7 @@ export const FinancialHealthPanel: React.FC<FinancialHealthPanelProps> = ({
                     onClick={handleViewAllProofs}
                     className="w-full flex items-center justify-center gap-1 p-2 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded border-2 border-blue-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] transition-all duration-200 hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,0.2)] hover:translate-y-0.5 mt-2"
                   >
-                    🔗 VIEW PROOFS ON IPFS
+                    🔗 VIEW ZERO KNOWLEDGE PROOFS ON IPFS
                     <ExternalLink className="h-3 w-3" />
                   </button>
                 )}

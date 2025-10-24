@@ -1,4 +1,3 @@
-// components/P2PLending.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWriteContract } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
@@ -34,71 +33,53 @@ import { useP2PData } from '../hooks/useP2PData';
 // Import Blockscout utilities
 import { triggerTransactionPopup, ViewOnBlockscoutButton, TransactionStatusWithBlockscout } from '../utils/blockscout';
 
-// Use Vite environment variables
-const SEPOLIA_RPC_URL = import.meta.env.VITE_SEPOLIA_RPC_URL;
-const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY;
-
-console.log('🔧 Config:', { 
-  SEPOLIA_RPC_URL: SEPOLIA_RPC_URL ? 'configured' : 'missing',
-  ETHERSCAN_API_KEY: ETHERSCAN_API_KEY ? 'configured' : 'missing'
-});
-
-// Ultra-fast transaction checker with fallbacks
+// Ultra-fast transaction checker with backend proxies
 const checkTransactionFast = async (txHash: string): Promise<boolean> => {
   console.log('🔍 Checking transaction status...');
   
-  // Method 1: Try Sepolia RPC first (fastest)
-  if (SEPOLIA_RPC_URL) {
-    try {
-      console.log('🔄 Trying Sepolia RPC...');
-      const rpcResponse = await fetch(SEPOLIA_RPC_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'eth_getTransactionReceipt',
-          params: [txHash],
-          id: 1
-        })
-      });
+  // Method 1: Try backend RPC proxy first (uses secure Alchemy URL)
+  try {
+    console.log('🔄 Trying backend RPC proxy...');
+    const rpcResponse = await fetch('/api/proxy/rpc/11155111', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        method: 'eth_getTransactionReceipt',
+        params: [txHash],
+        id: 1
+      })
+    });
+    
+    const rpcData = await rpcResponse.json();
+    
+    if (rpcData.result) {
+      const status = rpcData.result.status;
+      console.log('📊 RPC status:', status);
       
-      const rpcData = await rpcResponse.json();
-      
-      if (rpcData.result) {
-        const status = rpcData.result.status;
-        console.log('📊 RPC status:', status);
-        
-        if (status === '0x1') {
-          console.log('✅ Transaction confirmed via RPC!');
-          return true;
-        } else if (status === '0x0') {
-          console.log('❌ Transaction failed on-chain');
-          return false;
-        }
+      if (status === '0x1') {
+        console.log('✅ Transaction confirmed via backend RPC proxy!');
+        return true;
+      } else if (status === '0x0') {
+        console.log('❌ Transaction failed on-chain');
+        return false;
       }
-    } catch (error) {
-      console.log('⚠️ RPC failed:', error);
     }
-  } else {
-    console.log('⚠️ No RPC URL configured');
+  } catch (error) {
+    console.log('⚠️ Backend RPC proxy failed:', error);
   }
   
-  // Method 2: Fallback to Etherscan API
+  // Method 2: Fallback to backend Etherscan API proxy
   try {
-    console.log('🔄 Trying Etherscan API...');
-    const etherscanUrl = ETHERSCAN_API_KEY 
-      ? `https://api-sepolia.etherscan.io/api?module=transaction&action=gettxreceiptstatus&txhash=${txHash}&apikey=${ETHERSCAN_API_KEY}`
-      : `https://api-sepolia.etherscan.io/api?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`;
-    
-    const etherscanResponse = await fetch(etherscanUrl);
+    console.log('🔄 Trying backend Etherscan proxy...');
+    const etherscanResponse = await fetch(`/api/proxy/etherscan?module=transaction&action=gettxreceiptstatus&txhash=${txHash}`);
     const etherscanData = await etherscanResponse.json();
     
     if (etherscanData.status === '1' && etherscanData.result?.status === '1') {
-      console.log('✅ Transaction confirmed via Etherscan!');
+      console.log('✅ Transaction confirmed via backend Etherscan proxy!');
       return true;
     }
   } catch (error) {
-    console.log('⚠️ Etherscan API failed:', error);
+    console.log('⚠️ Backend Etherscan proxy failed:', error);
   }
   
   console.log('⏳ Transaction not yet confirmed');

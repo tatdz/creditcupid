@@ -2,15 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import { ethers } from 'ethers';
 import { CreditCupidCreditClient } from './mcp/client';
+import dotenv from 'dotenv';
+dotenv.config();
+
+// Debug: Check if Pinata env vars are loaded
+console.log('🔧 Environment Check:');
+console.log('   PINATA_JWT:', process.env.PINATA_JWT ? '✅ Loaded' : '❌ Missing');
+console.log('   PINATA_API_KEY:', process.env.PINATA_API_KEY ? '✅ Loaded' : '❌ Missing');
+console.log('   PINATA_API_SECRET:', process.env.PINATA_API_SECRET ? '✅ Loaded' : '❌ Missing');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
-// Enhanced RPC configuration with reliable endpoints - use Record type for number indexing
+// Enhanced RPC configuration with reliable endpoints
 const rpcUrls: Record<number, string> = {
   1: process.env.ETH_MAINNET_RPC || 'https://eth.llamarpc.com',
   137: process.env.POLYGON_RPC || 'https://polygon.llamarpc.com',
@@ -45,8 +54,21 @@ Object.entries(rpcUrls).forEach(([chainId, url]) => {
   });
 });
 
-// Remove the rpcUrls parameter since the client doesn't need it anymore
 const creditClient = new CreditCupidCreditClient();
+
+
+// Add this debug endpoint to see what environment variables are actually loaded
+app.get('/api/debug-env', (req: express.Request, res: express.Response) => {
+  res.json({
+    PINATA_JWT: process.env.PINATA_JWT ? '✅ Loaded (length: ' + process.env.PINATA_JWT.length + ')' : '❌ Missing',
+    PINATA_API_KEY: process.env.PINATA_API_KEY ? '✅ Loaded (length: ' + process.env.PINATA_API_KEY.length + ')' : '❌ Missing',
+    PINATA_API_SECRET: process.env.PINATA_API_SECRET ? '✅ Loaded (length: ' + process.env.PINATA_API_SECRET.length + ')' : '❌ Missing',
+    NODE_ENV: process.env.NODE_ENV || 'development',
+    backendPort: process.env.PORT || 3001,
+    allEnvVars: Object.keys(process.env).filter(key => key.includes('PINATA'))
+  });
+});
+
 
 // Helper function to get primary RPC URL
 const getRpcUrl = (chainId: number): string => {
@@ -96,19 +118,18 @@ const getWorkingProvider = async (chainId: number): Promise<ethers.JsonRpcProvid
   return null;
 };
 
-// Enhanced rate limiting with IP-based and global limits
+// Enhanced rate limiting
 const requestCounts = new Map();
 const globalRequestCounts = new Map();
-const RATE_LIMIT_WINDOW = 60000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 50; // Reduced from 100
-const MAX_GLOBAL_REQUESTS_PER_WINDOW = 1000; // Global limit
+const RATE_LIMIT_WINDOW = 60000;
+const MAX_REQUESTS_PER_WINDOW = 50;
+const MAX_GLOBAL_REQUESTS_PER_WINDOW = 1000;
 
 // Clean up old request data periodically
 setInterval(() => {
   const now = Date.now();
   const windowStart = now - RATE_LIMIT_WINDOW;
   
-  // Clean IP-based counts
   for (const [ip, requests] of requestCounts.entries()) {
     const filtered = requests.filter((timestamp: number) => timestamp > windowStart);
     if (filtered.length === 0) {
@@ -118,7 +139,6 @@ setInterval(() => {
     }
   }
   
-  // Clean global counts
   for (const [endpoint, requests] of globalRequestCounts.entries()) {
     const filtered = requests.filter((timestamp: number) => timestamp > windowStart);
     if (filtered.length === 0) {
@@ -127,14 +147,13 @@ setInterval(() => {
       globalRequestCounts.set(endpoint, filtered);
     }
   }
-}, 30000); // Clean every 30 seconds
+}, 30000);
 
 app.use((req: express.Request, res: express.Response, next: express.NextFunction) => {
   const now = Date.now();
   const clientIp = req.ip || (req.connection as any).remoteAddress;
   const endpoint = req.path;
   
-  // IP-based rate limiting
   if (!requestCounts.has(clientIp)) {
     requestCounts.set(clientIp, []);
   }
@@ -142,12 +161,10 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
   const ipRequests = requestCounts.get(clientIp);
   const windowStart = now - RATE_LIMIT_WINDOW;
   
-  // Remove old requests outside the current window
   while (ipRequests.length > 0 && ipRequests[0] < windowStart) {
     ipRequests.shift();
   }
   
-  // Check if IP rate limit exceeded
   if (ipRequests.length >= MAX_REQUESTS_PER_WINDOW) {
     return res.status(429).json({
       error: 'Rate limit exceeded',
@@ -156,7 +173,6 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     });
   }
   
-  // Global endpoint rate limiting
   if (!globalRequestCounts.has(endpoint)) {
     globalRequestCounts.set(endpoint, []);
   }
@@ -166,7 +182,6 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     globalRequests.shift();
   }
   
-  // Check if global endpoint limit exceeded
   if (globalRequests.length >= MAX_GLOBAL_REQUESTS_PER_WINDOW) {
     return res.status(429).json({
       error: 'Service temporarily unavailable',
@@ -175,10 +190,101 @@ app.use((req: express.Request, res: express.Response, next: express.NextFunction
     });
   }
   
-  // Add current request to both trackers
   ipRequests.push(now);
   globalRequests.push(now);
   next();
+});
+
+// NEW PINATA API ENDPOINTS
+
+// Pinata status endpoint
+app.get('/api/status', async (req: express.Request, res: express.Response) => {
+  try {
+    const pinataConfigured = !!(process.env.PINATA_JWT && process.env.PINATA_API_KEY && process.env.PINATA_API_SECRET);
+    
+    // Test Pinata connectivity if configured
+    let pinataTest = false;
+    if (pinataConfigured) {
+      try {
+        const testResponse = await fetch('https://api.pinata.cloud/data/testAuthentication', {
+          headers: {
+            'Authorization': `Bearer ${process.env.PINATA_JWT}`
+          }
+        });
+        pinataTest = testResponse.ok;
+      } catch (error) {
+        console.log('⚠️ Pinata test failed:', getErrorMessage(error));
+      }
+    }
+    
+    res.status(200).json({
+      pinata: pinataConfigured && pinataTest,
+      pinataConfigured,
+      pinataTest,
+      message: pinataConfigured && pinataTest 
+        ? 'Pinata configured and ready' 
+        : pinataConfigured 
+          ? 'Pinata configured but test failed' 
+          : 'Pinata not configured - using development mode',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to check backend status',
+      details: getErrorMessage(error)
+    });
+  }
+});
+
+// Pinata proxy endpoint for pinning JSON to IPFS
+app.post('/api/proxy/pinata/pinning/pinJSONToIPFS', async (req: express.Request, res: express.Response) => {
+  try {
+    const pinataJWT = process.env.PINATA_JWT;
+    const pinataAPIKey = process.env.PINATA_API_KEY;
+    const pinataAPISecret = process.env.PINATA_API_SECRET;
+
+    if (!pinataJWT || !pinataAPIKey || !pinataAPISecret) {
+      return res.status(503).json({ 
+        error: 'Pinata not configured',
+        message: 'Please configure Pinata credentials in environment variables',
+        details: {
+          PINATA_JWT: !!pinataJWT,
+          PINATA_API_KEY: !!pinataAPIKey,
+          PINATA_API_SECRET: !!pinataAPISecret
+        }
+      });
+    }
+
+    console.log('📤 Proxying Pinata request to IPFS...');
+
+    const response = await fetch('https://api.pinata.cloud/pinning/pinJSONToIPFS', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${pinataJWT}`
+      },
+      body: JSON.stringify(req.body)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Pinata API error:', response.status, errorText);
+      throw new Error(`Pinata API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Pinata IPFS upload successful:', data.IpfsHash);
+    
+    res.status(200).json(data);
+  } catch (error: any) {
+    console.error('❌ Pinata proxy error:', error.message);
+    res.status(500).json({ 
+      error: 'Failed to pin to IPFS',
+      message: error.message,
+      fallback: 'Using development mode with mock CIDs'
+    });
+  }
 });
 
 // Enhanced health check endpoint
@@ -187,6 +293,22 @@ app.get('/health', async (req: express.Request, res: express.Response) => {
     const { chainId = '11155111' } = req.query;
     const chainIdNum = parseInt(chainId as string);
     
+    // Check Pinata status
+    const pinataConfigured = !!(process.env.PINATA_JWT && process.env.PINATA_API_KEY && process.env.PINATA_API_SECRET);
+    let pinataStatus = 'not_configured';
+    if (pinataConfigured) {
+      try {
+        const testResponse = await fetch('https://api.pinata.cloud/data/testAuthentication', {
+          headers: {
+            'Authorization': `Bearer ${process.env.PINATA_JWT}`
+          }
+        });
+        pinataStatus = testResponse.ok ? 'connected' : 'failed';
+      } catch (error) {
+        pinataStatus = 'error';
+      }
+    }
+    
     // Quick RPC connectivity check without blocking response
     getWorkingProvider(chainIdNum).then(provider => {
       console.log(`✅ RPC status for chain ${chainIdNum}: ${provider ? 'connected' : 'disconnected'}`);
@@ -194,12 +316,16 @@ app.get('/health', async (req: express.Request, res: express.Response) => {
       console.log(`❌ RPC check failed for chain ${chainIdNum}:`, error.message);
     });
     
-    // Respond immediately without waiting for RPC
     res.json({ 
       status: 'healthy',
       timestamp: new Date().toISOString(),
       version: '1.0.0',
       message: 'Credit Cupid backend server is running',
+      services: {
+        pinata: pinataStatus,
+        rpc: 'available',
+        blockscout: 'integrated'
+      },
       rateLimiting: {
         ipLimit: MAX_REQUESTS_PER_WINDOW,
         windowMs: RATE_LIMIT_WINDOW
@@ -219,7 +345,7 @@ app.get('/health', async (req: express.Request, res: express.Response) => {
   }
 });
 
-// NEW ENDPOINT: Get raw on-chain data (what the frontend actually needs)
+// NEW ENDPOINT: Get raw on-chain data
 app.get('/api/on-chain-data/:address', async (req: express.Request, res: express.Response) => {
   try {
     const { address } = req.params;
@@ -235,7 +361,6 @@ app.get('/api/on-chain-data/:address', async (req: express.Request, res: express
 
     console.log(`📊 Fetching on-chain data for: ${address} on chain ${chainId}`);
     
-    // Get raw on-chain data (no credit score calculation)
     const onChainData = await creditClient.getOnChainData(address, chainIdNum);
     
     res.json({
@@ -272,10 +397,7 @@ app.get('/api/credit-data/:address', async (req: express.Request, res: express.R
 
     console.log(`📊 [Legacy] Fetching credit data for: ${address} on chain ${chainId}`);
     
-    // Get raw on-chain data
     const onChainData = await creditClient.getOnChainData(address, chainIdNum);
-    
-    // Generate a simple fallback score for backward compatibility
     const fallbackScore = generateFallbackCreditScore(address);
     
     res.json({
@@ -318,7 +440,6 @@ app.get('/api/credit-data/:address', async (req: express.Request, res: express.R
   } catch (error) {
     console.error('❌ Error in legacy credit-data endpoint:', getErrorMessage(error));
     
-    // Final fallback
     const fallbackScore = generateFallbackCreditScore(req.params.address);
     
     res.status(200).json({ 
@@ -353,7 +474,6 @@ app.get('/api/wallet-info/:address', async (req: express.Request, res: express.R
 
     console.log(`📊 Getting wallet info for: ${address} on chain ${chainId}`);
     
-    // Test RPC connectivity
     const provider = await getWorkingProvider(chainIdNum);
     if (!provider) {
       return res.status(503).json({
@@ -362,7 +482,6 @@ app.get('/api/wallet-info/:address', async (req: express.Request, res: express.R
       });
     }
     
-    // Get basic wallet info using the provider directly
     const balance = await provider.getBalance(address);
     const balanceEth = ethers.formatEther(balance);
     const transactionCount = await provider.getTransactionCount(address);
@@ -385,372 +504,62 @@ app.get('/api/wallet-info/:address', async (req: express.Request, res: express.R
   }
 });
 
-// Enhanced protocol info endpoint
-app.get('/api/protocol-info/:address', async (req: express.Request, res: express.Response) => {
-  try {
-    const { address } = req.params;
-    const { chainId = '11155111' } = req.query;
-    const chainIdNum = parseInt(chainId as string);
-
-    if (!address || !ethers.isAddress(address)) {
-      return res.status(400).json({ 
-        error: 'Valid Ethereum address is required'
-      });
-    }
-
-    console.log(`🏦 Getting protocol info for: ${address} on chain ${chainId}`);
-    
-    // Test RPC connectivity
-    const provider = await getWorkingProvider(chainIdNum);
-    if (!provider) {
-      return res.status(503).json({
-        error: 'RPC connectivity issues',
-        message: 'Unable to connect to blockchain nodes'
-      });
-    }
-    
-    // Enhanced protocol info with basic activity check
-    const transactionCount = await provider.getTransactionCount(address);
-    
-    const protocolInfo = {
-      address,
-      chainId: chainIdNum,
-      supportedProtocols: ['Morpho', 'Aave', 'Compound', 'Uniswap'],
-      hasPositions: transactionCount > 5, // Simple heuristic
-      transactionCount,
-      walletAge: 'unknown', // Could be enhanced with more data
-      timestamp: new Date().toISOString()
-    };
-    
-    res.json(protocolInfo);
-  } catch (error) {
-    console.error('❌ Error fetching protocol info:', getErrorMessage(error));
-    res.status(500).json({ 
-      error: 'Failed to fetch protocol info',
-      details: getErrorMessage(error)
-    });
-  }
-});
-
-// Enhanced wallet stats endpoint
-app.get('/api/wallet-stats/:address', async (req: express.Request, res: express.Response) => {
-  try {
-    const { address } = req.params;
-    const { chainId = '11155111' } = req.query;
-    const chainIdNum = parseInt(chainId as string);
-
-    if (!address || !ethers.isAddress(address)) {
-      return res.status(400).json({ 
-        error: 'Valid Ethereum address is required'
-      });
-    }
-
-    console.log(`📈 Getting wallet stats for: ${address} on chain ${chainId}`);
-    
-    // Test RPC connectivity
-    const provider = await getWorkingProvider(chainIdNum);
-    if (!provider) {
-      return res.status(503).json({
-        error: 'RPC connectivity issues',
-        message: 'Unable to connect to blockchain nodes'
-      });
-    }
-    
-    // Enhanced wallet stats
-    const balance = await provider.getBalance(address);
-    const balanceEth = ethers.formatEther(balance);
-    const transactionCount = await provider.getTransactionCount(address);
-    
-    // Check if address is a contract
-    let isContract = false;
-    try {
-      const code = await provider.getCode(address);
-      isContract = code !== '0x';
-    } catch (error) {
-      console.log('⚠️ Could not check if address is contract:', getErrorMessage(error));
-    }
-    
-    const walletStats = {
-      address,
-      balance: balanceEth,
-      transactionCount,
-      chainId: chainIdNum,
-      isContract,
-      activityLevel: getActivityLevel(transactionCount),
-      valueTier: getValueTier(parseFloat(balanceEth)),
-      timestamp: new Date().toISOString()
-    };
-    
-    res.json(walletStats);
-  } catch (error) {
-    console.error('❌ Error fetching wallet stats:', getErrorMessage(error));
-    res.status(500).json({ 
-      error: 'Failed to fetch wallet stats',
-      details: getErrorMessage(error)
-    });
-  }
-});
-
-// Enhanced credit impact simulation
-app.post('/api/simulate-impact/:address', async (req: express.Request, res: express.Response) => {
-  try {
-    const { address } = req.params;
-    const { chainId = '11155111', action, amount } = req.body;
-    const chainIdNum = parseInt(chainId);
-
-    if (!address || !ethers.isAddress(address)) {
-      return res.status(400).json({ 
-        error: 'Valid Ethereum address is required'
-      });
-    }
-
-    console.log(`🎯 Simulating credit impact for: ${address} on chain ${chainId}`);
-    
-    // Get base credit score for simulation
-    let baseScore = 720;
-    try {
-      // Try to get real credit data for more accurate simulation
-      const provider = await getWorkingProvider(chainIdNum);
-      if (provider) {
-        const balance = await provider.getBalance(address);
-        const balanceEth = parseFloat(ethers.formatEther(balance));
-        const txCount = await provider.getTransactionCount(address);
-        
-        // Simple heuristic for base score
-        baseScore = Math.min(850, 600 + 
-          (balanceEth > 1 ? 100 : 0) + 
-          (txCount > 10 ? 50 : 0) + 
-          (txCount > 50 ? 50 : 0));
-      }
-    } catch (error) {
-      console.log('⚠️ Using default base score for simulation');
-    }
-    
-    // Enhanced simulation logic
-    const simulation = simulateCreditImpact(baseScore, action, amount);
-    
-    res.json({
-      ...simulation,
-      address,
-      chainId: chainIdNum,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('❌ Error simulating credit impact:', getErrorMessage(error));
-    res.status(500).json({ 
-      error: 'Failed to simulate credit impact',
-      details: getErrorMessage(error)
-    });
-  }
-});
-
-// Enhanced multi-chain credit data
-app.get('/api/multi-chain-credit/:address', async (req: express.Request, res: express.Response) => {
-  try {
-    const { address } = req.params;
-    const { chainIds = '1,137,42161,10,8453,11155111' } = req.query;
-
-    if (!address || !ethers.isAddress(address)) {
-      return res.status(400).json({ 
-        error: 'Valid Ethereum address is required'
-      });
-    }
-
-    const chainIdArray = (chainIds as string).split(',').map(id => parseInt(id.trim()));
-    console.log(`🌐 Getting multi-chain credit data for: ${address} on chains ${chainIdArray.join(', ')}`);
-    
-    const multiChainResults = [];
-    
-    for (const chainId of chainIdArray) {
-      try {
-        const provider = await getWorkingProvider(chainId);
-        if (provider) {
-          const balance = await provider.getBalance(address);
-          const balanceEth = ethers.formatEther(balance);
-          const transactionCount = await provider.getTransactionCount(address);
-          
-          multiChainResults.push({
-            chainId,
-            chainName: getChainName(chainId),
-            balance: balanceEth,
-            transactionCount,
-            activityLevel: getActivityLevel(transactionCount),
-            status: 'success'
-          });
-        } else {
-          multiChainResults.push({
-            chainId,
-            chainName: getChainName(chainId),
-            balance: '0',
-            transactionCount: 0,
-            activityLevel: 'inactive',
-            status: 'rpc_unavailable'
-          });
-        }
-      } catch (error) {
-        multiChainResults.push({
-          chainId,
-          chainName: getChainName(chainId),
-          balance: '0',
-          transactionCount: 0,
-          activityLevel: 'inactive',
-          status: 'error',
-          error: getErrorMessage(error)
-        });
-      }
-    }
-    
-    res.json({
-      address,
-      results: multiChainResults,
-      totalChains: multiChainResults.length,
-      activeChains: multiChainResults.filter(r => r.status === 'success').length,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    console.error('❌ Error fetching multi-chain credit data:', getErrorMessage(error));
-    res.status(500).json({ 
-      error: 'Failed to fetch multi-chain credit data',
-      details: getErrorMessage(error)
-    });
-  }
-});
-
-// Get supported chains
-app.get('/api/supported-chains', (req: express.Request, res: express.Response) => {
-  const chains = Object.entries(rpcUrls).map(([chainId, url]) => ({
-    chainId: parseInt(chainId),
-    rpcUrl: url,
-    name: getChainName(parseInt(chainId)),
-    nativeCurrency: getNativeCurrency(parseInt(chainId)),
-    fallbackUrls: fallbackRpcUrls[parseInt(chainId)] || [],
-    testnet: parseInt(chainId) === 11155111
-  }));
-
-  res.json({
-    chains,
-    total: chains.length,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Enhanced RPC status endpoint
-app.get('/api/rpc-status/:chainId', async (req: express.Request, res: express.Response) => {
+// RPC proxy endpoint for secure RPC calls
+app.post('/api/proxy/rpc/:chainId', async (req: express.Request, res: express.Response) => {
   try {
     const { chainId } = req.params;
-    const chainIdNum = parseInt(chainId);
-    
-    const urls = getAllRpcUrls(chainIdNum);
-    const statusResults: Array<{
-      url: string;
-      status: string;
-      blockNumber?: number;
-      latency?: string;
-      error?: string;
-    }> = [];
-    
-    for (const url of urls) {
-      try {
-        const startTime = Date.now();
-        const provider = new ethers.JsonRpcProvider(url, chainIdNum, {
-          staticNetwork: true
-        });
-        const blockNumber = await provider.getBlockNumber();
-        const latency = `${Date.now() - startTime}ms`;
-        
-        statusResults.push({
-          url,
-          status: 'connected',
-          blockNumber,
-          latency
-        });
-      } catch (error) {
-        statusResults.push({
-          url,
-          status: 'disconnected',
-          error: getErrorMessage(error)
-        });
-      }
+    const { method, params } = req.body;
+
+    let rpcUrl: string;
+
+    switch (parseInt(chainId)) {
+      case 11155111:
+        rpcUrl = process.env.SEPOLIA_RPC_URL || 'https://ethereum-sepolia-rpc.publicnode.com';
+        break;
+      case 1:
+        rpcUrl = process.env.ETH_MAINNET_RPC || 'https://eth.llamarpc.com';
+        break;
+      case 137:
+        rpcUrl = process.env.POLYGON_RPC || 'https://polygon.llamarpc.com';
+        break;
+      case 42161:
+        rpcUrl = process.env.ARBITRUM_RPC || 'https://arbitrum.llamarpc.com';
+        break;
+      case 10:
+        rpcUrl = process.env.OPTIMISM_RPC || 'https://optimism.llamarpc.com';
+        break;
+      case 8453:
+        rpcUrl = process.env.BASE_RPC || 'https://base.llamarpc.com';
+        break;
+      default:
+        rpcUrl = 'https://ethereum-sepolia-rpc.publicnode.com';
     }
-    
-    const connectedCount = statusResults.filter(r => r.status === 'connected').length;
-    
-    res.json({
-      chainId: chainIdNum,
-      chainName: getChainName(chainIdNum),
-      rpcStatus: statusResults,
-      summary: {
-        totalEndpoints: urls.length,
-        connected: connectedCount,
-        disconnected: urls.length - connectedCount,
-        health: connectedCount > 0 ? 'healthy' : 'unhealthy'
+
+    console.log('🔗 Proxying RPC request:', { chainId, method, rpcUrl: rpcUrl.replace(/\/\/(.*)@/, '//***@') });
+
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
       },
-      timestamp: new Date().toISOString()
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method,
+        params,
+        id: 1
+      })
     });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Failed to check RPC status',
-      details: getErrorMessage(error)
-    });
-  }
-});
 
-// Enhanced Blockscout info endpoint with rate limit status
-app.get('/api/blockscout/info', (req: express.Request, res: express.Response) => {
-  res.json({
-    service: 'Blockscout SDK',
-    status: 'integrated',
-    timestamp: new Date().toISOString(),
-    rateLimiting: {
-      enabled: true,
-      strategy: 'fallback_on_limit',
-      fallback: 'generated_credit_scores'
-    },
-    features: [
-      'Transaction analysis',
-      'Wallet activity tracking',
-      'Token balance monitoring',
-      'Contract interaction analysis',
-      'Automatic fallback on rate limits'
-    ]
-  });
-});
-
-// New endpoint to explicitly request fallback data
-app.get('/api/fallback/credit-data/:address', async (req: express.Request, res: express.Response) => {
-  try {
-    const { address } = req.params;
-    const { chainId = '11155111' } = req.query;
-    const chainIdNum = parseInt(chainId as string);
-
-    if (!address || !ethers.isAddress(address)) {
-      return res.status(400).json({ 
-        error: 'Valid Ethereum address is required'
-      });
+    if (!response.ok) {
+      throw new Error(`RPC proxy error: ${response.status}`);
     }
 
-    console.log(`🔄 Explicitly using fallback credit data for: ${address}`);
-    
-    const fallbackScore = generateFallbackCreditScore(address);
-    
-    res.json({
-      fallbackUsed: true,
-      creditScore: fallbackScore,
-      address,
-      chainId: chainIdNum,
-      riskLevel: getRiskLevel(fallbackScore),
-      recommendation: getRecommendation(fallbackScore),
-      timestamp: new Date().toISOString(),
-      metadata: {
-        dataSource: 'fallback',
-        reason: 'explicit_request',
-        message: 'Fallback data requested explicitly'
-      }
-    });
+    const data = await response.json();
+    res.json(data);
   } catch (error) {
-    console.error('❌ Error generating fallback credit data:', getErrorMessage(error));
+    console.error('❌ RPC proxy error:', getErrorMessage(error));
     res.status(500).json({ 
-      error: 'Failed to generate fallback credit data',
+      error: 'Failed to proxy RPC request',
       details: getErrorMessage(error)
     });
   }
@@ -769,19 +578,6 @@ function getChainName(chainId: number): string {
   return names[chainId] || `Chain ${chainId}`;
 }
 
-function getNativeCurrency(chainId: number): string {
-  const currencies: Record<number, string> = {
-    1: 'ETH',
-    137: 'MATIC',
-    42161: 'ETH',
-    10: 'ETH',
-    8453: 'ETH',
-    11155111: 'ETH'
-  };
-  return currencies[chainId] || 'ETH';
-}
-
-// Enhanced utility function to safely get error messages
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
@@ -795,15 +591,13 @@ function getErrorMessage(error: unknown): string {
   return 'Unknown error occurred';
 }
 
-// Fallback credit score generation
 function generateFallbackCreditScore(address: string): number {
-  // Generate deterministic but realistic score based on address
   const addressHash = address.toLowerCase().split('').reduce((a, b) => {
     a = ((a << 5) - a) + b.charCodeAt(0);
     return a & a;
   }, 0);
   
-  const score = 600 + Math.abs(addressHash % 250); // 600-850 range
+  const score = 600 + Math.abs(addressHash % 250);
   return Math.min(850, Math.max(300, score));
 }
 
@@ -821,74 +615,6 @@ function getRecommendation(score: number): string {
   if (score >= 600) return 'Fair credit. Work on building your credit history.';
   if (score >= 500) return 'Poor credit. Focus on improving your financial position.';
   return 'Very poor credit. Consider seeking financial advice.';
-}
-
-function getActivityLevel(txCount: number): string {
-  if (txCount === 0) return 'inactive';
-  if (txCount < 10) return 'low';
-  if (txCount < 50) return 'medium';
-  if (txCount < 200) return 'high';
-  return 'very_high';
-}
-
-function getValueTier(balance: number): string {
-  if (balance === 0) return 'zero';
-  if (balance < 0.01) return 'dust';
-  if (balance < 0.1) return 'low';
-  if (balance < 1) return 'medium';
-  if (balance < 10) return 'high';
-  return 'very_high';
-}
-
-function simulateCreditImpact(baseScore: number, action: string, amount: string) {
-  const amountNum = parseFloat(amount) || 1;
-  let impact = 0;
-  let riskLevel = 'low';
-  
-  switch (action) {
-    case 'borrow_large':
-      impact = -20;
-      riskLevel = 'high';
-      break;
-    case 'borrow_medium':
-      impact = -10;
-      riskLevel = 'medium';
-      break;
-    case 'borrow_small':
-      impact = -5;
-      riskLevel = 'low';
-      break;
-    case 'repay_large':
-      impact = +15;
-      riskLevel = 'low';
-      break;
-    case 'repay_medium':
-      impact = +8;
-      riskLevel = 'low';
-      break;
-    case 'add_collateral':
-      impact = +5;
-      riskLevel = 'low';
-      break;
-    default:
-      impact = -5;
-      riskLevel = 'medium';
-  }
-  
-  // Adjust impact based on amount
-  impact = impact * (amountNum / 10);
-  
-  const projectedScore = Math.max(300, Math.min(850, baseScore + impact));
-  
-  return {
-    action: action || 'borrow',
-    amount: amount || '1.0',
-    currentScore: baseScore,
-    projectedScore: Math.round(projectedScore),
-    impact: Math.round(impact),
-    riskLevel,
-    recommendation: getRecommendation(projectedScore)
-  };
 }
 
 // Error handling middleware
@@ -909,17 +635,12 @@ app.use('*', (req: express.Request, res: express.Response) => {
     timestamp: new Date().toISOString(),
     availableEndpoints: [
       'GET /health',
+      'GET /api/status',
       'GET /api/credit-data/:address',
       'GET /api/on-chain-data/:address',
-      'GET /api/fallback/credit-data/:address',
       'GET /api/wallet-info/:address',
-      'GET /api/protocol-info/:address',
-      'GET /api/wallet-stats/:address',
-      'POST /api/simulate-impact/:address',
-      'GET /api/multi-chain-credit/:address',
-      'GET /api/supported-chains',
-      'GET /api/blockscout/info',
-      'GET /api/rpc-status/:chainId'
+      'POST /api/proxy/pinata/pinning/pinJSONToIPFS',
+      'POST /api/proxy/rpc/:chainId'
     ]
   });
 });
@@ -928,15 +649,12 @@ app.use('*', (req: express.Request, res: express.Response) => {
 app.listen(PORT, () => {
   console.log(`🚀 Credit Cupid API server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🔗 On-chain data: http://localhost:${PORT}/api/on-chain-data/:address`);
+  console.log(`🔗 Pinata status: http://localhost:${PORT}/api/status`);
+  console.log(`📤 Pinata proxy: POST http://localhost:${PORT}/api/proxy/pinata/pinning/pinJSONToIPFS`);
+  console.log(`📊 On-chain data: http://localhost:${PORT}/api/on-chain-data/:address`);
   console.log(`💳 Legacy credit data: http://localhost:${PORT}/api/credit-data/:address`);
   console.log(`👛 Wallet info: http://localhost:${PORT}/api/wallet-info/:address`);
-  console.log(`🏦 Protocol info: http://localhost:${PORT}/api/protocol-info/:address`);
-  console.log(`📈 Wallet stats: http://localhost:${PORT}/api/wallet-stats/:address`);
-  console.log(`🎯 Credit impact simulation: http://localhost:${PORT}/api/simulate-impact/:address`);
-  console.log(`🌐 Multi-chain credit: http://localhost:${PORT}/api/multi-chain-credit/:address`);
-  console.log(`🔗 Blockscout SDK: Integrated with fallback handling`);
-  console.log(`🔗 RPC Endpoints configured for ${Object.keys(rpcUrls).length} chains`);
+  console.log(`🔗 RPC proxy: POST http://localhost:${PORT}/api/proxy/rpc/:chainId`);
   console.log(`⚡ Rate limiting: ${MAX_REQUESTS_PER_WINDOW} requests per minute per IP`);
 });
 

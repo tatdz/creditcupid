@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect } from 'react';
 import {
   createConfig,
@@ -27,7 +26,7 @@ import { TransactionPopupListener } from './components/TransactionPopupListener'
 import cupidGif from './assets/cupid.gif';
 import { blockscoutCreditService } from './services/blockscoutCreditService';
 
-// RPC URLs keyed by chain ID
+// RPC URLs keyed by chain ID - these are public, safe to keep in frontend
 const rpcUrls: Record<number, string> = {
   [sepolia.id]: 'https://rpc.sepolia.org',
   [mainnet.id]: 'https://eth.llamarpc.com',
@@ -100,16 +99,10 @@ function BlockscoutProviders({ children }: { children: React.ReactNode }) {
 function AppContent() {
   const { isConnected } = useAccount();
 
-  // Set API keys for frontend usage
+  // No more API keys in frontend - they're handled by backend proxies
   useEffect(() => {
-    // Use Vite's import.meta.env - this will work with the vite-env.d.ts declaration
-    const blockscoutKey = import.meta.env.VITE_BLOCKSCOUT_API_KEY || '';
-    const etherscanKey = import.meta.env.VITE_ETHERSCAN_API_KEY || '';
-    
-    if (blockscoutKey || etherscanKey) {
-      blockscoutCreditService.setApiKeys(blockscoutKey, etherscanKey);
-      console.log('🔑 API keys set from frontend environment');
-    }
+    console.log('🔑 API keys are now securely handled by backend proxies');
+    // The service will now use backend endpoints instead of direct API calls
   }, []);
 
   // Show LandingPopup until wallet is connected
