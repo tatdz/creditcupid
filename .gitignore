@@ -18,22 +18,3 @@
 
 # Ignore temporary files
 *.tmp
-
-# Ignore Python compiled files
-*.pyc
-__pycache__/
-
-#Ignore git files
-.git
-.gitmodules
-
-.DS_Store
-.gitignore
-# --- agents sub-project ---
-agents/.venv/
-agents/__pycache__/
-agents/*.pyc
-agents/.env
-agents/.env.*
-agents/*.log
-.DS_Store
