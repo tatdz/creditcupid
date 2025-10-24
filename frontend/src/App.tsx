@@ -23,6 +23,7 @@ import {
 
 import LandingPopup from './components/LandingPopup';
 import { CreditDashboard } from './components/credit-dashboard/CreditDashboard';
+import { TransactionPopupListener } from './components/TransactionPopupListener';
 import cupidGif from './assets/cupid.gif';
 import { blockscoutCreditService } from './services/blockscoutCreditService';
 
@@ -69,6 +70,33 @@ const queryClient = new QueryClient({
   },
 });
 
+// Blockscout wrapper component
+function BlockscoutProviders({ children }: { children: React.ReactNode }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    console.log('BlockscoutProviders mounted');
+  }, []);
+
+  console.log('BlockscoutProviders rendering, isMounted:', isMounted);
+
+  try {
+    console.log('Rendering Blockscout providers...');
+    return (
+      <NotificationProvider>
+        <TransactionPopupProvider>
+          {isMounted && <TransactionPopupListener />}
+          {children}
+        </TransactionPopupProvider>
+      </NotificationProvider>
+    );
+  } catch (error) {
+    console.error('Error rendering Blockscout providers:', error);
+    return <>{children}</>;
+  }
+}
+
 function AppContent() {
   const { isConnected } = useAccount();
 
@@ -100,11 +128,9 @@ export default function App() {
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <NotificationProvider>
-          <TransactionPopupProvider>
-            <AppContent />
-          </TransactionPopupProvider>
-        </NotificationProvider>
+        <BlockscoutProviders>
+          <AppContent />
+        </BlockscoutProviders>
       </QueryClientProvider>
     </WagmiProvider>
   );

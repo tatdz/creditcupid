@@ -8,6 +8,9 @@ import { getChainConfig } from '../../../config/chains';
 import { apiService, OnChainData } from '../../../utils/api';
 import { useCreditScoreContext } from '../../../hooks/useCreditScoreContext';
 
+// Import Blockscout utilities
+import { triggerTransactionPopup, ViewOnBlockscoutButton } from '../../../utils/blockscout';
+
 interface CreditScoreBreakdownPanelProps {
   factors: Array<{
     key: string;
@@ -55,32 +58,23 @@ const InfoDialog: React.FC<{ title: string; content: string }> = ({ title, conte
   );
 };
 
-// Single link component for Onchain Activity
+// Updated OnchainActivityLink component using Blockscout SDK
 const OnchainActivityLink: React.FC<{ 
   address: string;
   chainId: string | number;
 }> = ({ address, chainId }) => {
-  const chain = getChainConfig(chainId);
-  const blockscoutUrl = `${chain.blockscoutUrl}/address/${address}`;
-  const apiUrl = `${chain.blockscoutUrl}/api?module=account&action=eth_get_balance&address=${address}`;
+  const handleViewOnBlockscout = () => {
+    triggerTransactionPopup(chainId.toString(), address);
+  };
 
   return (
     <div className="flex flex-col gap-1">
-      <a 
-        href={blockscoutUrl}
-        target="_blank" 
-        rel="noopener noreferrer"
+      <button 
+        onClick={handleViewOnBlockscout}
         className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
       >
         View Activity on Blockscout <ExternalLink className="h-3 w-3" />
-      </a>
-      <a 
-        href={apiUrl}
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-gray-600 hover:text-gray-800 text-xs"
-      >
-      </a>
+      </button>
     </div>
   );
 };
@@ -342,15 +336,15 @@ export const CreditScoreBreakdownPanel: React.FC<CreditScoreBreakdownPanelProps>
           ))}
         </div>
 
-<div className="mt-4 p-3 bg-purple-100 rounded-lg border-4 border-purple-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-  <h4 className="font-semibold text-purple-900 mb-1 text-lg">SCORING FORMULA</h4>
-  <p className="text-sm text-purple-700 mb-1">
-    CREDIT SCORE = 300 + (ONCHAIN ACTIVITY × 45% + LENDING PROTOCOL USAGE × 10% + FINANCIAL HEALTH × 45% + REPAYMENT HISTORY × 10%) × 5.5
-  </p>
-  <p className="text-sm text-purple-600">
-    CURRENT CALCULATED SCORE: <strong>{realCreditScore}</strong> (BASED ON REAL SEPOLIA DATA)
-  </p>
-</div>
+        <div className="mt-4 p-3 bg-purple-100 rounded-lg border-4 border-purple-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+          <h4 className="font-semibold text-purple-900 mb-1 text-lg">SCORING FORMULA</h4>
+          <p className="text-sm text-purple-700 mb-1">
+            CREDIT SCORE = 300 + (ONCHAIN ACTIVITY × 45% + LENDING PROTOCOL USAGE × 10% + FINANCIAL HEALTH × 45% + REPAYMENT HISTORY × 10%) × 5.5
+          </p>
+          <p className="text-sm text-purple-600">
+            CURRENT CALCULATED SCORE: <strong>{realCreditScore}</strong> (BASED ON REAL SEPOLIA DATA)
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -435,6 +429,10 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({
     }
   };
 
+  const handleViewTransaction = (txHash: string) => {
+    triggerTransactionPopup(chainId.toString(), address || '', txHash);
+  };
+
   const color = getFactorColor(factor.score);
   const weight = getWeight(factor.key);
   const infoContent = getInfoDialogContent(factor.key);
@@ -457,15 +455,13 @@ const CreditFactorCard: React.FC<CreditFactorCardProps> = ({
               ) : factor.transactionHashes.length > 0 ? (
                 <div className="flex gap-1">
                   {factor.transactionHashes.slice(0, 2).map((hash, index) => (
-                    <a 
+                    <button 
                       key={hash}
-                      href={apiService.getExplorerUrl(chainId, 'tx', hash)}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={() => handleViewTransaction(hash)}
                       className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs"
                     >
                       VIEW TX <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
+                    </button>
                   ))}
                   {factor.transactionHashes.length > 2 && (
                     <span className="text-xs text-gray-500">+{factor.transactionHashes.length - 2} MORE</span>

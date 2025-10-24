@@ -31,6 +31,9 @@ import {
 import { useCreditScoreManager } from '../hooks/useCreditScoreManager';
 import { useP2PData } from '../hooks/useP2PData';
 
+// Import Blockscout utilities
+import { triggerTransactionPopup, ViewOnBlockscoutButton, TransactionStatusWithBlockscout } from '../utils/blockscout';
+
 // Use Vite environment variables
 const SEPOLIA_RPC_URL = import.meta.env.VITE_SEPOLIA_RPC_URL;
 const ETHERSCAN_API_KEY = import.meta.env.VITE_ETHERSCAN_API_KEY;
@@ -627,6 +630,7 @@ const QuickStats: React.FC<{ userCreditScore: number }> = ({ userCreditScore }) 
   );
 };
 
+// Updated TransactionStatus component with Blockscout integration
 const TransactionStatus: React.FC<{
   transactionHash: string | null;
   isPending: boolean;
@@ -672,21 +676,17 @@ const TransactionStatus: React.FC<{
           </p>
         </div>
         {transactionHash && (
-          <a 
-            href={`https://sepolia.etherscan.io/tx/${transactionHash}`}
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
-          >
-            <ExternalLink className="h-3 w-3" />
-            View
-          </a>
+          <ViewOnBlockscoutButton 
+            transactionHash={transactionHash}
+            size="sm"
+          />
         )}
       </div>
     </div>
   );
 };
 
+// CreditScoreStatus component with Blockscout integration
 const CreditScoreStatus: React.FC<{
   creditScoreManager: {
     creditScore: number;
@@ -695,9 +695,24 @@ const CreditScoreStatus: React.FC<{
     transactionError: string | null;
     setCreditScoreOnChain: () => Promise<boolean>;
     isCorrectNetwork: boolean;
+    lastTransactionHash?: string | null; // Allow null
+    viewTransactionOnBlockscout: (transactionHash?: string) => void;
   };
 }> = ({ creditScoreManager }) => {
-  const { creditScore, isScoreSet, isUpdating, transactionError, setCreditScoreOnChain, isCorrectNetwork } = creditScoreManager;
+  const { 
+    creditScore, 
+    isScoreSet, 
+    isUpdating, 
+    transactionError, 
+    setCreditScoreOnChain, 
+    isCorrectNetwork, 
+    lastTransactionHash,
+    viewTransactionOnBlockscout 
+  } = creditScoreManager;
+
+  const handleViewOnBlockscout = () => {
+    viewTransactionOnBlockscout(lastTransactionHash || undefined);
+  };
 
   if (isScoreSet) {
     return (
@@ -709,8 +724,24 @@ const CreditScoreStatus: React.FC<{
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="default" className="bg-green-600 border-2 border-green-700">{creditScore}</Badge>
+            {lastTransactionHash && (
+              <Button
+                onClick={handleViewOnBlockscout}
+                variant="outline"
+                size="sm"
+                className="h-6 text-xs border-2 border-blue-400 bg-white text-blue-600 hover:bg-blue-50 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                View TX
+              </Button>
+            )}
           </div>
         </div>
+        {lastTransactionHash && (
+          <p className="text-xs text-green-600 mt-2">
+            Successfully set on-chain at block {lastTransactionHash.slice(0, 10)}...
+          </p>
+        )}
       </div>
     );
   }
@@ -785,6 +816,10 @@ const SwipeCard: React.FC<{
 
   const details = getTypeDetails();
 
+  const handleViewOnBlockscout = () => {
+    triggerTransactionPopup('11155111', details.address);
+  };
+
   return (
     <div className="bg-white rounded-xl border-2 border-gray-400 p-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-between mb-2">
@@ -796,15 +831,15 @@ const SwipeCard: React.FC<{
       
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-gray-600">{details.subtitle}</p>
-        <a 
-          href={`https://sepolia.etherscan.io/address/${details.address}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 hover:text-blue-800 text-xs flex items-center gap-1"
+        <Button
+          onClick={handleViewOnBlockscout}
+          variant="outline"
+          size="sm"
+          className="h-6 text-xs border-2 border-blue-400 bg-white text-blue-600 hover:bg-blue-50 shadow-[1px_1px_0px_0px_rgba(0,0,0,0.1)]"
         >
-          <ExternalLink className="h-3 w-3" />
+          <ExternalLink className="h-3 w-3 mr-1" />
           View
-        </a>
+        </Button>
       </div>
       
       <div className="grid grid-cols-3 gap-2 mb-3">
@@ -1387,12 +1422,12 @@ export const P2PLending: React.FC<P2PLendingProps> = ({ userCreditScore, userAdd
   return (
     <div className="p-3 space-y-3 font-vt323 max-w-4xl mx-auto">
       {/* Header Card */}
-  <Card className="border-4 border-white bg-gradient-to-br from-blue-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
-    <CardHeader className="pb-2 text-center">
-      <div className="flex justify-center items-center gap-2 mb-2">
-        <ArrowLeftRight className="h-6 w-6 text-blue-600" />
-      </div>
-      <CardTitle className="text-xl text-blue-800 bg-white/80 rounded-lg py-1 px-3 border-2 border-blue-300 inline-block">
+      <Card className="border-4 border-white bg-gradient-to-br from-blue-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+        <CardHeader className="pb-2 text-center">
+          <div className="flex justify-center items-center gap-2 mb-2">
+            <ArrowLeftRight className="h-6 w-6 text-blue-600" />
+          </div>
+          <CardTitle className="text-xl text-blue-800 bg-white/80 rounded-lg py-1 px-3 border-2 border-blue-300 inline-block">
             SWIPE TO MATCH LENDING OPPORTUNITIES
           </CardTitle>
           <CardDescription className="flex items-center justify-between text-sm text-gray-700 mt-2">

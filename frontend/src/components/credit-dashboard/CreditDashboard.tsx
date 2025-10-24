@@ -4,7 +4,6 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { useTransactionPopup } from "@blockscout/app-sdk";
 import { DatingTab } from '../DatingTab';
-
 import { AgentChat } from '../AgentChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -22,7 +21,8 @@ import {
   Zap,
   Star,
   Calendar,
-  Target
+  Target,
+  ExternalLink
 } from 'lucide-react';
 import { CreditScore } from '../ui/CreditScore';
 import { CreditData } from '../../types/credit';
@@ -37,6 +37,9 @@ import { CreditScoreBreakdownPanel } from './components/CreditScoreBreakdownPane
 
 // Import credit score context
 import { CreditScoreProvider, useCreditScoreContext } from '../../hooks/useCreditScoreContext';
+
+// Import Blockscout utilities
+import { triggerTransactionPopup, ViewOnBlockscoutButton } from '../../utils/blockscout';
 
 // Main dashboard component wrapped with provider
 const CreditDashboardContent: React.FC = () => {
@@ -63,10 +66,9 @@ const CreditDashboardContent: React.FC = () => {
 
   const handleViewTransactions = () => {
     if (!address) return;
-    openPopup({
-      chainId: chain?.id.toString() || "1",
-      address: address,
-    });
+    
+    // Use Blockscout SDK to open transaction popup
+    triggerTransactionPopup(chain?.id.toString() || "11155111", address);
   };
 
   // Helper function to safely check if wallet has activity
@@ -161,14 +163,14 @@ const CreditDashboardContent: React.FC = () => {
               TRY AGAIN
             </Button>
             
-            <Button 
-              onClick={handleViewTransactions} 
-              variant="outline" 
-              className="flex items-center gap-2 border-4 border-gray-400 bg-gray-100 hover:bg-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
-            >
-              <BarChart3 className="h-5 w-5" />
-              VIEW ON BLOCKSCOUT
-            </Button>
+            <div className="flex gap-2">
+              <ViewOnBlockscoutButton 
+                address={address}
+                chainId={chain?.id.toString() || "11155111"}
+                size="lg"
+                className="flex-1 justify-center border-4 border-gray-400 bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
+              />
+            </div>
             
             <div className="text-sm text-gray-500 text-center border-2 border-dashed border-gray-300 p-2 bg-gray-50">
               <p>Your data is processed locally and never stored on our servers</p>
@@ -242,14 +244,12 @@ const CreditDashboardContent: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button 
-                    onClick={handleViewTransactions} 
+                  <ViewOnBlockscoutButton 
+                    address={address}
+                    chainId={chain?.id.toString() || "11155111"}
                     size="lg"
                     className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white border-4 border-blue-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-xl py-3"
-                  >
-                    <BarChart3 className="h-6 w-6" />
-                    VIEW WALLET ON EXPLORER
-                  </Button>
+                  />
                   <Button 
                     onClick={() => setActiveTab('lending')} 
                     variant="outline"
@@ -329,21 +329,21 @@ const CreditDashboardContent: React.FC = () => {
           </div>
         )}
 
-{/* Data Quality Notice - UPDATED TEXT */}
-{displayData && (
-  <div className="mb-4 p-4 bg-blue-200 border-4 border-blue-400 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
-    <div className="flex items-center gap-3">
-      <div className="flex-shrink-0">
-        <Star className="h-6 w-6 text-blue-600" />
-      </div>
-      <div className="flex-1">
-        <p className="text-lg text-blue-900 font-bold">
-          Build your credit score • Date on your financial frequency • Get better DeFi terms
-        </p>
-      </div>
-    </div>
-  </div>
-)}
+        {/* Data Quality Notice - UPDATED TEXT */}
+        {displayData && (
+          <div className="mb-4 p-4 bg-blue-200 border-4 border-blue-400 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <Star className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-lg text-blue-900 font-bold">
+                  Build your credit score • Date on your financial frequency • Get better DeFi terms
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -400,12 +400,12 @@ const CreditDashboardContent: React.FC = () => {
            <DatingTab />
           </TabsContent>
           {/* Lending Tab */}
-<TabsContent value="lending" className="space-y-6">
-  <P2PLending 
-    userCreditScore={finalCreditScore} 
-    userAddress={address!}
-  />
-</TabsContent>
+          <TabsContent value="lending" className="space-y-6">
+            <P2PLending 
+              userCreditScore={finalCreditScore} 
+              userAddress={address!}
+            />
+          </TabsContent>
 
           {/* AI Agents Tab */}
           <TabsContent value="agents">

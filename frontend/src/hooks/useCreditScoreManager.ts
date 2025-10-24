@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
 import { transactionService, TransactionStatus } from '../../../backend/src/services/transactionService';
+import { triggerTransactionPopup } from '../utils/blockscout';
 
 const CREDIT_SCORE_ADDRESS = '0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8' as `0x${string}`;
 const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
@@ -84,6 +85,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     transactionStatus: null as TransactionStatus | null,
     transactionSuccess: false,
     transactionError: null as string | null,
+    lastTransactionHash: null as string | null, // Add this for Blockscout
   });
 
   // Read credit score from CreditScore contract
@@ -134,6 +136,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
           transactionSuccess: true,
           isScoreSet: true,
           creditScore: initialCreditScore,
+          lastTransactionHash: txHash, // Store for Blockscout
         }));
 
         // Refetch scores after confirmation
@@ -237,7 +240,8 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
       transactionError: null,
       transactionHash: null,
       transactionStatus: null,
-      transactionSuccess: false
+      transactionSuccess: false,
+      lastTransactionHash: null
     }));
 
     return new Promise<boolean>((resolve) => {
@@ -286,6 +290,14 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     });
   };
 
+  // Blockscout integration function
+  const viewTransactionOnBlockscout = useCallback((transactionHash?: string) => {
+    const hashToUse = transactionHash || state.lastTransactionHash;
+    if (hashToUse && userAddress) {
+      triggerTransactionPopup(chain?.id.toString() || '11155111', userAddress, hashToUse);
+    }
+  }, [state.lastTransactionHash, userAddress, chain]);
+
   const refetchScores = useCallback(() => {
     refetchCreditScore();
     refetchP2PScore();
@@ -322,6 +334,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     transactionHash: state.transactionHash,
     transactionStatus: state.transactionStatus,
     transactionSuccess: state.transactionSuccess,
+    lastTransactionHash: state.lastTransactionHash, // Add this for Blockscout
     
     // Actions
     setCreditScoreOnChain,
@@ -329,6 +342,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     resetTransaction,
     isCorrectNetwork,
     getTransactionUrl,
-    getFallbackTransactionUrl
+    getFallbackTransactionUrl,
+    viewTransactionOnBlockscout // Add Blockscout function
   };
 };
