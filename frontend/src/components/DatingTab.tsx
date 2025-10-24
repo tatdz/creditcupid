@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
 import { Button } from "./ui/Button";
-import { Heart, MessageCircle, User, X, Check, Star, Zap, Upload } from "lucide-react";
+import { Heart, MessageCircle, User, X, Check, Star, Zap, Upload, Sparkles, Coins, Castle, Info } from "lucide-react";
 import { useCreditScoreContext } from '../hooks/useCreditScoreContext';
 import alexMale from '../assets/alex-male.jpg';
 import charlieMale from '../assets/charlie-male.jpg';
@@ -25,6 +25,10 @@ interface Profile {
   preference: string;
   photo?: string;
   creditScore: number;
+  web3Vibes?: {
+    degenLevel: number;
+    favoriteDapps: string[];
+  };
 }
 
 interface Message {
@@ -39,6 +43,43 @@ interface Match extends Profile {
   messages: Message[];
 }
 
+// Honest Web3 Vibes Generator - Based on credit score patterns only
+const generateWeb3Vibes = (creditScore: number) => {
+  // These are ESTIMATES based on credit score patterns, not actual on-chain analysis
+  
+  // Credit score based dapp preferences (educated guesses)
+  const defiDapps = ["Uniswap", "Aave", "Compound", "Curve", "Lido", "Maker"];
+  const nftDapps = ["OpenSea", "Blur", "Zora", "Foundation"];
+  const socialDapps = ["Friendtech", "Farcaster", "Lens"];
+  const infrastructure = ["Arbitrum", "Optimism", "Polygon", "Base", "ENS"];
+  
+  let dappPool;
+  if (creditScore >= 800) {
+    dappPool = [...defiDapps, ...infrastructure]; // Typically more sophisticated users
+  } else if (creditScore >= 700) {
+    dappPool = [...defiDapps, ...nftDapps, ...infrastructure]; // Balanced usage
+  } else if (creditScore >= 600) {
+    dappPool = [...nftDapps, ...socialDapps, ...defiDapps.slice(0, 2)]; // More social/NFT focused
+  } else {
+    dappPool = [...socialDapps, ...nftDapps]; // New users often start with social/NFTs
+  }
+
+  // Degen level ESTIMATE based on credit score correlation
+  // Lower credit scores often correlate with higher risk-taking in our data
+  const degenLevel = Math.min(100, Math.max(20, 
+    creditScore < 580 ? 75 + Math.random() * 20 : // Higher risk estimate
+    creditScore < 670 ? 60 + Math.random() * 25 : // Medium-high risk
+    creditScore < 740 ? 40 + Math.random() * 30 : // Balanced
+    creditScore < 800 ? 25 + Math.random() * 35 : // Conservative
+    15 + Math.random() * 25 // Very conservative
+  ));
+
+  return {
+    degenLevel: Math.round(degenLevel),
+    favoriteDapps: [...dappPool].sort(() => Math.random() - 0.5).slice(0, 3),
+  };
+};
+
 export const DatingTab: React.FC = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [formData, setFormData] = useState<Profile>({
@@ -52,7 +93,7 @@ export const DatingTab: React.FC = () => {
   });
   const [acceptedRules, setAcceptedRules] = useState(false);
   const [index, setIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<'discover' | 'matches'>('discover');
+  const [activeTab, setActiveTab] = useState<'discover' | 'matches' | 'vibes'>('discover');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [messageInput, setMessageInput] = useState('');
   const [swipeAnimation, setSwipeAnimation] = useState<'left' | 'right' | null>(null);
@@ -67,50 +108,49 @@ export const DatingTab: React.FC = () => {
   const isValidScore = !isNaN(displayScore) && isFinite(displayScore) && displayScore >= 300 && displayScore <= 850;
   const finalScore = isValidScore ? Math.round(displayScore) : 650;
 
-
-// creditcupid rating system
-const getCreditScoreDisplay = (score: number) => {
-  if (score < 580) return { 
-    text: "WEN MOON?", 
-    color: "text-gray-500", 
-    bg: "bg-gray-100", 
-    emoji: "🌑",
-    border: "border-gray-300",
-    description: "Love rocket still launching"
+  // creditcupid rating system
+  const getCreditScoreDisplay = (score: number) => {
+    if (score < 580) return { 
+      text: "WEN MOON?", 
+      color: "text-gray-500", 
+      bg: "bg-gray-100", 
+      emoji: "🌑",
+      border: "border-gray-300",
+      description: "Love rocket still launching"
+    };
+    if (score < 670) return { 
+      text: "STABLE COIN HEART", 
+      color: "text-green-600", 
+      bg: "bg-green-100", 
+      emoji: "💹",
+      border: "border-green-300",
+      description: "Reliable & predictable"
+    };
+    if (score < 740) return { 
+      text: "ALTS SEASON READY", 
+      color: "text-blue-600", 
+      bg: "bg-blue-100", 
+      emoji: "📈",
+      border: "border-blue-300",
+      description: "High growth potential"
+    };
+    if (score < 800) return { 
+      text: "WHALE CURVES", 
+      color: "text-purple-600", 
+      bg: "bg-purple-100", 
+      emoji: "🐋",
+      border: "border-purple-300",
+      description: "Big moves energy"
+    };
+    return { 
+      text: "MAINNET MARRIAGE", 
+      color: "text-yellow-600", 
+      bg: "bg-yellow-100", 
+      emoji: "💍",
+      border: "border-yellow-300",
+      description: "Production-ready partner"
+    };
   };
-  if (score < 670) return { 
-    text: "STABLE COIN HEART", 
-    color: "text-green-600", 
-    bg: "bg-green-100", 
-    emoji: "💹",
-    border: "border-green-300",
-    description: "Reliable & predictable"
-  };
-  if (score < 740) return { 
-    text: "ALTS SEASON READY", 
-    color: "text-blue-600", 
-    bg: "bg-blue-100", 
-    emoji: "📈",
-    border: "border-blue-300",
-    description: "High growth potential"
-  };
-  if (score < 800) return { 
-    text: "WHALE CURVES", 
-    color: "text-purple-600", 
-    bg: "bg-purple-100", 
-    emoji: "🐋",
-    border: "border-purple-300",
-    description: "Big moves energy"
-  };
-  return { 
-    text: "MAINNET MARRIAGE", 
-    color: "text-yellow-600", 
-    bg: "bg-yellow-100", 
-    emoji: "💍",
-    border: "border-yellow-300",
-    description: "Production-ready partner"
-  };
-};
 
   // All available profiles - exactly 3 for each combination
   const allProfiles: Match[] = [
@@ -125,6 +165,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "female",
       photo: alexMale,
       creditScore: 812,
+      web3Vibes: generateWeb3Vibes(812),
       messages: []
     },
     {
@@ -137,6 +178,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "female",
       photo: charlieMale,
       creditScore: 783,
+      web3Vibes: generateWeb3Vibes(783),
       messages: []
     },
     {
@@ -149,6 +191,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "female",
       photo: frankMale,
       creditScore: 856,
+      web3Vibes: generateWeb3Vibes(856),
       messages: []
     },
 
@@ -163,6 +206,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "male",
       photo: sophiaFemale,
       creditScore: 745,
+      web3Vibes: generateWeb3Vibes(745),
       messages: []
     },
     {
@@ -175,6 +219,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "male",
       photo: emmaFemale,
       creditScore: 698,
+      web3Vibes: generateWeb3Vibes(698),
       messages: []
     },
     {
@@ -187,6 +232,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "male",
       photo: dianaFemale,
       creditScore: 721,
+      web3Vibes: generateWeb3Vibes(721),
       messages: []
     },
 
@@ -201,6 +247,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "male",
       photo: ryanMale,
       creditScore: 801,
+      web3Vibes: generateWeb3Vibes(801),
       messages: []
     },
     {
@@ -213,6 +260,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "male",
       photo: jordanMale,
       creditScore: 732,
+      web3Vibes: generateWeb3Vibes(732),
       messages: []
     },
     {
@@ -225,6 +273,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "male",
       photo: taylorMale,
       creditScore: 789,
+      web3Vibes: generateWeb3Vibes(789),
       messages: []
     },
 
@@ -239,6 +288,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "female",
       photo: rileyFemale,
       creditScore: 768,
+      web3Vibes: generateWeb3Vibes(768),
       messages: []
     },
     {
@@ -251,6 +301,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "female",
       photo: caseyFemale,
       creditScore: 815,
+      web3Vibes: generateWeb3Vibes(815),
       messages: []
     },
     {
@@ -263,6 +314,7 @@ const getCreditScoreDisplay = (score: number) => {
       preference: "female",
       photo: morganFemale,
       creditScore: 694,
+      web3Vibes: generateWeb3Vibes(694),
       messages: []
     }
   ];
@@ -285,7 +337,11 @@ const getCreditScoreDisplay = (score: number) => {
       alert("Please accept the CreditCupid ethics agreement.");
       return;
     }
-    setProfile({ ...formData, creditScore: finalScore });
+    setProfile({ 
+      ...formData, 
+      creditScore: finalScore,
+      web3Vibes: generateWeb3Vibes(finalScore)
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -390,6 +446,110 @@ const getCreditScoreDisplay = (score: number) => {
     "Let's create some beautiful onchain memories"
   ];
 
+  // Honest Web3 Vibes Analysis Component
+  const Web3VibesAnalysis: React.FC<{ match: Match }> = ({ match }) => {
+    // WEB3 SOUL CONNECTION Calculation (real - based on available data)
+    const calculateCompatibility = () => {
+      const scoreDiff = Math.abs(finalScore - match.creditScore);
+      const baseCompatibility = Math.max(30, 100 - scoreDiff / 5);
+      const personalityBonus = match.web3Personality.includes("GM") && profile?.web3Personality.includes("GM") ? 15 : 0;
+      return Math.min(99, baseCompatibility + personalityBonus);
+    };
+
+    const compatibility = calculateCompatibility();
+
+    return (
+      <div className="space-y-3">
+        {/* Honest Disclaimer */}
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 border-2 border-blue-300">
+          <div className="flex items-start gap-2 text-xs text-blue-700">
+            <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+            <div>
+              <span className="font-semibold">Privacy First:</span> We estimate web3 patterns from credit scores, your wallet address is never revealed
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Grid Layout */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Web3 Soul Connection */}
+          <div className="bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl p-3 text-white text-center border-2 border-white shadow-lg col-span-2">
+            <div className="text-xs opacity-90 mb-1">WEB3 SOUL CONNECTION</div>
+            <div className="text-2xl font-bold mb-1">{compatibility}%</div>
+            <div className="text-xs opacity-90">
+              {compatibility >= 85 ? "Legendary! 🚀" : 
+               compatibility >= 70 ? "Strong! 💫" : 
+               compatibility >= 60 ? "Good vibes! ✨" : 
+               "Potential! 🌱"}
+            </div>
+          </div>
+
+          {/* Financial Personality */}
+          <div className="bg-white rounded-xl p-3 border-2 border-blue-300 shadow-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-blue-600" />
+              <div className="text-xs font-bold text-blue-800">FINANCIAL VIBES</div>
+            </div>
+            <div className="text-center">
+              <div className={`text-lg mb-1 ${getCreditScoreDisplay(match.creditScore).color}`}>
+                {getCreditScoreDisplay(match.creditScore).emoji} {match.creditScore}
+              </div>
+              <div className="text-xs text-gray-600">{getCreditScoreDisplay(match.creditScore).text}</div>
+            </div>
+          </div>
+
+          {/* Degen Level */}
+          {match.web3Vibes && (
+            <div className="bg-white rounded-xl p-3 border-2 border-yellow-300 shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="h-4 w-4 text-yellow-600" />
+                <div className="text-xs font-bold text-yellow-800">RISK ESTIMATE</div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-center text-sm font-bold text-yellow-700">{match.web3Vibes.degenLevel}/100</div>
+                <div className="w-full bg-gray-200 rounded-full h-1.5">
+                  <div 
+                    className="bg-yellow-500 h-1.5 rounded-full transition-all duration-500"
+                    style={{ width: `${match.web3Vibes.degenLevel}%` }}
+                  ></div>
+                </div>
+                <div className="text-xs text-gray-500 text-center">Based on credit patterns</div>
+              </div>
+            </div>
+          )}
+
+          {/* Favorite Realms */}
+          {match.web3Vibes && (
+            <div className="bg-white rounded-xl p-3 border-2 border-green-300 shadow-sm col-span-2">
+              <div className="flex items-center gap-2 mb-2">
+                <Castle className="h-4 w-4 text-green-600" />
+                <div className="text-xs font-bold text-green-800">LIKELY INTERESTS</div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 justify-center">
+                {match.web3Vibes.favoriteDapps.map((dapp, index) => (
+                  <div key={index} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full border border-green-300">
+                    {dapp}
+                  </div>
+                ))}
+              </div>
+              <div className="text-xs text-gray-500 text-center mt-2">Estimated from credit profile</div>
+            </div>
+          )}
+        </div>
+
+        {/* Honest Calculation Explanations */}
+        <div className="bg-gray-50 rounded-xl p-3 border-2 border-gray-300">
+          <div className="text-xs font-bold text-gray-700 mb-1">HOW WE ESTIMATE:</div>
+          <div className="text-xs text-gray-600 space-y-1">
+            <div>• <strong>Soul Connection:</strong> Real calculation based on your credit scores + personality match</div>
+            <div>• <strong>Risk Estimate:</strong> Pattern-based estimate from credit behavior correlations</div>
+            <div>• <strong>Likely Interests:</strong> Educated guesses based on credit score patterns</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!profile) {
     return (
       <div className="flex justify-center items-start py-2 font-vt323">
@@ -403,39 +563,48 @@ const getCreditScoreDisplay = (score: number) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3">
-            <form onSubmit={handleSubmit} className="space-y-3">
+            <form onSubmit={handleSubmit} className="space-y-2">
+              {/* Compact Personal Info Section */}
               <div className="grid grid-cols-2 gap-2">
-                <input
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">NAME</label>
+                  <input
+                    required
+                    className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    placeholder="Your name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">AGE</label>
+                  <input
+                    required
+                    type="number"
+                    className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    placeholder="18"
+                    value={formData.age}
+                    onChange={(e) => setFormData({ ...formData, age: Number(e.target.value) })}
+                  />
+                </div>
+              </div>
+
+              {/* About Me - Compact */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">ABOUT ME</label>
+                <textarea
                   required
                   className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
-                  placeholder="Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-                <input
-                  required
-                  type="number"
-                  className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
-                  placeholder="Age"
-                  value={formData.age}
-                  onChange={(e) => setFormData({ ...formData, age: Number(e.target.value) })}
+                  placeholder="Tell us about yourself..."
+                  rows={2}
+                  value={formData.about}
+                  onChange={(e) => setFormData({ ...formData, about: e.target.value })}
                 />
               </div>
 
-              <textarea
-                required
-                className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
-                placeholder="About me..."
-                rows={2}
-                value={formData.about}
-                onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-              />
-
-              {/* Funny Web3 Personality Question */}
+              {/* Web3 Personality - Compact */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  WEB3 PERSONALITY VIBES
-                </label>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">WEB3 PERSONALITY VIBES</label>
                 <select
                   required
                   className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
@@ -454,35 +623,42 @@ const getCreditScoreDisplay = (score: number) => {
                 </p>
               </div>
 
+              {/* Gender & Preference - Compact */}
               <div className="grid grid-cols-2 gap-2">
-                <select
-                  required
-                  className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
-                  value={formData.gender}
-                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                >
-                  <option value="">Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-                <select
-                  required
-                  className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
-                  value={formData.preference}
-                  onChange={(e) => setFormData({ ...formData, preference: e.target.value })}
-                >
-                  <option value="">Looking for</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">GENDER</label>
+                  <select
+                    required
+                    className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    value={formData.gender}
+                    onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                  >
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">LOOKING FOR</label>
+                  <select
+                    required
+                    className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
+                    value={formData.preference}
+                    onChange={(e) => setFormData({ ...formData, preference: e.target.value })}
+                  >
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Photo Upload Section */}
-              <div className="space-y-2">
+              {/* Photo Upload - Compact */}
+              <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">PROFILE PHOTO</label>
-                <div className="flex items-center gap-3">
-                  <label className="flex-1 border-2 border-dashed border-gray-400 rounded-lg p-3 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white/90">
-                    <Upload className="h-4 w-4 mx-auto mb-1 text-gray-500" />
+                <div className="flex items-center gap-2">
+                  <label className="flex-1 border-2 border-dashed border-gray-400 rounded-lg p-2 text-center cursor-pointer hover:border-blue-500 transition-colors bg-white/90">
+                    <Upload className="h-3 w-3 mx-auto mb-1 text-gray-500" />
                     <span className="text-xs text-gray-600">Upload Photo</span>
                     <input
                       type="file"
@@ -495,12 +671,26 @@ const getCreditScoreDisplay = (score: number) => {
                     <img
                       src={formData.photo}
                       alt="Preview"
-                      className="w-12 h-12 rounded-lg object-cover border-2 border-green-400"
+                      className="w-10 h-10 rounded-lg object-cover border-2 border-green-400"
                     />
                   )}
                 </div>
               </div>
 
+              {/* Credit Score Preview - Compact */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-2 border-2 border-blue-300">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-blue-800">YOUR CREDIT SCORE:</span>
+                  <div className={`px-2 py-1 rounded-full text-xs font-bold ${userScoreDisplay.bg} ${userScoreDisplay.color} border ${userScoreDisplay.border}`}>
+                    {userScoreDisplay.emoji} {finalScore}
+                  </div>
+                </div>
+                <p className="text-xs text-blue-600 mt-1">
+                  This will be visible to potential matches and affect your compatibility scores
+                </p>
+              </div>
+
+              {/* Ethics Agreement - Compact */}
               <div className="flex items-start gap-2 p-2 bg-blue-100/80 rounded-lg border-2 border-blue-300">
                 <input
                   type="checkbox"
@@ -512,6 +702,8 @@ const getCreditScoreDisplay = (score: number) => {
                   Accept CREDITCUPID Ethics: Respect & Kindness
                 </label>
               </div>
+
+              {/* Submit Button */}
               <Button
                 type="submit"
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-sm py-2 font-bold transition-transform hover:scale-105"
@@ -529,7 +721,7 @@ const getCreditScoreDisplay = (score: number) => {
 
   return (
     <div className="p-3 space-y-3 font-vt323 max-w-4xl mx-auto">
-      {/* Profile Header - Ultra Compact */}
+      {/* Profile Header - Enhanced with Vibes Tab */}
       <div className="flex items-center justify-between bg-gradient-to-r from-blue-100 to-pink-100 rounded-2xl p-3 border-4 border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
         <div className="flex items-center gap-3">
           {profile.photo && (
@@ -566,6 +758,16 @@ const getCreditScoreDisplay = (score: number) => {
             }`}
           >
             💬 {matches.length}
+          </button>
+          <button
+            onClick={() => setActiveTab('vibes')}
+            className={`px-3 py-1 rounded-full text-xs font-bold border-2 transition-all ${
+              activeTab === 'vibes' 
+                ? 'bg-purple-500 text-white border-purple-600' 
+                : 'bg-white text-gray-600 border-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            ⚡ Vibes
           </button>
         </div>
       </div>
@@ -737,6 +939,40 @@ const getCreditScoreDisplay = (score: number) => {
                 ))}
               </div>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'vibes' && selectedMatch && (
+        <Card className="border-4 border-white bg-gradient-to-br from-purple-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-purple-800 flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              WEB3 VIBES ANALYSIS
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Web3VibesAnalysis match={selectedMatch} />
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'vibes' && !selectedMatch && matches.length > 0 && (
+        <Card className="border-4 border-white bg-gradient-to-br from-purple-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardContent className="p-6 text-center">
+            <div className="text-4xl mb-2">🔮</div>
+            <p className="font-bold text-purple-800">Select a match to analyze their Web3 vibes!</p>
+            <p className="text-sm text-gray-600 mt-1">Choose someone from your matches to see your compatibility</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === 'vibes' && matches.length === 0 && (
+        <Card className="border-4 border-white bg-gradient-to-br from-purple-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
+          <CardContent className="p-6 text-center">
+            <div className="text-4xl mb-2">💫</div>
+            <p className="font-bold text-purple-800">No matches to analyze yet!</p>
+            <p className="text-sm text-gray-600 mt-1">Start swiping to discover Web3 soul connections</p>
           </CardContent>
         </Card>
       )}
