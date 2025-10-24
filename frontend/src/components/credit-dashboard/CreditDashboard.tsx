@@ -4,14 +4,12 @@ import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import { useTransactionPopup } from "@blockscout/app-sdk";
 import { DatingTab } from '../DatingTab';
-import { AgentChat } from '../AgentChat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/Tabs';
 import { 
   Wallet, 
   TrendingUp, 
-  MessageCircle,
   DollarSign,
   AlertCircle,
   RefreshCw,
@@ -347,7 +345,7 @@ const CreditDashboardContent: React.FC = () => {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid grid-cols-4 w-full bg-white p-2 rounded-lg border-4 border-gray-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
+          <TabsList className="grid grid-cols-3 w-full bg-white p-2 rounded-lg border-4 border-gray-400 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
             <TabsTrigger value="overview" className="flex items-center gap-2 text-xl border-2 border-transparent data-[state=active]:border-4 data-[state=active]:border-blue-500 data-[state=active]:bg-blue-100 data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
               <TrendingUp className="h-5 w-5" />
               OVERVIEW
@@ -360,10 +358,7 @@ const CreditDashboardContent: React.FC = () => {
               <DollarSign className="h-5 w-5" />
               P2P LENDING
             </TabsTrigger>
-            <TabsTrigger value="agents" className="flex items-center gap-2 text-xl border-2 border-transparent data-[state=active]:border-4 data-[state=active]:border-purple-500 data-[state=active]:bg-purple-100 data-[state=active]:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)]">
-              <MessageCircle className="h-5 w-5" />
-              AI AGENTS
-            </TabsTrigger>
+
           </TabsList>
 
           {/* Overview Tab */}
@@ -405,14 +400,6 @@ const CreditDashboardContent: React.FC = () => {
               userCreditScore={finalCreditScore} 
               userAddress={address!}
             />
-          </TabsContent>
-
-          {/* AI Agents Tab */}
-          <TabsContent value="agents">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AgentChat address={address!} agentType="advisor" />
-              <AgentChat address={address!} agentType="auditor" />
-            </div>
           </TabsContent>
         </Tabs>
 
