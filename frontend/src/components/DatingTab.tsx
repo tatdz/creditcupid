@@ -20,7 +20,7 @@ interface Profile {
   name: string;
   age: number;
   about: string;
-  favoriteApp: string;
+  web3Personality: string;
   gender: string;
   preference: string;
   photo?: string;
@@ -45,7 +45,7 @@ export const DatingTab: React.FC = () => {
     name: "",
     age: 18,
     about: "",
-    favoriteApp: "",
+    web3Personality: "",
     gender: "",
     preference: "",
     creditScore: 0,
@@ -67,6 +67,51 @@ export const DatingTab: React.FC = () => {
   const isValidScore = !isNaN(displayScore) && isFinite(displayScore) && displayScore >= 300 && displayScore <= 850;
   const finalScore = isValidScore ? Math.round(displayScore) : 650;
 
+
+// creditcupid rating system
+const getCreditScoreDisplay = (score: number) => {
+  if (score < 580) return { 
+    text: "WEN MOON?", 
+    color: "text-gray-500", 
+    bg: "bg-gray-100", 
+    emoji: "🌑",
+    border: "border-gray-300",
+    description: "Love rocket still launching"
+  };
+  if (score < 670) return { 
+    text: "STABLE COIN HEART", 
+    color: "text-green-600", 
+    bg: "bg-green-100", 
+    emoji: "💹",
+    border: "border-green-300",
+    description: "Reliable & predictable"
+  };
+  if (score < 740) return { 
+    text: "ALTS SEASON READY", 
+    color: "text-blue-600", 
+    bg: "bg-blue-100", 
+    emoji: "📈",
+    border: "border-blue-300",
+    description: "High growth potential"
+  };
+  if (score < 800) return { 
+    text: "WHALE CURVES", 
+    color: "text-purple-600", 
+    bg: "bg-purple-100", 
+    emoji: "🐋",
+    border: "border-purple-300",
+    description: "Big moves energy"
+  };
+  return { 
+    text: "MAINNET MARRIAGE", 
+    color: "text-yellow-600", 
+    bg: "bg-yellow-100", 
+    emoji: "💍",
+    border: "border-yellow-300",
+    description: "Production-ready partner"
+  };
+};
+
   // All available profiles - exactly 3 for each combination
   const allProfiles: Match[] = [
     // Male profiles looking for females
@@ -75,7 +120,7 @@ export const DatingTab: React.FC = () => {
       name: "Alex",
       age: 29,
       about: "DeFi developer building innovative protocols. Love discussing tokenomics.",
-      favoriteApp: "Morpho",
+      web3Personality: "Would sacrifice a goat for 1000% APY",
       gender: "male",
       preference: "female",
       photo: alexMale,
@@ -87,7 +132,7 @@ export const DatingTab: React.FC = () => {
       name: "Charlie",
       age: 31,
       about: "Crypto trader and protocol researcher. Always early to new DeFi innovations.",
-      favoriteApp: "Curve Finance",
+      web3Personality: "My love language is 'GM' in all caps",
       gender: "male",
       preference: "female",
       photo: charlieMale,
@@ -99,7 +144,7 @@ export const DatingTab: React.FC = () => {
       name: "Frank",
       age: 33,
       about: "DeFi maximalist and protocol auditor. Security first in everything.",
-      favoriteApp: "Lido Finance",
+      web3Personality: "I check DeFi Llama more than my texts",
       gender: "male",
       preference: "female",
       photo: frankMale,
@@ -113,7 +158,7 @@ export const DatingTab: React.FC = () => {
       name: "Sophia",
       age: 26,
       about: "NFT artist and DeFi enthusiast. Love exploring new protocols and building in web3.",
-      favoriteApp: "Aave",
+      web3Personality: "I'd rather get rugged than ghosted",
       gender: "female",
       preference: "male",
       photo: sophiaFemale,
@@ -125,7 +170,7 @@ export const DatingTab: React.FC = () => {
       name: "Emma",
       age: 27,
       about: "Yield farmer and liquidity provider. Passionate about finding the best APYs.",
-      favoriteApp: "Uniswap V3",
+      web3Personality: "My exes are like bad tokens - I don't hold them",
       gender: "female",
       preference: "male",
       photo: emmaFemale,
@@ -137,7 +182,7 @@ export const DatingTab: React.FC = () => {
       name: "Diana",
       age: 25,
       about: "Web3 designer and DAO contributor. Building beautiful interfaces for DeFi.",
-      favoriteApp: "Compound",
+      web3Personality: "I love you more than I love claiming airdrops",
       gender: "female",
       preference: "male",
       photo: dianaFemale,
@@ -151,7 +196,7 @@ export const DatingTab: React.FC = () => {
       name: "Ryan",
       age: 32,
       about: "Institutional DeFi analyst. Bridging traditional finance with crypto.",
-      favoriteApp: "Synthetix",
+      web3Personality: "My heart has better tokenomics than most L2s",
       gender: "male",
       preference: "male",
       photo: ryanMale,
@@ -163,7 +208,7 @@ export const DatingTab: React.FC = () => {
       name: "Jordan",
       age: 29,
       about: "Cross-chain developer. Building bridges between different blockchain ecosystems.",
-      favoriteApp: "LayerZero",
+      web3Personality: "I'm more loyal than a Bitcoin maximalist",
       gender: "male",
       preference: "male",
       photo: jordanMale,
@@ -175,7 +220,7 @@ export const DatingTab: React.FC = () => {
       name: "Taylor",
       age: 30,
       about: "Crypto fund manager and investment strategist. Focused on long-term growth.",
-      favoriteApp: "Yearn Finance",
+      web3Personality: "Wen romance? Soon™",
       gender: "male",
       preference: "male",
       photo: taylorMale,
@@ -189,7 +234,7 @@ export const DatingTab: React.FC = () => {
       name: "Riley",
       age: 28,
       about: "Blockchain researcher and academic. Studying crypto economics and governance.",
-      favoriteApp: "Compound Governance",
+      web3Personality: "My love is more decentralized than most DAOs",
       gender: "female",
       preference: "female",
       photo: rileyFemale,
@@ -201,7 +246,7 @@ export const DatingTab: React.FC = () => {
       name: "Casey",
       age: 26,
       about: "Smart contract developer and security expert. Passionate about safe DeFi.",
-      favoriteApp: "Aave V3",
+      web3Personality: "I'd audit your heart for free",
       gender: "female",
       preference: "female",
       photo: caseyFemale,
@@ -213,7 +258,7 @@ export const DatingTab: React.FC = () => {
       name: "Morgan",
       age: 27,
       about: "DeFi educator and community builder. Helping newcomers navigate web3 safely.",
-      favoriteApp: "Uniswap",
+      web3Personality: "Love at first sight? More like love at first GM",
       gender: "female",
       preference: "female",
       photo: morganFemale,
@@ -319,49 +364,44 @@ export const DatingTab: React.FC = () => {
     }, 2000);
   };
 
-  const getCreditScoreDisplay = (score: number) => {
-    if (score < 600) return { 
-      text: "CREDIT ROOKIE", 
-      color: "text-red-500", 
-      bg: "bg-red-100", 
-      emoji: "🌱",
-      border: "border-red-300"
-    };
-    if (score < 700) return { 
-      text: "MODERATE PROFILE", 
-      color: "text-yellow-600", 
-      bg: "bg-yellow-100", 
-      emoji: "📈",
-      border: "border-yellow-300"
-    };
-    if (score < 800) return { 
-      text: "STRONG PROFILE", 
-      color: "text-green-600", 
-      bg: "bg-green-100", 
-      emoji: "💪",
-      border: "border-green-300"
-    };
-    return { 
-      text: "EXCELLENT CREDITCUPID MATCH!", 
-      color: "text-blue-600", 
-      bg: "bg-blue-100", 
-      emoji: "🚀",
-      border: "border-blue-300"
-    };
-  };
+  const userScoreDisplay = getCreditScoreDisplay(finalScore);
+
+  // Funny Web3 personality options
+  const web3PersonalityOptions = [
+    "Would sacrifice a goat for 1000% APY",
+    "My love language is 'GM' in all caps",
+    "I check DeFi Llama more than my texts",
+    "I'd rather get rugged than ghosted",
+    "My exes are like bad tokens - I don't hold them",
+    "I love you more than I love claiming airdrops",
+    "My heart has better tokenomics than most L2s",
+    "I'm more loyal than a Bitcoin maximalist",
+    "Wen romance? Soon™",
+    "My love is more decentralized than most DAOs",
+    "I'd audit your heart for free",
+    "Love at first sight? More like love at first GM",
+    "Diamond hands only, no paper hearts",
+    "I'm here for the technology... and the romance",
+    "My emotional intelligence is over 9000 (like gas fees)",
+    "I promise I won't rug your heart",
+    "Looking for someone to build a life DAO with",
+    "My love is permissionless and trustless",
+    "Swipe right if you understand 'WAGMI'",
+    "Let's create some beautiful onchain memories"
+  ];
 
   if (!profile) {
     return (
       <div className="flex justify-center items-start py-2 font-vt323">
         <Card className="max-w-md w-full border-4 border-white bg-gradient-to-br from-blue-50 to-pink-50 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.2)]">
-<CardHeader className="pb-2 text-center">
-  <div className="flex justify-center items-center gap-2 mb-2">
-    <Heart className="h-6 w-6 text-blue-600" />
-  </div>
-  <CardTitle className="text-xl text-blue-800 bg-white/80 rounded-lg py-1 px-3 border-2 border-blue-300 inline-block">
-    CREATE PROFILE
-  </CardTitle>
-</CardHeader>
+          <CardHeader className="pb-2 text-center">
+            <div className="flex justify-center items-center gap-2 mb-2">
+              <Heart className="h-6 w-6 text-blue-600" />
+            </div>
+            <CardTitle className="text-xl text-blue-800 bg-white/80 rounded-lg py-1 px-3 border-2 border-blue-300 inline-block">
+              CREATE PROFILE
+            </CardTitle>
+          </CardHeader>
           <CardContent className="p-3">
             <form onSubmit={handleSubmit} className="space-y-3">
               <div className="grid grid-cols-2 gap-2">
@@ -391,13 +431,28 @@ export const DatingTab: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, about: e.target.value })}
               />
 
-              <input
-                required
-                className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
-                placeholder="Favorite web3 product"
-                value={formData.favoriteApp}
-                onChange={(e) => setFormData({ ...formData, favoriteApp: e.target.value })}
-              />
+              {/* Funny Web3 Personality Question */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  WEB3 PERSONALITY VIBES
+                </label>
+                <select
+                  required
+                  className="w-full border-2 border-gray-400 rounded-lg p-2 text-sm bg-white/90 focus:outline-none focus:border-blue-500 focus:bg-white"
+                  value={formData.web3Personality}
+                  onChange={(e) => setFormData({ ...formData, web3Personality: e.target.value })}
+                >
+                  <option value="">Choose your crypto personality...</option>
+                  {web3PersonalityOptions.map((option, index) => (
+                    <option key={index} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  This is way more important than your star sign
+                </p>
+              </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <select
@@ -457,12 +512,12 @@ export const DatingTab: React.FC = () => {
                   Accept CREDITCUPID Ethics: Respect & Kindness
                 </label>
               </div>
-<Button
-  type="submit"
-  className="w-full bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-sm py-2 font-bold transition-transform hover:scale-105"
->
-  CREATE PROFILE
-</Button>
+              <Button
+                type="submit"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white border-2 border-blue-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] text-sm py-2 font-bold transition-transform hover:scale-105"
+              >
+                CREATE PROFILE
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -471,8 +526,6 @@ export const DatingTab: React.FC = () => {
   }
 
   const current = filteredProfiles[index];
-  const scoreDisplay = getCreditScoreDisplay(profile.creditScore);
-  const userScoreDisplay = getCreditScoreDisplay(finalScore);
 
   return (
     <div className="p-3 space-y-3 font-vt323 max-w-4xl mx-auto">
@@ -551,7 +604,7 @@ export const DatingTab: React.FC = () => {
                       <p className="text-sm text-gray-600 mt-1">{current.about}</p>
                       <div className="flex items-center justify-center gap-2 mt-2">
                         <Zap className="h-4 w-4 text-yellow-500" />
-                        <span className="text-sm font-semibold text-blue-600">{current.favoriteApp}</span>
+                        <span className="text-sm font-semibold text-blue-600 italic">"{current.web3Personality}"</span>
                         <Star className="h-4 w-4 text-yellow-500" />
                       </div>
                     </div>
@@ -606,7 +659,7 @@ export const DatingTab: React.FC = () => {
                   <div className="flex-1">
                     <h3 className="font-bold text-blue-800 text-sm">{selectedMatch.name}</h3>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs text-gray-600">{selectedMatch.favoriteApp}</p>
+                      <p className="text-xs text-gray-600 italic">"{selectedMatch.web3Personality}"</p>
                       <span className={`text-xs px-1 rounded ${getCreditScoreDisplay(selectedMatch.creditScore).bg} ${getCreditScoreDisplay(selectedMatch.creditScore).color}`}>
                         {selectedMatch.creditScore}
                       </span>
