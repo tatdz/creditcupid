@@ -1,6 +1,6 @@
 # 😇 creditcupid 
 
-**zk Onchain Credit Oracle creating web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
+**zk Onchain Credit Oracle for web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners in P2P Lending and Life.**
 
 
 ---
