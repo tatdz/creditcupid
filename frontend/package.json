@@ -82,6 +82,7 @@
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
+    "@vitejs/plugin-legacy": "^7.2.1",
     "@vitejs/plugin-react": "^4.1.1",
     "@vitest/coverage-v8": "^0.34.6",
     "@vitest/ui": "^0.34.6",
@@ -104,10 +105,10 @@
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
-    "resolutions": {
+  "resolutions": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
-     },
+  },
   "browserslist": {
     "production": [
       ">0.2%",

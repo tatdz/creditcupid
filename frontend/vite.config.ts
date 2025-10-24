@@ -19,7 +19,12 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
   },
   optimizeDeps: {
-    exclude: ['@base-org/account', '@safe-global/safe-apps-sdk', '@safe-globalThis/safe-apps-sdk'] 
+    exclude: ['@base-org/account', '@safe-global/safe-apps-sdk', '@safe-globalThis/safe-apps-sdk'],
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
   },
   resolve: {
     alias: {
@@ -27,8 +32,11 @@ export default defineConfig({
     },
   },
   define: {
-    'process.env': {},
+    'process.env': '{}',
     'global': 'globalThis',
+    // Fix for Request/Response undefined
+    'globalThis.Request': 'undefined',
+    'globalThis.Response': 'undefined',
   },
   build: {
     target: 'es2020',
@@ -39,7 +47,6 @@ export default defineConfig({
     rollupOptions: {
       external: ['@safe-global/safe-apps-sdk', '@safe-globalThis/safe-apps-sdk'],
       onwarn(warning, warn) {
-        // Ignore all unresolved import warnings
         if (warning.code === 'UNRESOLVED_IMPORT') {
           return
         }
@@ -47,5 +54,5 @@ export default defineConfig({
       }
     },
   },
-  base: './',
+  base: '/',
 })
