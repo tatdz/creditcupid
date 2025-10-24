@@ -1,6 +1,6 @@
 # 😇 creditcupid 
 
-**Zero-Knowledge Onchain Credit Oracle creating web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
+**zk Onchain Credit Oracle creating web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners for P2P Lending and Life.**
 
 
 ---
@@ -26,7 +26,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 ## 🎯 How It Works
 
-1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance. Based on that we calculate a score that you can set onchain or use to share with potential matches.
+1. **Connect & Analyze:** Connect your wallet. Creditcupid scans your onchain DeFi history (Ethereum, Polygon, Arbitrum, Optimism, Base, Sepolia) using Blockscout's SDK plus off-chain bank verification with Plaid that confirms income, KYC, transaction history and bank account balance. Based on that we calculate a score that you can set onchain and instantly verify using Blockscout's SDK popups.
 2. **Match & Borrow:** Use separate, intuitive flows to find romantic or finance partners based purely on verified, privacy-protected credit identities.  
 3. **Stay Private & Secure:** Your financial details remain confidential through **cryptographic commitments**—only verification results are accessible
 ---
@@ -35,10 +35,10 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 
 - **Smart Contracts:** Foundry, Solidity 0.8.23—minimal proof verification & lending logic on Sepolia.
   - **CreditScore:** [https://eth-sepolia.blockscout.com/address/0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8](https://eth-sepolia.blockscout.com/address/0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8)  
-    Manages credit scores onchain and integrates with AI credit analysis for real-time updates.  
+    Manages credit scores onchain and integrates with instant verification via Blockscout SDK popups.
   - **P2PLending:** [https://eth-sepolia.blockscout.com/address/0x8F254C3A7858d05a9829391319821eC62d69ACa4?tab=index)  
     Handles ETH-based peer-to-peer lending using credit-based terms and undercollateralized logic.
-- **Backend & API:** Node.js + TypeScript; Blockscout API & SDK integration, Plaid bank verification, zk proof services.  
+- **Backend & API:** Node.js + TypeScript; Blockscout SDK for embedded transaction exploration, Plaid bank verification, zk proof services.  
 - **Frontend:** React 18 + TypeScript, Vite, Wagmi & Viem for wallet interactions, Tailwind CSS + Shadcn/ui for UI.  
 - **Privacy:** Poseidon zk-Hashing, zk-SNARK friendly cryptographic commitments, IPFS decentralized metadata storage, local proof generation ensuring zero user data is stored on servers.
 
