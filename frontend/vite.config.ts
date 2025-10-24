@@ -24,19 +24,39 @@ export default defineConfig({
       define: {
         global: 'globalThis',
       },
+      plugins: [
+        {
+          name: 'fix-node-globals',
+          setup(build) {
+            build.onResolve({ filter: /_virtual-process-polyfill_\.js/ }, args => ({
+              path: args.path,
+              namespace: 'process-polyfill',
+            }))
+            build.onLoad({ filter: /.*/, namespace: 'process-polyfill' }, () => ({
+              contents: `
+                import process from 'process';
+                export default process;
+              `,
+            }))
+          },
+        },
+      ],
     },
   },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'process': 'process/browser',
+      'util': 'util',
+      'buffer': 'buffer',
+      'stream': 'stream-browserify',
     },
   },
   define: {
     'process.env': '{}',
     'global': 'globalThis',
-    // Fix for Request/Response undefined
-    'globalThis.Request': 'undefined',
-    'globalThis.Response': 'undefined',
+    'globalThis.process': JSON.stringify({ env: {}, versions: {}, browser: true }),
+    'globalThis.Buffer': 'Buffer',
   },
   build: {
     target: 'es2020',
