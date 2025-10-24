@@ -5,46 +5,6 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CreditCupid</title>
-    <!-- Load polyfills FIRST - before any other scripts -->
-    <script>
-      // Immediate polyfills - execute before any module loading
-      (function() {
-        console.log('Loading polyfills...');
-        
-        // Fix for Request/Response destructuring error
-        if (typeof globalThis.Request === 'undefined') {
-          globalThis.Request = class Request {
-            constructor() {
-              throw new Error('Request constructor not available in browser');
-            }
-          };
-          // Add minimal prototype to prevent destructuring errors
-          Object.defineProperty(globalThis.Request, 'prototype', {
-            value: {},
-            writable: false
-          });
-        }
-
-        if (typeof globalThis.Response === 'undefined') {
-          globalThis.Response = class Response {
-            constructor() {
-              throw new Error('Response constructor not available in browser');
-            }
-          };
-          Object.defineProperty(globalThis.Response, 'prototype', {
-            value: {},
-            writable: false
-          });
-        }
-
-        // Ensure global exists
-        if (typeof global === 'undefined') {
-          window.global = window;
-        }
-
-        console.log('Polyfills loaded successfully');
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>
