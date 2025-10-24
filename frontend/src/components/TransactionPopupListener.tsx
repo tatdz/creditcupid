@@ -4,50 +4,51 @@
 import { useEffect } from 'react'
 import { useTransactionPopup } from '@blockscout/app-sdk'
 
+interface PopupEventDetail {
+  chainId: string
+  address: string
+  blockscoutUrl?: string
+  transactionHash?: string
+}
+
 export function TransactionPopupListener() {
   const { openPopup } = useTransactionPopup()
 
   useEffect(() => {
-    const handleOpenTransactionPopup = (event: CustomEvent) => {
+    const handlePopupRequest = (event: CustomEvent<PopupEventDetail>) => {
       const { chainId, address, blockscoutUrl, transactionHash } = event.detail
       
-      console.log('Opening transaction popup for:', { chainId, address, transactionHash })
+      console.log('🔍 Opening transaction viewer:', { 
+        chain: chainId, 
+        address: address.slice(0, 8), 
+        tx: transactionHash?.slice(0, 10) 
+      })
       
       try {
-        
-        const config: any = {
+        const popupConfig = {
           chainId,
           address,
+          ...(transactionHash && { transactionHash }),
+          ...(blockscoutUrl && { 
+            customBlockscoutUrl: blockscoutUrl 
+          })
         }
         
+        openPopup(popupConfig)
+        console.log('✅ Transaction viewer launched')
         
-        if (transactionHash) {
-          config.transactionHash = transactionHash
-        }
-        
-        
-        if (blockscoutUrl) {
-          config.customBlockscoutUrl = blockscoutUrl
-          console.log('Using custom Blockscout URL:', blockscoutUrl)
-        }
-        
-        openPopup(config)
-        console.log('Transaction popup opened successfully')
       } catch (error) {
-        console.error('Error opening transaction popup:', error)
-        if (error instanceof Error) {
-          console.error('Error details:', error.message)
-        }
+        console.error('❌ Failed to open transaction viewer:', error)
       }
     }
 
-    window.addEventListener('openTransactionPopup', handleOpenTransactionPopup as EventListener)
+    const eventHandler = handlePopupRequest as EventListener
+    window.addEventListener('openTransactionPopup', eventHandler)
 
     return () => {
-      window.removeEventListener('openTransactionPopup', handleOpenTransactionPopup as EventListener)
+      window.removeEventListener('openTransactionPopup', eventHandler)
     }
   }, [openPopup])
 
-  // This component doesn't render anything
   return null
 }

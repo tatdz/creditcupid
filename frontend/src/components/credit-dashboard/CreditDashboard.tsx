@@ -412,7 +412,7 @@ const CreditDashboardContent: React.FC = () => {
                 onClick={handleViewTransactions}
                 className="text-yellow-300 hover:text-yellow-200 underline drop-shadow-[1px_1px_0px_rgba(0,0,0,0.3)]"
               >
-                VERIFY YOUR DATA ON BLOCKSCOUT
+                VERIFIED ON BLOCKSCOUT
               </button>
             </p>
             <p className="mt-2 text-yellow-200">
