@@ -19,7 +19,7 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
   },
   optimizeDeps: {
-    exclude: ['@base-org/account'] 
+    exclude: ['@base-org/account', '@safe-global/safe-apps-sdk', '@safe-globalThis/safe-apps-sdk'] 
   },
   resolve: {
     alias: {
@@ -35,8 +35,17 @@ export default defineConfig({
     commonjsOptions: {
       transformMixedEsModules: true,
     },
-    outDir: 'dist', // Ensure this matches vercel.json
+    outDir: 'dist',
+    rollupOptions: {
+      external: ['@safe-global/safe-apps-sdk', '@safe-globalThis/safe-apps-sdk'],
+      onwarn(warning, warn) {
+        // Ignore all unresolved import warnings
+        if (warning.code === 'UNRESOLVED_IMPORT') {
+          return
+        }
+        warn(warning)
+      }
+    },
   },
-  // Add this for Vercel
   base: './',
 })
