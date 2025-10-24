@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "serve": "vite preview --port 3000 --host",
     "deploy:vercel": "vercel --prod",
+    "vercel-build": "npm run build",
     "deploy:netlify": "netlify deploy --prod",
     "deploy:ipfs": "npm run build && npx ipfs-deploy dist",
     "generate:types": "wagmi generate",

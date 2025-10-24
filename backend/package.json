@@ -21,7 +21,8 @@
     "generate:types": "typechain --target=ethers-v6 --out-dir src/types '../contracts/out/**/*.json'",
     "db:migrate": "npx prisma migrate deploy",
     "db:studio": "npx prisma studio",
-    "seed": "ts-node scripts/seed.ts"
+    "seed": "ts-node scripts/seed.ts",
+    "vercel-build": "npm run build"
   },
   "keywords": [
     "defi",
