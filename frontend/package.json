@@ -1,5 +1,5 @@
 {
-  "name": "creditdupid-frontend",
+  "name": "creditcupid-frontend",
   "version": "1.0.0",
   "type": "module",
   "description": "zk Onchain Credit Oracle for web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners in P2P Lending and Life",
@@ -27,6 +27,7 @@
   "dependencies": {
     "@blockscout/app-sdk": "^0.1.2",
     "@hookform/resolvers": "^3.3.2",
+    "@safe-global/safe-apps-sdk": "^9.0.0",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-query-devtools": "^5.0.0",
     "@types/lodash": "^4.14.202",
