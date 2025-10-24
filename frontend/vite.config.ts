@@ -29,9 +29,17 @@ export default defineConfig({
   define: {
     'process.env': '{}',
     'global': 'globalThis',
-    // Safe polyfill for Request/Response that won't break local dev
-    'globalThis.Request': 'undefined',
-    'globalThis.Response': 'undefined',
+    // Inject proper polyfills that will be available at module evaluation time
+    'globalThis.Request': `class Request {
+      constructor() {
+        throw new Error('Request constructor not available in browser environment')
+      }
+    }`,
+    'globalThis.Response': `class Response {
+      constructor() {
+        throw new Error('Response constructor not available in browser environment')
+      }
+    }`,
   },
   build: {
     target: 'es2020',
