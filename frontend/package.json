@@ -1,8 +1,8 @@
 {
-  "name": "darma-frontend",
+  "name": "creditdupid-frontend",
   "version": "1.0.0",
   "type": "module",
-  "description": "Darma Frontend - Cross-chain credit dashboard with AI agents and real protocol integration",
+  "description": "zk Onchain Credit Oracle for web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners in P2P Lending and Life",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -103,6 +103,10 @@
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
   },
+    "resolutions": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+     },
   "browserslist": {
     "production": [
       ">0.2%",
@@ -117,7 +121,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/darma-protocol/frontend.git"
+    "url": "git+https://github.com/creditcupid/frontend.git"
   },
   "keywords": [
     "defi",
@@ -133,11 +137,11 @@
     "cross-chain",
     "ai-agents"
   ],
-  "author": "Darma Team",
+  "author": "creditcupid team",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/darma-protocol/frontend/issues"
+    "url": "https://github.com/creditcupid/frontend/issues"
   },
-  "homepage": "https://darma.io",
+  "homepage": "https://creditcupid.io",
   "main": "next.config.js"
 }
