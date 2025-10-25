@@ -39,7 +39,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
   - **P2PLending:** [https://eth-sepolia.blockscout.com/address/0x8F254C3A7858d05a9829391319821eC62d69ACa4?tab=index)  
     Handles ETH-based peer-to-peer lending using credit-based terms and undercollateralized logic.
 - **Backend & API:** Node.js + TypeScript; Blockscout SDK for embedded transaction exploration, Plaid bank verification, zk proof services.  
-- **Frontend:** React 18 + TypeScript, Vite, Wagmi & Viem for wallet interactions, Tailwind CSS + Shadcn/ui for UI.  
+- **Frontend:** React 18 + TypeScript, Next.js, Wagmi & Viem for wallet interactions, Tailwind CSS + Shadcn/ui for UI.  
 - **Privacy:** Poseidon zk-Hashing, zk-SNARK friendly cryptographic commitments, IPFS decentralized metadata storage, local proof generation ensuring zero user data is stored on servers.
 
 ---
@@ -49,16 +49,7 @@ Users see wallet addresses and transactions but lack social trust mechanisms. Cr
 Prerequisites: Node.js v20+, Foundry, Sepolia ETH wallet
 ```bash
 git clone https://github.com/tatdz/creditcupid.git
-cd creditcupid
-
-# Backend setup
-cd backend
-npm install
-# Add .env configuration (Blockscout, Pinata, Plaid, RPC)
-npm run dev
-
-# Frontend setup
-cd ../frontend
+cd creditcupid/frontend
 npm install
 npm run dev
 
@@ -66,12 +57,9 @@ npm run dev
 Backend (.env):
 
 env
-BLOCKSCOUT_API_KEY=your_blockscout_key
 PINATA_JWT=your_pinata_jwt
 PINATA_API_KEY=your_pinata_key
 PINATA_SECRET_KEY=your_pinata_secret
-SEPOLIA_RPC_URL=your_sepolia_rpc_url
-PRIVATE_KEY=your_wallet_private_key
 
 Frontend (.env):
 
@@ -79,7 +67,6 @@ env
 PINATA_JWT=your_pinata_jwt
 PINATA_API_KEY=your_api_key_here
 PINATA_SECRET_KEY=your_secret_key_here
-
 BLOCKSCOUT_API_KEY=your_blockscout_key
 SEPOLIA_RPC_URL=your_alchemy_or_infura_url_here
 ETHERSCAN_API_KEY=your_etherscan_api_key_here
