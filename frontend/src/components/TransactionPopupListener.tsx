@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useTransactionPopup } from '@blockscout/app-sdk'
+import { useTransactionPopupGood } from '../hooks/useBlockscoutGood'
 
 interface PopupEventDetail {
   chainId: string
@@ -12,7 +12,7 @@ interface PopupEventDetail {
 }
 
 export function TransactionPopupListener() {
-  const { openPopup } = useTransactionPopup()
+  const { openPopup } = useTransactionPopupGood()
 
   useEffect(() => {
     const handlePopupRequest = (event: CustomEvent<PopupEventDetail>) => {

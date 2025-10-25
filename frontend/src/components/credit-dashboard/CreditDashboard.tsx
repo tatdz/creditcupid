@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { injected } from 'wagmi/connectors';
-import { useTransactionPopup } from "@blockscout/app-sdk";
+import { useTransactionPopupGood } from '../../hooks/useBlockscoutGood';
 import { DatingTab } from '../DatingTab';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -44,7 +44,7 @@ const CreditDashboardContent: React.FC = () => {
   const { address, isConnected, chain } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
-  const { openPopup } = useTransactionPopup();
+  const { openPopup } = useTransactionPopupGood();
   
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -327,7 +327,7 @@ const CreditDashboardContent: React.FC = () => {
           </div>
         )}
 
-        {/* Data Quality Notice - UPDATED TEXT */}
+        {/* Data Quality Notice */}
         {displayData && (
           <div className="mb-4 p-4 bg-blue-200 border-4 border-blue-400 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)]">
             <div className="flex items-center gap-3">
@@ -358,7 +358,6 @@ const CreditDashboardContent: React.FC = () => {
               <DollarSign className="h-5 w-5" />
               P2P LENDING
             </TabsTrigger>
-
           </TabsList>
 
           {/* Overview Tab */}

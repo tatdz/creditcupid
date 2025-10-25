@@ -31,8 +31,7 @@ import { useCreditScoreManager } from '../hooks/useCreditScoreManager';
 import { useP2PData } from '../hooks/useP2PData';
 
 // Import Blockscout utilities
-import { triggerTransactionPopup, ViewOnBlockscoutButton, TransactionStatusWithBlockscout } from '../utils/blockscout';
-
+import { triggerTransactionPopup, ViewOnBlockscoutButton, TransactionStatusWithBlockscout } from '../utils/blockscout'
 // Ultra-fast transaction checker with backend proxies
 const checkTransactionFast = async (txHash: string): Promise<boolean> => {
   console.log('🔍 Checking transaction status...');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // ← Add useEffect here
 import {
   createConfig,
   WagmiProvider,
@@ -15,16 +15,24 @@ import {
 } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { injected } from 'wagmi/connectors';
-import {
-  NotificationProvider,
-  TransactionPopupProvider,
-} from '@blockscout/app-sdk';
+import dynamic from 'next/dynamic';
 
 import LandingPopup from './components/LandingPopup';
 import { CreditDashboard } from './components/credit-dashboard/CreditDashboard';
-import { TransactionPopupListener } from './components/TransactionPopupListener';
 import cupidGif from './assets/cupid.gif';
-import { blockscoutCreditService } from './services/blockscoutCreditService';
+
+// Dynamic import with SSR disabled for Blockscout providers
+const BlockscoutProviders = dynamic(
+  () => import('./components/BlockscoutProviders').then(mod => ({ default: mod.BlockscoutProviders })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="flex justify-center items-center py-4">
+        <span className="loading loading-spinner loading-md text-primary"></span>
+      </div>
+    )
+  }
+)
 
 // RPC URLs keyed by chain ID - these are public, safe to keep in frontend
 const rpcUrls: Record<number, string> = {
@@ -69,38 +77,11 @@ const queryClient = new QueryClient({
   },
 });
 
-// Blockscout wrapper component
-function BlockscoutProviders({ children }: { children: React.ReactNode }) {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-    console.log('BlockscoutProviders mounted');
-  }, []);
-
-  console.log('BlockscoutProviders rendering, isMounted:', isMounted);
-
-  try {
-    console.log('Rendering Blockscout providers...');
-    return (
-      <NotificationProvider>
-        <TransactionPopupProvider>
-          {isMounted && <TransactionPopupListener />}
-          {children}
-        </TransactionPopupProvider>
-      </NotificationProvider>
-    );
-  } catch (error) {
-    console.error('Error rendering Blockscout providers:', error);
-    return <>{children}</>;
-  }
-}
-
 function AppContent() {
   const { isConnected } = useAccount();
 
   // No more API keys in frontend - they're handled by backend proxies
-  useEffect(() => {
+  useEffect(() => { // ← This useEffect was missing the import
     console.log('🔑 API keys are now securely handled by backend proxies');
     // The service will now use backend endpoints instead of direct API calls
   }, []);
