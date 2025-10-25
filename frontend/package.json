@@ -4,45 +4,38 @@
   "type": "module",
   "description": "zk Onchain Credit Oracle for web3 credit identities with Dual Financial and Social Matchmaking — Find Trusted Partners in P2P Lending and Life",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "build:prod": "tsc && vite build --mode production",
-    "build:analyze": "tsc && vite build --mode production && npx vite-bundle-analyzer dist",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "build:prod": "next build",
+    "build:analyze": "ANALYZE=true next build",
+    "lint:fix": "next lint --fix",
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "test:e2e": "playwright test",
-    "serve": "vite preview --port 3000 --host",
     "deploy:vercel": "vercel --prod",
-    "vercel-build": "npm run build",
+    "vercel-build": "next build",
     "deploy:netlify": "netlify deploy --prod",
-    "deploy:ipfs": "npm run build && npx ipfs-deploy dist",
     "generate:types": "wagmi generate",
-    "clean": "rm -rf dist node_modules/.vite"
+    "clean": "rm -rf .next node_modules"
   },
   "dependencies": {
     "@blockscout/app-sdk": "^0.1.2",
-    "@esbuild-plugins/node-modules-polyfill": "^0.2.2",
     "@hookform/resolvers": "^3.3.2",
     "@safe-global/safe-apps-sdk": "^9.0.0",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-query-devtools": "^5.0.0",
-    "@types/lodash": "^4.14.202",
     "axios": "^1.6.0",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "copy-to-clipboard": "^3.3.3",
-    "cors": "^2.8.5",
     "date-fns": "^2.30.0",
     "debounce": "^1.2.1",
     "ethers": "^6.8.0",
-    "express": "^4.18.2",
     "ffjavascript": "^0.2.57",
     "framer-motion": "^10.16.0",
     "immer": "^10.0.3",
@@ -57,10 +50,9 @@
     "react-helmet-async": "^2.0.4",
     "react-hook-form": "^7.47.0",
     "react-hot-toast": "^2.4.1",
-    "react-router-dom": "^6.18.0",
     "react-tooltip": "^5.21.0",
     "recharts": "^2.8.0",
-    "rollup-plugin-polyfill-node": "^0.13.0",
+    "sharp": "^0.34.4",
     "snarkjs": "^0.7.5",
     "socket.io-client": "^4.7.4",
     "tailwind-merge": "^2.6.0",
@@ -72,60 +64,27 @@
     "zustand": "^4.4.7"
   },
   "devDependencies": {
-    "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
-    "@testing-library/jest-dom": "^6.1.4",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^14.5.1",
     "@types/circomlibjs": "^0.1.6",
     "@types/debounce": "^1.2.1",
     "@types/js-cookie": "^3.0.6",
     "@types/lodash": "^4.14.202",
+    "@types/next": "^8.0.7",
+    "@types/node": "^20.8.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
     "@typescript-eslint/parser": "^6.10.0",
-    "@vitejs/plugin-legacy": "^7.2.1",
-    "@vitejs/plugin-react": "^4.1.1",
-    "@vitest/coverage-v8": "^0.34.6",
-    "@vitest/ui": "^0.34.6",
     "autoprefixer": "^10.4.16",
-    "buffer": "^6.0.3",
     "eslint": "^8.53.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.4",
-    "jsdom": "^22.1.0",
-    "playwright": "^1.40.0",
+    "eslint-config-next": "^14.0.0",
     "postcss": "^8.4.31",
-    "stream": "^0.0.3",
     "tailwindcss": "^3.3.5",
-    "typescript": "^5.2.2",
-    "util": "^0.12.5",
-    "vite": "^4.5.0",
-    "vite-bundle-analyzer": "^1.0.2",
-    "vite-plugin-svgr": "^4.1.0",
-    "vite-tsconfig-paths": "^4.2.1",
-    "vitest": "^0.34.6"
+    "typescript": "^5.2.2"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
-  },
-  "resolutions": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
   },
   "repository": {
     "type": "git",
@@ -150,6 +109,5 @@
   "bugs": {
     "url": "https://github.com/creditcupid/frontend/issues"
   },
-  "homepage": "https://creditcupid.io",
-  "main": "next.config.js"
+  "homepage": "https://creditcupid.io"
 }

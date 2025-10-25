@@ -1,9 +1,9 @@
 // hooks/useCreditScoreManager.ts
 import { useState, useEffect, useCallback } from 'react';
-import { useAccount, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useReadContract } from 'wagmi';
 import { sepolia } from 'wagmi/chains';
-import { transactionService, TransactionStatus } from '../../../backend/src/services/transactionService';
-import { triggerTransactionPopup } from '../utils/blockscout';
+import { apiService } from '../services/apiClient';
+import { triggerTransactionPopup, generateBlockscoutUrls } from '../utils/blockscout';
 
 const CREDIT_SCORE_ADDRESS = '0x246E504F0B17A36906C3A9E255dbe3b51D54BcA8' as `0x${string}`;
 const P2P_LENDING_ADDRESS = '0x8F254C3A7858d05a9829391319821eC62d69ACa4' as `0x${string}`;
@@ -70,6 +70,15 @@ const P2P_LENDING_ABI = [
   }
 ] as const;
 
+// Local TransactionStatus interface
+interface TransactionStatus {
+  isConfirmed: boolean;
+  status: 'success' | 'failed' | 'pending';
+  blockNumber?: number;
+  confirmations?: number;
+  transactionHash?: string;
+}
+
 export const useCreditScoreManager = (userAddress: string, initialCreditScore: number) => {
   const { isConnected, chain } = useAccount();
   const { writeContract } = useWriteContract();
@@ -85,7 +94,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     transactionStatus: null as TransactionStatus | null,
     transactionSuccess: false,
     transactionError: null as string | null,
-    lastTransactionHash: null as string | null, // Add this for Blockscout
+    lastTransactionHash: null as string | null,
   });
 
   // Read credit score from CreditScore contract
@@ -120,15 +129,27 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     }
   });
 
-  // Enhanced transaction status checking
+  // Enhanced transaction status checking using RPC proxy
   const checkTransactionStatus = useCallback(async (txHash: string) => {
     try {
       console.log('🔄 Checking transaction status for:', txHash);
-      const status = await transactionService.getTransactionStatus(txHash);
+      
+      // Use RPC proxy to check transaction receipt
+      const receipt = await apiService.getTransactionReceipt('11155111', txHash);
+      
+      const status: TransactionStatus = {
+        isConfirmed: !!receipt && receipt.result !== null,
+        status: receipt?.result?.status === '0x1' ? 'success' : 
+                receipt?.result?.status === '0x0' ? 'failed' : 'pending',
+        blockNumber: receipt?.result?.blockNumber ? parseInt(receipt.result.blockNumber, 16) : undefined,
+        confirmations: 1, // Simple confirmation count
+        transactionHash: txHash
+      };
+      
       setState(prev => ({ ...prev, transactionStatus: status }));
 
       if (status.isConfirmed && status.status === 'success') {
-        console.log('✅ Transaction confirmed via transaction service!');
+        console.log('✅ Transaction confirmed!');
         
         setState(prev => ({
           ...prev,
@@ -136,7 +157,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
           transactionSuccess: true,
           isScoreSet: true,
           creditScore: initialCreditScore,
-          lastTransactionHash: txHash, // Store for Blockscout
+          lastTransactionHash: txHash,
         }));
 
         // Refetch scores after confirmation
@@ -162,9 +183,13 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
           isUpdating: false,
           transactionError: 'Transaction failed on-chain',
         }));
+      } else {
+        // Still pending, continue polling
+        console.log('⏳ Transaction still pending...');
       }
     } catch (error) {
       console.warn('Transaction status check failed:', error);
+      // Transaction might not be mined yet, this is normal
     }
   }, [refetchCreditScore, refetchP2PScore, initialCreditScore]);
 
@@ -294,9 +319,22 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
   const viewTransactionOnBlockscout = useCallback((transactionHash?: string) => {
     const hashToUse = transactionHash || state.lastTransactionHash;
     if (hashToUse && userAddress) {
+      console.log('🔗 Opening Blockscout for transaction:', hashToUse);
       triggerTransactionPopup(chain?.id.toString() || '11155111', userAddress, hashToUse);
+    } else {
+      console.warn('No transaction hash available for Blockscout');
     }
   }, [state.lastTransactionHash, userAddress, chain]);
+
+  // Generate Blockscout URLs for external use
+  const getTransactionUrl = useCallback((hash: string) => {
+    const urls = generateBlockscoutUrls(hash, userAddress, chain?.id || 11155111);
+    return urls.transaction || `https://sepolia.etherscan.io/tx/${hash}`;
+  }, [userAddress, chain]);
+
+  const getFallbackTransactionUrl = useCallback((hash: string) => {
+    return `https://sepolia.etherscan.io/tx/${hash}`;
+  }, []);
 
   const refetchScores = useCallback(() => {
     refetchCreditScore();
@@ -313,14 +351,6 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     }));
   }, []);
 
-  const getTransactionUrl = useCallback((hash: string) => {
-    return transactionService.getTransactionUrl(hash);
-  }, []);
-
-  const getFallbackTransactionUrl = useCallback((hash: string) => {
-    return transactionService.getFallbackTransactionUrl(hash);
-  }, []);
-
   return {
     // Data
     creditScore: state.creditScore,
@@ -334,7 +364,7 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     transactionHash: state.transactionHash,
     transactionStatus: state.transactionStatus,
     transactionSuccess: state.transactionSuccess,
-    lastTransactionHash: state.lastTransactionHash, // Add this for Blockscout
+    lastTransactionHash: state.lastTransactionHash,
     
     // Actions
     setCreditScoreOnChain,
@@ -343,6 +373,6 @@ export const useCreditScoreManager = (userAddress: string, initialCreditScore: n
     isCorrectNetwork,
     getTransactionUrl,
     getFallbackTransactionUrl,
-    viewTransactionOnBlockscout // Add Blockscout function
+    viewTransactionOnBlockscout
   };
 };

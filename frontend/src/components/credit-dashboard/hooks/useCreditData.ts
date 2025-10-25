@@ -5,7 +5,7 @@ import axios from 'axios';
 import { CreditData } from '../../../types/credit';
 
 // Use direct backend URL in development to avoid proxy issues
-const API_BASE_URL = 'http://localhost:3001';
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-production-6b17.up.railway.app';
 
 export const useCreditData = () => {
   const { address, isConnected, chain } = useAccount();

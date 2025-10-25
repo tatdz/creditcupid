@@ -1,32 +1,25 @@
-import axios from 'axios';
-
-export const apiClient = axios.create({
-  baseURL: 'http://localhost:3001', // Add base URL
-  timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
 export const API_CONFIG = {
-  baseUrl: process.env.VITE_API_BASE_URL || 'http://localhost:3001', // Changed to 3001
-  endpoints: {
-    creditData: (address: string) => `/api/credit-data/${address}`,
-    walletActivity: (address: string) => `/api/wallet-activity/${address}`,
-    collateralPrices: '/api/collateral-prices',
-    protocolPositions: (address: string) => `/api/protocol-positions/${address}`,
-    simulateTransaction: '/api/simulate-transaction',
-    plaidLink: '/plaid/link',
-    zkProofs: '/zk-proofs',
-    lending: '/lending'
-  }
+  baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-production-6b17.up.railway.app',
+  timeout: 30000,
 };
 
-// Add response interceptor for better error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
-  }
-);
+// Export the backend URL for direct use
+export const BACKEND_URL = API_CONFIG.baseUrl;
+
+// Chain configuration
+export const SUPPORTED_CHAINS = {
+  1: 'Ethereum Mainnet',
+  11155111: 'Sepolia Testnet',
+  137: 'Polygon',
+  42161: 'Arbitrum',
+  10: 'Optimism',
+  8453: 'Base'
+};
+
+// API timeouts
+export const API_TIMEOUTS = {
+  default: 30000,
+  creditData: 45000,
+  rpcCall: 15000,
+  healthCheck: 10000
+};

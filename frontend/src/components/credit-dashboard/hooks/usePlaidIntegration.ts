@@ -20,7 +20,7 @@ export const usePlaidIntegration = () => {
 useEffect(() => {
   const debugPinata = async () => {
     try {
-      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-production-6b17.up.railway.app';
       const response = await fetch(`${backendBase}/api/status`);
       const status = await response.json();
       

@@ -3,18 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "./ui/Card";
 import { Button } from "./ui/Button";
 import { Heart, MessageCircle, User, X, Check, Star, Zap, Upload, Sparkles, Coins, Castle, Info } from "lucide-react";
 import { useCreditScoreContext } from '../hooks/useCreditScoreContext';
-import alexMale from '../assets/alex-male.jpg';
-import charlieMale from '../assets/charlie-male.jpg';
-import frankMale from '../assets/frank-male.jpg';
-import sophiaFemale from '../assets/sophia-female.jpg';
-import emmaFemale from '../assets/emma-female.jpg';
-import dianaFemale from '../assets/diana-female.jpg';
-import ryanMale from '../assets/ryan-male.jpg';
-import jordanMale from '../assets/jordan-male.jpg';
-import taylorMale from '../assets/taylor-male.jpg';
-import rileyFemale from '../assets/riley-female.jpg';
-import caseyFemale from '../assets/casey-female.jpg';
-import morganFemale from '../assets/morgan-female.jpg';
+
 
 interface Profile {
   name: string;
@@ -152,172 +141,172 @@ export const DatingTab: React.FC = () => {
     };
   };
 
-  // All available profiles - exactly 3 for each combination
-  const allProfiles: Match[] = [
-    // Male profiles looking for females
-    {
-      id: "m1",
-      name: "Alex",
-      age: 29,
-      about: "DeFi developer building innovative protocols. Love discussing tokenomics.",
-      web3Personality: "Would sacrifice a goat for 1000% APY",
-      gender: "male",
-      preference: "female",
-      photo: alexMale,
-      creditScore: 812,
-      web3Vibes: generateWeb3Vibes(812),
-      messages: []
-    },
-    {
-      id: "m2",
-      name: "Charlie",
-      age: 31,
-      about: "Crypto trader and protocol researcher. Always early to new DeFi innovations.",
-      web3Personality: "My love language is 'GM' in all caps",
-      gender: "male",
-      preference: "female",
-      photo: charlieMale,
-      creditScore: 783,
-      web3Vibes: generateWeb3Vibes(783),
-      messages: []
-    },
-    {
-      id: "m3",
-      name: "Frank",
-      age: 33,
-      about: "DeFi maximalist and protocol auditor. Security first in everything.",
-      web3Personality: "I check DeFi Llama more than my texts",
-      gender: "male",
-      preference: "female",
-      photo: frankMale,
-      creditScore: 856,
-      web3Vibes: generateWeb3Vibes(856),
-      messages: []
-    },
+// All available profiles - exactly 3 for each combination
+const allProfiles: Match[] = [
+  // Male profiles looking for females
+  {
+    id: "m1",
+    name: "Alex",
+    age: 29,
+    about: "DeFi developer building innovative protocols. Love discussing tokenomics.",
+    web3Personality: "Would sacrifice a goat for 1000% APY",
+    gender: "male",
+    preference: "female",
+    photo: "/alex-male.jpg", 
+    creditScore: 812,
+    web3Vibes: generateWeb3Vibes(812),
+    messages: []
+  },
+  {
+    id: "m2",
+    name: "Charlie",
+    age: 31,
+    about: "Crypto trader and protocol researcher. Always early to new DeFi innovations.",
+    web3Personality: "My love language is 'GM' in all caps",
+    gender: "male",
+    preference: "female",
+    photo: "/charlie-male.jpg", 
+    creditScore: 783,
+    web3Vibes: generateWeb3Vibes(783),
+    messages: []
+  },
+  {
+    id: "m3",
+    name: "Frank",
+    age: 33,
+    about: "DeFi maximalist and protocol auditor. Security first in everything.",
+    web3Personality: "I check DeFi Llama more than my texts",
+    gender: "male",
+    preference: "female",
+    photo: "/frank-male.jpg",
+    creditScore: 856,
+    web3Vibes: generateWeb3Vibes(856),
+    messages: []
+  },
 
-    // Female profiles looking for males
-    {
-      id: "f1",
-      name: "Sophia",
-      age: 26,
-      about: "NFT artist and DeFi enthusiast. Love exploring new protocols and building in web3.",
-      web3Personality: "I'd rather get rugged than ghosted",
-      gender: "female",
-      preference: "male",
-      photo: sophiaFemale,
-      creditScore: 745,
-      web3Vibes: generateWeb3Vibes(745),
-      messages: []
-    },
-    {
-      id: "f2",
-      name: "Emma",
-      age: 27,
-      about: "Yield farmer and liquidity provider. Passionate about finding the best APYs.",
-      web3Personality: "My exes are like bad tokens - I don't hold them",
-      gender: "female",
-      preference: "male",
-      photo: emmaFemale,
-      creditScore: 698,
-      web3Vibes: generateWeb3Vibes(698),
-      messages: []
-    },
-    {
-      id: "f3",
-      name: "Diana",
-      age: 25,
-      about: "Web3 designer and DAO contributor. Building beautiful interfaces for DeFi.",
-      web3Personality: "I love you more than I love claiming airdrops",
-      gender: "female",
-      preference: "male",
-      photo: dianaFemale,
-      creditScore: 721,
-      web3Vibes: generateWeb3Vibes(721),
-      messages: []
-    },
+  // Female profiles looking for males
+  {
+    id: "f1",
+    name: "Sophia",
+    age: 26,
+    about: "NFT artist and DeFi enthusiast. Love exploring new protocols and building in web3.",
+    web3Personality: "I'd rather get rugged than ghosted",
+    gender: "female",
+    preference: "male",
+    photo: "/sophia-female.jpg", 
+    creditScore: 745,
+    web3Vibes: generateWeb3Vibes(745),
+    messages: []
+  },
+  {
+    id: "f2",
+    name: "Emma",
+    age: 27,
+    about: "Yield farmer and liquidity provider. Passionate about finding the best APYs.",
+    web3Personality: "My exes are like bad tokens - I don't hold them",
+    gender: "female",
+    preference: "male",
+    photo: "/emma-female.jpg", 
+    creditScore: 698,
+    web3Vibes: generateWeb3Vibes(698),
+    messages: []
+  },
+  {
+    id: "f3",
+    name: "Diana",
+    age: 25,
+    about: "Web3 designer and DAO contributor. Building beautiful interfaces for DeFi.",
+    web3Personality: "I love you more than I love claiming airdrops",
+    gender: "female",
+    preference: "male",
+    photo: "/diana-female.jpg", 
+    creditScore: 721,
+    web3Vibes: generateWeb3Vibes(721),
+    messages: []
+  },
 
-    // Male profiles looking for males
-    {
-      id: "mm1",
-      name: "Ryan",
-      age: 32,
-      about: "Institutional DeFi analyst. Bridging traditional finance with crypto.",
-      web3Personality: "My heart has better tokenomics than most L2s",
-      gender: "male",
-      preference: "male",
-      photo: ryanMale,
-      creditScore: 801,
-      web3Vibes: generateWeb3Vibes(801),
-      messages: []
-    },
-    {
-      id: "mm2",
-      name: "Jordan",
-      age: 29,
-      about: "Cross-chain developer. Building bridges between different blockchain ecosystems.",
-      web3Personality: "I'm more loyal than a Bitcoin maximalist",
-      gender: "male",
-      preference: "male",
-      photo: jordanMale,
-      creditScore: 732,
-      web3Vibes: generateWeb3Vibes(732),
-      messages: []
-    },
-    {
-      id: "mm3",
-      name: "Taylor",
-      age: 30,
-      about: "Crypto fund manager and investment strategist. Focused on long-term growth.",
-      web3Personality: "Wen romance? Soon™",
-      gender: "male",
-      preference: "male",
-      photo: taylorMale,
-      creditScore: 789,
-      web3Vibes: generateWeb3Vibes(789),
-      messages: []
-    },
+  // Male profiles looking for males
+  {
+    id: "mm1",
+    name: "Ryan",
+    age: 32,
+    about: "Institutional DeFi analyst. Bridging traditional finance with crypto.",
+    web3Personality: "My heart has better tokenomics than most L2s",
+    gender: "male",
+    preference: "male",
+    photo: "/ryan-male.jpg", 
+    creditScore: 801,
+    web3Vibes: generateWeb3Vibes(801),
+    messages: []
+  },
+  {
+    id: "mm2",
+    name: "Jordan",
+    age: 29,
+    about: "Cross-chain developer. Building bridges between different blockchain ecosystems.",
+    web3Personality: "I'm more loyal than a Bitcoin maximalist",
+    gender: "male",
+    preference: "male",
+    photo: "/jordan-male.jpg", 
+    creditScore: 732,
+    web3Vibes: generateWeb3Vibes(732),
+    messages: []
+  },
+  {
+    id: "mm3",
+    name: "Taylor",
+    age: 30,
+    about: "Crypto fund manager and investment strategist. Focused on long-term growth.",
+    web3Personality: "Wen romance? Soon™",
+    gender: "male",
+    preference: "male",
+    photo: "/taylor-male.jpg", 
+    creditScore: 789,
+    web3Vibes: generateWeb3Vibes(789),
+    messages: []
+  },
 
-    // Female profiles looking for females
-    {
-      id: "ff1",
-      name: "Riley",
-      age: 28,
-      about: "Blockchain researcher and academic. Studying crypto economics and governance.",
-      web3Personality: "My love is more decentralized than most DAOs",
-      gender: "female",
-      preference: "female",
-      photo: rileyFemale,
-      creditScore: 768,
-      web3Vibes: generateWeb3Vibes(768),
-      messages: []
-    },
-    {
-      id: "ff2",
-      name: "Casey",
-      age: 26,
-      about: "Smart contract developer and security expert. Passionate about safe DeFi.",
-      web3Personality: "I'd audit your heart for free",
-      gender: "female",
-      preference: "female",
-      photo: caseyFemale,
-      creditScore: 815,
-      web3Vibes: generateWeb3Vibes(815),
-      messages: []
-    },
-    {
-      id: "ff3",
-      name: "Morgan",
-      age: 27,
-      about: "DeFi educator and community builder. Helping newcomers navigate web3 safely.",
-      web3Personality: "Love at first sight? More like love at first GM",
-      gender: "female",
-      preference: "female",
-      photo: morganFemale,
-      creditScore: 694,
-      web3Vibes: generateWeb3Vibes(694),
-      messages: []
-    }
-  ];
+  // Female profiles looking for females
+  {
+    id: "ff1",
+    name: "Riley",
+    age: 28,
+    about: "Blockchain researcher and academic. Studying crypto economics and governance.",
+    web3Personality: "My love is more decentralized than most DAOs",
+    gender: "female",
+    preference: "female",
+    photo: "/riley-female.jpg",
+    creditScore: 768,
+    web3Vibes: generateWeb3Vibes(768),
+    messages: []
+  },
+  {
+    id: "ff2",
+    name: "Casey",
+    age: 26,
+    about: "Smart contract developer and security expert. Passionate about safe DeFi.",
+    web3Personality: "I'd audit your heart for free",
+    gender: "female",
+    preference: "female",
+    photo: "/casey-female.jpg", 
+    creditScore: 815,
+    web3Vibes: generateWeb3Vibes(815),
+    messages: []
+  },
+  {
+    id: "ff3",
+    name: "Morgan",
+    age: 27,
+    about: "DeFi educator and community builder. Helping newcomers navigate web3 safely.",
+    web3Personality: "Love at first sight? More like love at first GM",
+    gender: "female",
+    preference: "female",
+    photo: "/morgan-female.jpg", 
+    creditScore: 694,
+    web3Vibes: generateWeb3Vibes(694),
+    messages: []
+  }
+];
 
   const [matches, setMatches] = useState<Match[]>([]);
 

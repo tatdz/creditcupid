@@ -30,3 +30,4 @@ __pycache__/
 #Ignore git files
 .git
 .gitmodules
+.vercel

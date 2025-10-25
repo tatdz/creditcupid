@@ -57,7 +57,7 @@ class BackendPinataService {
 
   private async checkBackendStatus(): Promise<void> {
     try {
-      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-production-6b17.up.railway.app';
       console.log('🔍 Checking backend status at:', `${backendBase}/api/status`);
       
       const response = await fetch(`${backendBase}/api/status`);
@@ -112,7 +112,7 @@ class BackendPinataService {
     console.log(`📤 Uploading ${name} to Pinata IPFS via backend proxy...`);
 
     try {
-      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-production-6b17.up.railway.app';
       const response = await fetch(`${backendBase}/api/proxy/pinata/pinning/pinJSONToIPFS`, {
         method: 'POST',
         headers: {
@@ -206,7 +206,7 @@ class BackendPinataService {
     }
     
     try {
-      const backendBase = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
+      const backendBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend-production-6b17.up.railway.app';
       const response = await fetch(`${backendBase}/api/status`);
       return response.ok;
     } catch (error) {
